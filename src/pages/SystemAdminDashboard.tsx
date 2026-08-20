@@ -1,14 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { AlertOctagon, Users, LogOut, Building2, Activity, CalendarClock, MessageSquareWarning, Upload, ShieldAlert, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Undo2, History } from 'lucide-react';
+import { AlertOctagon, Users, LogOut, Building2, Activity, CalendarClock, MessageSquareWarning, Upload, ShieldAlert, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Undo2, History, Zap, Copy, Check, RefreshCw, Globe, Link } from 'lucide-react';
 import employeeImg from '../assets/employee.png';
 import { formatDateTime, toEnglishNumerals } from '../lib/formatDate';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { logout } = useAuth();
-  const { users, updateUser, addUser, removeUser, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData } = useData();
-  const [activeTab, setActiveTab] = useState<'timeline' | 'branches' | 'employees' | 'notes' | 'stats' | 'history' | 'shifts' | 'danger'>('timeline');
+  const { users, updateUser, addUser, removeUser, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData, makeWebhookUrl, setMakeWebhookUrl, makeAutoSync, setMakeAutoSync, fetchAndProcessMakeReviews } = useData();
+  const [activeTab, setActiveTab] = useState<'timeline' | 'branches' | 'employees' | 'notes' | 'stats' | 'history' | 'shifts' | 'make' | 'danger'>('timeline');
+  
+  const [tempMakeUrl, setTempMakeUrl] = useState(makeWebhookUrl);
+  const [isFetchingMake, setIsFetchingMake] = useState(false);
+  const [makeStatusMsg, setMakeStatusMsg] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
+  const [copiedSchema, setCopiedSchema] = useState(false);
 
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
   const [selectedBranch, setSelectedBranch] = useState(branches[0]);
@@ -1285,6 +1290,163 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
           )}
 
+          {/* Make.com Integration Tab */}
+          {activeTab === 'make' && (
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-2">
+                      <Zap size={14} className="text-yellow-300 fill-yellow-300" />
+                      تكامل سيناريوهات Make.com
+                    </div>
+                    <h2 className="text-2xl font-black">جلب واستدعاء التقييمات الآلي من Make.com</h2>
+                    <p className="text-purple-100 text-sm mt-1 max-w-2xl">
+                      ربط النظام بشرائح وتطبيقات Make.com (خرائط جوجل، واتساب، نماذج التقييم) لجلب التقييمات وتوزيعها آلياً على شفتات الموظفين.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={async () => {
+                      setIsFetchingMake(true);
+                      setMakeStatusMsg(null);
+                      const res = await fetchAndProcessMakeReviews(tempMakeUrl);
+                      setIsFetchingMake(false);
+                      if (res.success) {
+                        setMakeStatusMsg({ text: res.count > 0 ? `تم جلب وحقن ${res.count} تقييمات جديدة بنجاح!` : 'لا توجد تقييمات جديدة في سيناريو Make.com', type: 'success' });
+                      } else {
+                        setMakeStatusMsg({ text: res.error || 'حدث خطأ أثناء الجلب', type: 'error' });
+                      }
+                    }}
+                    disabled={isFetchingMake}
+                    className="bg-amber-400 hover:bg-amber-300 text-gray-900 font-extrabold px-6 py-3.5 rounded-xl shadow-md transition duration-200 flex items-center gap-2 disabled:opacity-50 shrink-0 cursor-pointer"
+                  >
+                    <RefreshCw size={20} className={isFetchingMake ? 'animate-spin' : ''} />
+                    {isFetchingMake ? 'جاري الاستدعاء...' : 'جلب التقييمات من Make.com الآن'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Message Alert */}
+              {makeStatusMsg && (
+                <div className={`p-4 rounded-xl font-bold flex items-center justify-between shadow-sm ${makeStatusMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                  <div className="flex items-center gap-2">
+                    {makeStatusMsg.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-600" /> : <AlertOctagon size={20} className="text-red-600" />}
+                    <span>{makeStatusMsg.text}</span>
+                  </div>
+                  <button onClick={() => setMakeStatusMsg(null)} className="text-xs opacity-60 hover:opacity-100">إغلاق</button>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Webhook Settings Card */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
+                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
+                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+                      <Link size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-lg">إعدادات رابط Make.com Webhook</h3>
+                      <p className="text-xs text-gray-500">أدخل رابط Custom Webhook الذي يخرج التقييمات بصيغة JSON</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold text-gray-700">رابط Webhook / Response URL:</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="url"
+                        placeholder="https://hook.eu1.make.com/xxxxxxxxxxxxxxxxxxxx"
+                        value={tempMakeUrl}
+                        onChange={(e) => setTempMakeUrl(e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-sm font-mono focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          setMakeWebhookUrl(tempMakeUrl);
+                          showToast('تم حفظ رابط Make.com بنجاح');
+                        }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition"
+                      >
+                        حفظ الرابط
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900">المزامنة التلقائية (Auto-Sync Interval)</h4>
+                      <p className="text-xs text-gray-500">التحقق التلقائي واستدعاء التقييمات كل 10 دقائق</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newVal = !makeAutoSync;
+                        setMakeAutoSync(newVal);
+                        showToast(newVal ? 'تم تفعيل المزامنة الآلية مع Make.com' : 'تم إيقاف المزامنة الآلية');
+                      }}
+                      className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${makeAutoSync ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${makeAutoSync ? '-translate-x-7' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Make.com Payload Guidelines */}
+                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <Globe size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">صيغة البيانات (Make JSON Schema)</h3>
+                        <p className="text-xs text-gray-500">استخدم هذه الهيكلية في وحدة Webhook Response بمنصة Make</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const schemaText = `[\n  {\n    "reviewerName": "سارة أحمد",\n    "rating": 5,\n    "comment": "خدمة ممتازة وسريعة",\n    "date": "${new Date().getDate().toString().padStart(2, '0')}-${(new Date().getMonth() + 1).toString().padStart(2, '0')}-${new Date().getFullYear()}",\n    "time": "18:30",\n    "branch": "جاليري"\n  }\n]`;
+                        navigator.clipboard.writeText(schemaText);
+                        setCopiedSchema(true);
+                        setTimeout(() => setCopiedSchema(false), 2000);
+                        showToast('تم نسخ نموذج JSON للقصاصة');
+                      }}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
+                    >
+                      {copiedSchema ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                      {copiedSchema ? 'تم النسخ' : 'نسخ النموذج'}
+                    </button>
+                  </div>
+
+                  <div className="bg-slate-900 text-slate-200 p-4 rounded-xl text-xs font-mono overflow-x-auto dir-ltr">
+                    <pre>{`[
+  {
+    "reviewerName": "سارة أحمد",
+    "rating": 5,
+    "comment": "خدمة ممتازة وسريعة",
+    "date": "20-08-2026",
+    "time": "18:30",
+    "branch": "جاليري"
+  }
+]`}</pre>
+                  </div>
+
+                  <div className="text-xs text-gray-600 space-y-1.5 pt-1">
+                    <p className="font-bold text-gray-800">💡 الحقول المدعومة تلقائياً:</p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-500">
+                      <li><code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">reviewerName</code> أو <code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">name</code>: اسم صاحب التقييم.</li>
+                      <li><code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">rating</code> أو <code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">stars</code>: تقييم التنجيم (1 إلى 5).</li>
+                      <li><code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">comment</code> أو <code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">text</code>: نص التعليق.</li>
+                      <li><code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">date</code> و <code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">time</code>: تاريخ ووقت التقييم (سيتم الربط التلقائي بشفت الفرع).</li>
+                      <li><code className="bg-gray-100 px-1 py-0.5 rounded text-purple-700">branch</code>: اسم الفرع (جاليري، ذافيو، سلام، القصر، المملكة، شرق).</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -1324,6 +1486,11 @@ export const SystemAdminDashboard: React.FC = () => {
           className={`shrink-0 min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all duration-300 ${activeTab === 'history' ? 'text-blue-600 bg-blue-50/80 scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
           <History size={22} className={activeTab === 'history' ? 'stroke-[2.5px]' : ''} />
           <span className="text-[10px] font-bold">السجل</span>
+        </button>
+        <button onClick={() => setActiveTab('make')}
+          className={`shrink-0 min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all duration-300 ${activeTab === 'make' ? 'text-purple-600 bg-purple-50/80 scale-105' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>
+          <Zap size={22} className={activeTab === 'make' ? 'stroke-[2.5px] text-amber-500 fill-amber-400' : ''} />
+          <span className="text-[10px] font-bold">Make.com</span>
         </button>
         <button onClick={() => setActiveTab('danger')}
           className={`shrink-0 min-w-[70px] flex-1 flex flex-col items-center justify-center gap-1.5 py-2 rounded-xl transition-all duration-300 ${activeTab === 'danger' ? 'text-red-600 bg-red-50/80 scale-105' : 'text-red-400 hover:text-red-600 hover:bg-red-50'}`}>

@@ -126,23 +126,24 @@ export const Leaderboard: React.FC = () => {
       sData.push({ type: 'active_employee', employee: mostActiveEmployee, count: maxEmpCount });
     }
 
-    // 4. Most Praised Employee
+    // 4. Most Praised Employee (Most reviews this week)
+    const weekReviews = reviews.filter(r => isWithinLastDays(r.date, 7));
     let mostPraisedEmpId = '';
     let maxPraiseCount = 0;
     const praiseCounts: Record<string, { count: number, texts: string[] }> = {};
 
-    reviews.forEach(r => {
-      if (r.comment && r.comment.length > 5) {
-        r.linkedEmployeeIds.forEach(id => {
-          if (!praiseCounts[id]) praiseCounts[id] = { count: 0, texts: [] };
-          praiseCounts[id].count++;
+    weekReviews.forEach(r => {
+      r.linkedEmployeeIds.forEach(id => {
+        if (!praiseCounts[id]) praiseCounts[id] = { count: 0, texts: [] };
+        praiseCounts[id].count++;
+        if (r.comment && r.comment.length > 3) {
           praiseCounts[id].texts.push(r.comment);
-          if (praiseCounts[id].count > maxPraiseCount) {
-            maxPraiseCount = praiseCounts[id].count;
-            mostPraisedEmpId = id;
-          }
-        });
-      }
+        }
+        if (praiseCounts[id].count > maxPraiseCount) {
+          maxPraiseCount = praiseCounts[id].count;
+          mostPraisedEmpId = id;
+        }
+      });
     });
 
     const mostPraisedEmployee = users.find(u => u.id === mostPraisedEmpId);
@@ -229,7 +230,7 @@ export const Leaderboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Center Image Swiper */}
-      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-16 pb-[33vh]">
+      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-14 sm:pt-16 pb-[35vh] sm:pb-[33vh]">
         <Swiper
           ref={swiperRef}
           dir="ltr"
@@ -240,71 +241,75 @@ export const Leaderboard: React.FC = () => {
           autoplay={{ delay: 3000, disableOnInteraction: false }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           creativeEffect={{
-            limitProgress: 2,
-            prev: { translate: ['-100%', '50%', 0], opacity: 0, scale: 1 },
-            next: { translate: ['40%', '-20%', -200], opacity: 1, scale: 0.8 },
+            limitProgress: 1,
+            prev: { translate: ['-110%', 0, -100], opacity: 0, scale: 0.9 },
+            next: { translate: ['110%', 0, -100], opacity: 0, scale: 0.9 },
           }}
           modules={[EffectCreative, Autoplay]}
-          className="w-full h-[60vh] max-w-sm mx-auto overflow-visible"
+          className="w-full h-full max-w-xs sm:max-w-sm mx-auto"
+          style={{ overflow: 'visible' }}
         >
           {slidesData.map((slide, i) => (
-            <SwiperSlide key={i} className="flex justify-center items-center">
+            <SwiperSlide key={i} className="flex justify-center items-center" style={{ overflow: 'visible' }}>
               <div className="h-full flex justify-center items-center relative w-full px-4">
                 
                 {slide.type === 'employee' && (
-                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[50vh] sm:h-[55vh] object-contain drop-shadow-xl" />
+                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[40vh] sm:h-[55vh] max-w-full object-contain drop-shadow-xl" />
                 )}
 
                 {slide.type === 'partnership' && (
-                  <div className="w-full max-w-[300px] h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-6 text-center gap-4 relative overflow-hidden rtl" dir="rtl">
-                    <Users size={64} className="text-blue-500 opacity-20 absolute top-10 right-10" />
-                    <div className="flex items-center justify-center -space-x-8 rtl:space-x-reverse mt-4">
-                      <img src={slide.emp1.imageUrl} alt={slide.emp1.name} className="w-28 h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-10" />
-                      <img src={slide.emp2.imageUrl} alt={slide.emp2.name} className="w-28 h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-0 -ml-8" />
+                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                    <Users size={48} className="text-blue-500 opacity-20 absolute top-6 right-6" />
+                    <div className="flex items-center justify-center -space-x-6 sm:-space-x-8 rtl:space-x-reverse mt-2">
+                      <img src={slide.emp1.imageUrl} alt={slide.emp1.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-10" />
+                      <img src={slide.emp2.imageUrl} alt={slide.emp2.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-0 -ml-6 sm:-ml-8" />
                     </div>
-                    <div className="z-10 mt-4 bg-white/60 backdrop-blur-sm p-4 rounded-3xl w-full shadow-sm">
-                      <h4 className="text-xl font-black text-gray-800 leading-tight">{slide.emp1.name}</h4>
-                      <p className="text-sm font-bold text-gray-500 my-1">&</p>
-                      <h4 className="text-xl font-black text-gray-800 leading-tight">{slide.emp2.name}</h4>
+                    <div className="z-10 mt-2 sm:mt-4 bg-white/60 backdrop-blur-sm p-3 sm:p-4 rounded-2xl sm:rounded-3xl w-full shadow-sm">
+                      <h4 className="text-base sm:text-xl font-black text-gray-800 leading-tight">{slide.emp1.name}</h4>
+                      <p className="text-xs font-bold text-gray-500 my-0.5">&</p>
+                      <h4 className="text-base sm:text-xl font-black text-gray-800 leading-tight">{slide.emp2.name}</h4>
                     </div>
                   </div>
                 )}
 
                 {slide.type === 'active_branch' && (
-                  <div className="w-full max-w-[300px] h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-6 text-center gap-4 relative overflow-hidden rtl" dir="rtl">
-                    <Building2 size={64} className="text-teal-500 opacity-20 absolute top-10 left-10" />
-                    <div className="w-36 h-36 bg-white rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-4 rotate-3">
-                      <TrendingUp size={48} className="text-teal-500 mb-2" />
-                      <p className="text-3xl font-extrabold text-teal-600">+{slide.count}</p>
+                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                    <Building2 size={48} className="text-teal-500 opacity-20 absolute top-6 left-6" />
+                    <div className="w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
+                      <TrendingUp size={32} className="text-teal-500 mb-1" />
+                      <p className="text-xl sm:text-3xl font-extrabold text-teal-600">+{slide.count}</p>
                     </div>
-                    <h3 className="text-3xl font-black text-gray-800 leading-tight">{slide.branch}</h3>
-                    <p className="text-teal-700 font-bold bg-teal-100 px-4 py-2 rounded-full mt-2 text-sm shadow-inner">في آخر ٤ أيام</p>
+                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight">{slide.branch}</h3>
+                    <p className="text-teal-700 font-bold bg-teal-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-1 text-xs sm:text-sm shadow-inner">في آخر ٤ أيام</p>
                   </div>
                 )}
 
                 {slide.type === 'active_employee' && (
-                  <div className="w-full max-w-[300px] h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <Star size={64} className="text-orange-500 opacity-20 absolute top-10 right-10" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-40 h-40 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white mb-6 z-10" />
-                    <h3 className="text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
-                    <p className="text-orange-700 font-bold bg-orange-100 px-4 py-2 rounded-full mt-4 z-10 text-sm shadow-inner">نشاط متصاعد بقوة</p>
+                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
+                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white mb-3 sm:mb-6 z-10" />
+                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
+                    <p className="text-orange-700 font-bold bg-orange-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
                   </div>
                 )}
 
                 {slide.type === 'praised_employee' && (
-                  <div className="w-full max-w-[300px] h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <MessageSquareHeart size={64} className="text-pink-500 opacity-10 absolute bottom-10 left-10" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-24 h-24 rounded-full border-4 border-pink-200 shadow-lg object-cover object-top bg-white mb-4 z-10 shrink-0" />
-                    <h3 className="text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
+                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <MessageSquareHeart size={48} className="text-pink-500 opacity-10 absolute bottom-6 left-6" />
+                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg object-cover object-top bg-white mb-2 sm:mb-4 z-10 shrink-0" />
+                    <h3 className="text-lg sm:text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
                     
-                    <div className="mt-4 flex flex-col gap-3 w-full z-10 overflow-hidden">
-                      {slide.texts.map((t, idx) => (
-                        <div key={idx} className="bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-sm text-xs text-gray-800 text-right line-clamp-3 italic border border-pink-50 relative">
-                          <span className="text-pink-300 text-2xl absolute -top-2 -right-1 font-serif">"</span>
+                    <div className="mt-2 sm:mt-4 flex flex-col gap-2 w-full z-10 overflow-y-auto flex-1">
+                      {slide.texts.length > 0 ? slide.texts.map((t, idx) => (
+                        <div key={idx} className="bg-white/90 backdrop-blur-sm p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm text-[11px] sm:text-xs text-gray-800 text-right line-clamp-2 italic border border-pink-50 relative">
+                          <span className="text-pink-300 text-lg sm:text-2xl absolute -top-1 -right-1 font-serif">"</span>
                           {t}
-                          <span className="text-pink-300 text-2xl absolute -bottom-4 -left-1 font-serif">"</span>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="bg-white/70 p-3 rounded-xl text-center">
+                          <p className="text-pink-600 font-bold text-sm">⭐ {slide.count} تقييم هذا الأسبوع</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -316,54 +321,54 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       {/* Bottom Blue Curved Card */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[33vh]">
-        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-8 sm:h-12 text-blue-500 fill-current">
+      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[35vh] sm:h-[33vh]">
+        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-24 sm:pb-8 relative">
+        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-16 sm:pb-8 relative">
           
           {/* Left/Right Action Buttons */}
           <button 
             onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
-            className="absolute left-6 top-1/3 -translate-y-1/2 bg-white/10 p-3 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute left-4 sm:left-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
-             <Users size={28} className="text-white" />
+             <Users size={22} className="text-white" />
           </button>
           <button 
             onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
-            className="absolute right-6 top-1/3 -translate-y-1/2 bg-white/10 p-3 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute right-4 sm:right-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
-             <Building2 size={28} className="text-white" />
+             <Building2 size={22} className="text-white" />
           </button>
 
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex + '-bottom'}
               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}
-              className="flex flex-col items-center w-full px-6"
+              className="flex flex-col items-center w-full px-4 sm:px-6"
             >
               
               {activeSlide.type === 'employee' && (
                 <>
                   <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="flex items-center gap-2 hover:scale-105 transition-transform group">
-                      <h2 className="text-3xl sm:text-5xl font-bold mb-1">{activeSlide.data.name}</h2>
+                      <h2 className="text-2xl sm:text-5xl font-bold mb-0.5 sm:mb-1">{activeSlide.data.name}</h2>
                     </button>
                   </EmployeeCard>
                   
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-xl font-medium mb-3 hover:underline bg-white/20 px-4 py-1 rounded-full mt-2">
+                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium mb-1.5 sm:mb-3 hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mt-1 sm:mt-2">
                     {activeSlide.data.branch}
                   </button>
 
-                  <div className="flex items-center justify-center gap-8 w-full mt-1">
+                  <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
-                      <p className="text-blue-100 text-xs font-bold">النقاط</p>
-                      <p className="text-2xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(2)}</p>
+                      <p className="text-blue-100 text-[10px] sm:text-xs font-bold">النقاط</p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(2)}</p>
                     </div>
-                    <div className="w-px h-10 bg-blue-300/50"></div>
+                    <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
-                      <p className="text-blue-100 text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-2xl sm:text-3xl font-extrabold">{activeSlide.data.reviewsCount} <span className="text-base font-bold">تقييم</span></p>
+                      <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.reviewsCount} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
                 </>
@@ -371,62 +376,62 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'partnership' && (
                 <>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-3">شراكة فعالة</h2>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-xl font-medium hover:underline bg-white/20 px-4 py-1 rounded-full mb-3">
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-3">شراكة فعالة</h2>
+                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
                     فرع {activeSlide.branch}
                   </button>
-                  <div className="flex flex-col items-center mt-2">
-                    <p className="text-blue-100 text-xs font-bold">التقييمات المشتركة</p>
-                    <p className="text-3xl sm:text-4xl font-extrabold">{activeSlide.count}</p>
+                  <div className="flex flex-col items-center mt-1 sm:mt-2">
+                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">التقييمات المشتركة</p>
+                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count}</p>
                   </div>
                 </>
               )}
 
               {activeSlide.type === 'active_branch' && (
                 <>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-3">الفرع الأنشط مؤخراً</h2>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xl sm:text-2xl font-bold hover:underline bg-white/20 px-6 py-2 rounded-full mb-3">
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-3">الفرع الأنشط مؤخراً</h2>
+                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-base sm:text-2xl font-bold hover:underline bg-white/20 px-4 sm:px-6 py-1 sm:py-2 rounded-full mb-1.5 sm:mb-3">
                     {activeSlide.branch}
                   </button>
-                  <div className="flex flex-col items-center mt-2">
-                    <p className="text-blue-100 text-xs font-bold">اكتسب في 4 أيام</p>
-                    <p className="text-3xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-lg">تقييم</span></p>
+                  <div className="flex flex-col items-center mt-1 sm:mt-2">
+                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسب في 4 أيام</p>
+                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
                   </div>
                 </>
               )}
 
               {activeSlide.type === 'active_employee' && (
                 <>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-2">الموظفة الأنشط مؤخراً</h2>
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2">الموظفة الأنشط مؤخراً</h2>
                   <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-2">
-                      <h3 className="text-xl sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
+                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
+                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
                     </button>
                   </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-base font-medium hover:underline bg-white/20 px-3 py-1 rounded-full mb-3">
+                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
                     {activeSlide.employee.branch}
                   </button>
                   <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-xs font-bold">اكتسبت في 4 أيام</p>
-                    <p className="text-3xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-lg">تقييم</span></p>
+                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
+                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
                   </div>
                 </>
               )}
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-2 text-pink-100">نجمة الثناء</h2>
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-pink-100">نجمة الثناء</h2>
                   <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-2">
-                      <h3 className="text-xl sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
+                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
+                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
                     </button>
                   </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-base font-medium hover:underline bg-white/20 px-3 py-1 rounded-full mb-3">
+                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
                     {activeSlide.employee.branch}
                   </button>
                   <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-xs font-bold">عدد رسائل المدح</p>
-                    <p className="text-3xl sm:text-4xl font-extrabold text-pink-100">{activeSlide.count} <span className="text-lg">رسالة</span></p>
+                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">تقييمات هذا الأسبوع</p>
+                    <p className="text-2xl sm:text-4xl font-extrabold text-pink-100">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
                   </div>
                 </>
               )}

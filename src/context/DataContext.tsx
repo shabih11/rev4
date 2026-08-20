@@ -3,6 +3,7 @@ import { mockUsers } from '../lib/mockData';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
+import { fetchReviewsFromMake, normalizeMakeReviews } from '../lib/makeIntegration';
 
 export interface CustomerReview {
   id: string;
@@ -52,6 +53,11 @@ interface DataContextType {
   deleteReview: (id: string) => void;
   undoBatch: (batchId: string) => void;
   clearData: (branch?: string, startDate?: string, endDate?: string) => void;
+  makeWebhookUrl: string;
+  setMakeWebhookUrl: (url: string) => void;
+  makeAutoSync: boolean;
+  setMakeAutoSync: (enabled: boolean) => void;
+  fetchAndProcessMakeReviews: (customUrl?: string) => Promise<{ success: boolean; count: number; error?: string }>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -70,6 +76,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [branchSettings, setBranchSettings] = useState<Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>>({});
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [reviews, setReviews] = useState<CustomerReview[]>([]);
+  const [makeWebhookUrl, setMakeWebhookUrlState] = useState<string>(() => localStorage.getItem('app_make_webhook_url') || '');
+  const [makeAutoSync, setMakeAutoSyncState] = useState<boolean>(() => localStorage.getItem('app_make_autosync') === 'true');
 
   useEffect(() => {
     // Load from local storage or fallback to mockData
@@ -432,6 +440,102 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const setMakeWebhookUrl = (url: string) => {
+    setMakeWebhookUrlState(url);
+    safeStorageSet('app_make_webhook_url', url);
+  };
+
+  const setMakeAutoSync = (enabled: boolean) => {
+    setMakeAutoSyncState(enabled);
+    safeStorageSet('app_make_autosync', enabled ? 'true' : 'false');
+  };
+
+  const fetchAndProcessMakeReviews = async (customUrl?: string): Promise<{ success: boolean; count: number; error?: string }> => {
+    const targetUrl = customUrl || makeWebhookUrl;
+    if (!targetUrl || !targetUrl.trim()) {
+      return { success: false, count: 0, error: 'رابط Webhook لـ Make.com غير محدد' };
+    }
+
+    try {
+      const rawData = await fetchReviewsFromMake(targetUrl);
+      const normalized = normalizeMakeReviews(rawData);
+
+      if (normalized.length === 0) {
+        return { success: true, count: 0 };
+      }
+
+      const batchId = `make_${Date.now()}`;
+      const newReviews: CustomerReview[] = [];
+      const newTimelineEvents: TimelineEvent[] = [];
+
+      normalized.forEach(normReview => {
+        const exists = reviews.some(r => r.id === normReview.id || (r.reviewerName === normReview.reviewerName && r.date === normReview.date && r.time === normReview.time));
+        if (exists) return;
+
+        let linkedEmployees: { id: string; name: string }[] = [];
+        const rTime = parseInt(toEnglishNumerals(normReview.time).replace(':', ''), 10) || 0;
+
+        let bestShift: TimelineEvent | null = null;
+        let maxTime = -1;
+
+        for (const s of timeline) {
+          if (s.branch === normReview.branch && (s.type === 'shift' || !s.type)) {
+            if (s.date && normReview.date && s.date !== normReview.date) continue;
+
+            const sTime = parseInt(toEnglishNumerals(s.time).replace(':', ''), 10) || 0;
+            if (sTime <= rTime && sTime > maxTime) {
+              maxTime = sTime;
+              bestShift = s;
+            }
+          }
+        }
+
+        if (bestShift && bestShift.employees) {
+          linkedEmployees = bestShift.employees;
+        }
+
+        const reviewObj: CustomerReview = {
+          ...normReview,
+          linkedEmployeeIds: linkedEmployees.map(e => e.id),
+          linkedShiftId: bestShift?.id,
+          batchId
+        };
+
+        newReviews.push(reviewObj);
+
+        newTimelineEvents.push({
+          id: normReview.id,
+          branch: normReview.branch,
+          type: 'review',
+          title: `تقييم Make.com (${normReview.rating})`,
+          time: normReview.time,
+          date: normReview.date,
+          comment: normReview.comment,
+          employees: linkedEmployees,
+          reviewId: normReview.id,
+          batchId
+        });
+      });
+
+      if (newReviews.length > 0) {
+        commitReviews(newReviews, newTimelineEvents);
+      }
+
+      return { success: true, count: newReviews.length };
+    } catch (e: any) {
+      console.error('Failed to fetch from Make.com', e);
+      return { success: false, count: 0, error: e?.message || 'تعذر الاتصال بـ Make.com' };
+    }
+  };
+
+  useEffect(() => {
+    if (!makeAutoSync || !makeWebhookUrl) return;
+    const interval = setInterval(() => {
+      fetchAndProcessMakeReviews();
+    }, 10 * 60 * 1000); // Check every 10 minutes
+    return () => clearInterval(interval);
+  }, [makeAutoSync, makeWebhookUrl, reviews, timeline]);
+
   useEffect(() => {
     const t = setTimeout(() => {
       if (users.length > 0) safeStorageSet('app_users_v5', users);
@@ -460,7 +564,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{ 
       users: enrichedUsers, updateUser, addUser, removeUser, branchSettings, updateBranchSettings, 
       timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
-      reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData
+      reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
+      makeWebhookUrl, setMakeWebhookUrl, makeAutoSync, setMakeAutoSync, fetchAndProcessMakeReviews
     }}>
       {children}
     </DataContext.Provider>
