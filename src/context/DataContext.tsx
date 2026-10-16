@@ -4,6 +4,7 @@ import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
 import { fetchReviewsFromWindsor, normalizeWindsorReviews } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
+import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 
 export interface CustomerReview {
   id: string;
@@ -17,6 +18,8 @@ export interface CustomerReview {
   linkedShiftId?: string;
   batchId?: string;
 }
+
+export type ReviewSummary = Pick<CustomerReview, 'id' | 'branch' | 'rating' | 'date' | 'time' | 'linkedEmployeeIds'>;
 
 export interface TimelineEvent {
   id: string;
@@ -65,6 +68,8 @@ interface DataContextType {
   resetUsersToRoster: () => void;
   resetTimelineToInjectedShifts: () => void;
   resetReviewsToInjected: () => void;
+  reviewSummaries: ReviewSummary[];
+  recordsReady: boolean;
   currentAccount: UserAccount | null;
   authReady: boolean;
   syncStatus: string;
@@ -86,7 +91,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const session = useCloudSession();
   const userCloud = useCloudList<UserAccount>('users', session);
   const reviewCloud = useCloudList<CustomerReview>('reviews', session);
-  const reviewSignals = useCloudList<CustomerReview>('reviewSignals', session);
+  const reviewSignals = useCloudList<ReviewSummary>('reviewSignals', session);
   const noteSignals = useCloudList<TimelineEvent>('noteSignals', session);
   const timelineCloud = useCloudList<TimelineEvent>('timeline', session);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
@@ -391,27 +396,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id) || r.linkedEmployeeIds.includes(unifiedUser.name));
       const empTimeline = noteSignals.rows.filter(t => t.employees?.some(e => e.id === unifiedUser.id || e.name === unifiedUser.name));
       
-      const currentDate = new Date();
-      const currentMonth = currentDate.getMonth() + 1;
-      const currentYear = currentDate.getFullYear();
-      
-      const currentMonthReviews = empReviews.filter(r => {
-         const parts = r.date.split('-');
-         if (parts.length >= 3) {
-            return parseInt(toEnglishNumerals(parts[1]), 10) === currentMonth && parseInt(toEnglishNumerals(parts[2]), 10) === currentYear;
-         }
-         return false;
-      });
-      
-      const currentMonthTimeline = empTimeline.filter(t => {
-         if (!t.date) return false;
-         const parts = t.date.split('-');
-         if (parts.length >= 3) {
-            return parseInt(toEnglishNumerals(parts[1]), 10) === currentMonth && parseInt(toEnglishNumerals(parts[2]), 10) === currentYear;
-         }
-         return false;
-      });
-      
+      const now = new Date();
+      const currentMonthReviews = empReviews.filter(review => isInCurrentMonth(review.date, now));
+      const currentMonthTimeline = empTimeline.filter(event => isInCurrentMonth(event.date, now));
+
       let positiveScore = 0;
       let negativeScore = 2; // base score for negative
       let complaintsScore = 0;
@@ -448,8 +436,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const calculatedPoints = positiveScore + negativeScore + qualityScore;
       
-      const totalReviewsCount = empReviews.length + (manual.totalReviews || 0);
-      const monthReviewsCount = currentMonthReviews.length + (manual.monthReviews || 0);
+      const totalReviewsCount = empReviews.length;
+      const monthReviewsCount = currentMonthReviews.filter(r => isPositiveReview(r.rating)).length;
 
       // Return updated user
       return {
@@ -633,6 +621,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
+      reviewSummaries: reviewSignals.rows, recordsReady: reviewSignals.ready && reviewCloud.ready && timelineCloud.ready,
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
     }}>
       {children}

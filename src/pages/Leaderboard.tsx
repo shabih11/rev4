@@ -7,8 +7,9 @@ import 'swiper/css';
 import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
-import { formatDateTime, isWithinLastDays , toEnglishNumerals} from '../lib/formatDate';
+import { formatDateTime, isWithinLastDays} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
+import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 
 type SlideData = 
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -35,7 +36,11 @@ const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: strin
 };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews, timeline, branchSettings } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, syncError, currentAccount } = useData();
+  const reviews = useMemo(() => {
+    const details = new Map(privateReviews.map(review => [review.id, review]));
+    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' }));
+  }, [privateReviews, reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
@@ -368,7 +373,7 @@ export const Leaderboard: React.FC = () => {
                     <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.reviewsCount} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount ?? 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
                 </>
@@ -464,7 +469,7 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {users.filter(u => u.role === 'employee').sort((a, b) => b.points - a.points).map((emp, idx) => (
+                {users.filter(u => u.role === 'employee').sort((a, b) => (b.monthReviewsCount ?? 0) - (a.monthReviewsCount ?? 0) || a.name.localeCompare(b.name, 'ar')).map((emp, idx) => (
                   <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
@@ -474,8 +479,8 @@ export const Leaderboard: React.FC = () => {
                         <p className="text-xs text-gray-500">{emp.branch}</p>
                       </div>
                       <div className="text-center shrink-0">
-                        <p className="text-lg font-black text-blue-600">{emp.points?.toFixed(2) || '0.00'}</p>
-                        <p className="text-[10px] text-gray-400">نقطة</p>
+                        <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount ?? 0}</p>
+                        <p className="text-[10px] text-gray-400">تقييم إيجابي هذا الشهر</p>
                       </div>
                     </button>
                   </EmployeeCard>
@@ -512,22 +517,11 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
-                {branches.map(branchName => {
-                  const currentMonth = new Date().getMonth();
-                  const currentYear = new Date().getFullYear();
-                  
-                  const branchMonthReviews = reviews.filter(r => {
-                    if (r.branch !== branchName) return false;
-                    const dateParts = r.date.split('-');
-                    if (dateParts.length === 3) {
-                      const d = new Date(parseInt(toEnglishNumerals(dateParts[2])), parseInt(toEnglishNumerals(dateParts[1])) - 1, parseInt(toEnglishNumerals(dateParts[0])));
-                      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                    }
-                    return false;
-                  });
-                  
-                  const branchMonthPositiveReviews = branchMonthReviews.filter(r => parseInt(r.rating) >= 4);
-                  
+                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
+                {recordsReady && branches.map(branchName => {
+                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date));
+                  const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));
+
                   const empPositiveReviewCounts: Record<string, number> = {};
                   branchMonthPositiveReviews.forEach(r => {
                     r.linkedEmployeeIds.forEach(id => {
@@ -590,7 +584,7 @@ export const Leaderboard: React.FC = () => {
         if (!modalBranchName) return null;
         const branchStart = branchSettings[modalBranchName]?.start || '16:00';
         
-        const branchReviews = reviews.filter(r => r.branch === modalBranchName).map(r => ({
+        const branchReviews = reviews.filter(r => r.branch === modalBranchName && isInCurrentMonth(r.date)).map(r => ({
            ...r,
            businessDate: getBusinessDate(r.date, r.time, branchStart)
         }));
@@ -745,7 +739,7 @@ export const Leaderboard: React.FC = () => {
                            dayShifts.forEach(s => s.employees?.forEach(e => empIds.add(e.id)));
                            const emps = users.filter(u => empIds.has(u.id));
                            
-                           if (emps.length === 0) return <p className="text-xs text-gray-500">لا توجد شفتات مسجلة.</p>;
+                           if (emps.length === 0) return <p className="text-xs text-gray-500">{currentAccount?.role === 'admin' || (currentAccount?.role === 'manager' && currentAccount.branch === modalBranchName) ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات متاحة ضمن صلاحيات حسابك لهذا اليوم.'}</p>;
                            
                            return emps.map(emp => (
                              <div key={emp.id} className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-blue-100 text-xs text-blue-700 font-bold shadow-sm">
@@ -787,7 +781,7 @@ export const Leaderboard: React.FC = () => {
                             {formatDateTime(r.date, r.time)}
                           </span>
                         </div>
-                        <p className="text-gray-700 text-sm">"{r.comment}"</p>
+                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : 'ملخص التقييم؛ التعليق متاح للموظفة المرتبطة والإدارة المخولة.')}</p>
                         <p className="text-xs text-green-700 font-bold mt-2">
                           {r.linkedEmployeeIds && r.linkedEmployeeIds.length > 0 
                             ? `الموظفات: ${r.linkedEmployeeIds.map(id => users.find(u => u.id === id)?.name).join('، ')}`

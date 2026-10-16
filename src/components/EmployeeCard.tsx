@@ -4,7 +4,7 @@ import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import type { TimelineEvent } from '../context/DataContext';
-import { formatDateTime } from '../lib/formatDate';
+import { formatDateTime, toEnglishNumerals } from '../lib/formatDate';
 
 interface Props {
   employee: UserAccount;
@@ -16,8 +16,13 @@ interface Props {
 export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen, onModalClose }) => {
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'points'>('points');
-  const { reviews, users, timeline } = useData();
-  const employeeReviews = reviews.filter(r => r.linkedEmployeeIds?.includes(employee.id) || r.linkedEmployeeIds?.includes(employee.name));
+  const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, syncError } = useData();
+  const privateReviews = new Map(reviews.map(review => [review.id, review]));
+  const employeeReviews = reviewSummaries
+    .filter(review => review.linkedEmployeeIds.includes(employee.id) || review.linkedEmployeeIds.includes(employee.name))
+    .map(review => ({ ...review, comment: privateReviews.get(review.id)?.comment }));
+  const canReadAllShifts = currentAccount?.role === 'admin' || currentAccount?.id === employee.id ||
+    (currentAccount?.role === 'manager' && currentAccount.branch === employee.branch);
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
   const isEmpMatch = (id?: string, name?: string) => {
     if (!id && !name) return false;
@@ -25,7 +30,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
     if (employee.aliases && name && employee.aliases.includes(name)) return true;
     return false;
   };
-  const employeeShifts = timeline.filter(t => t.type === 'shift' && (t.branch === employee.branch || employee.branch === 'موظفة خارجية') && t.employees?.some(e => isEmpMatch(e.id, e.name)));
+  const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name)));
 
   let favoritePartnerName = '';
   if (employeeReviews.length > 0) {
@@ -157,6 +162,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
               {/* Body */}
               <div className="p-4 sm:p-6 bg-gray-50 h-[50vh] overflow-y-auto">
+                {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !recordsReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
                 {activeTab === 'reviews' ? (
                   <div className="space-y-4 pt-2 pb-2">
                     {employeeReviews.map(r => {
@@ -169,29 +175,30 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                           </div>
                         )}
                         <div className="flex justify-between items-start">
-                          <div className="flex text-yellow-400 mb-2">★★★★★</div>
+                          <div className="flex text-yellow-400 mb-2">{'★'.repeat(Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}{'☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}</div>
                           <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
                             {formatDateTime(r.date, r.time)}
                           </span>
                         </div>
-                        <p className="text-gray-700 text-sm">"{r.comment}"</p>
+                        {r.comment !== undefined ? <p className="text-gray-700 text-sm">{r.comment || 'تقييم بدون تعليق'}</p> : <p className="text-xs text-gray-500">ملخص التقييم؛ التعليق متاح للموظفة المرتبطة والإدارة المخولة.</p>}
                         {employee.branch === 'موظفة خارجية' && (
                           <p className="text-xs text-blue-600 mt-2 font-bold">الفرع: {r.branch}</p>
                         )}
                       </div>
                       );
                     })}
-                    {employeeReviews.length === 0 && (
+                    {employeeReviews.length === 0 && recordsReady && !syncError && (
                       <p className="text-center text-gray-500 py-10">لا توجد تقييمات مكتسبة بعد.</p>
                     )}
                   </div>
                 ) : activeTab === 'shifts' ? (
                   <div className="space-y-3">
                     {/* Total Hours Badge */}
-                    <div className="bg-transparent border border-gray-200 text-gray-700 p-2 rounded-xl flex items-center justify-center gap-2 shadow-sm mb-4">
+                    {canReadAllShifts && <div className="bg-transparent border border-gray-200 text-gray-700 p-2 rounded-xl flex items-center justify-center gap-2 shadow-sm mb-4">
                       <Clock size={18} className="text-blue-600" />
                       <p className="font-bold text-sm">{totalHours} ساعات في صناعة تجربة العميل</p>
-                    </div>
+                    </div>}
+                    {!canReadAllShifts && <p className="text-sm text-gray-500 text-center">تظهر هنا الشفتات المشتركة المتاحة لحسابك. السجل الكامل متاح للموظفة وإدارة فرعها.</p>}
 
                     {employeeShifts.length > 0 ? employeeShifts.map((shift, idx) => {
                       const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date && r.linkedEmployeeIds?.includes(employee.id));
@@ -203,7 +210,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                         </div>
                       );
                     }) : (
-                      <p className="text-center text-gray-500 py-10">لا توجد شفتات مسجلة.</p>
+                      recordsReady && !syncError && <p className="text-center text-gray-500 py-10">{canReadAllShifts ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات مشتركة متاحة لحسابك.'}</p>
                     )}
                   </div>
                 ) : activeTab === 'points' ? (
