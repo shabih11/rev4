@@ -1,3 +1,36 @@
-# rev4
+# نظام التقييمات
 
-Arabic branch reviews application. Deployment source is being prepared.
+تطبيق عربي لإدارة تقييمات الفروع والشفتات، مبني باستخدام React وTypeScript وVite.
+
+## التشغيل
+
+```sh
+npm ci
+npm run dev
+```
+
+## البيانات والدخول
+
+يستخدم التطبيق Firebase Authentication وCloud Firestore في مشروع `iamspec`، ضمن المسار `apps/rev4` في قاعدة `(default)`.
+
+تتزامن التعديلات مباشرة بين الأجهزة عبر Firestore. مدير النظام يدير البيانات، ومديرة الفرع تدير شفتات وتقييمات فرعها، والموظفة تقرأ سجلاتها وتضيف اعتراض شفت. دليل الأسماء ومؤشرات الأداء متاح للحسابات المخولة، دون البريد أو كلمات المرور.
+
+الحسابات تُنشأ بأداة إدارية منفصلة. إضافة ملف موظفة داخل التطبيق لا تنشئ حساب دخول تلقائيًا. لا توجد كلمات مرور أو بيانات موظفات أو نسخة تاريخية من التقييمات في هذا المستودع.
+
+قواعد الوصول موجودة في `firestore.rules`. نشر القواعد يتطلب حساب Firebase مخولًا:
+
+```sh
+firebase deploy --only firestore:rules --project iamspec
+```
+
+## النشر على GitHub Pages
+
+فعّل Pages من إعدادات المستودع، واختر **GitHub Actions** كمصدر. ينشر workflow نسخة `dist` تلقائيًا عند تحديث `main`.
+
+الرابط: https://shabih11.github.io/rev4/
+
+```sh
+npm run build
+```
+
+مفاتيح إعداد Firebase الخاصة بالويب عامة بطبيعتها؛ الحماية تعتمد على Authentication وقواعد Firestore. احتفظ بملفات الاستيراد وبيانات الدخول خارج Git.
