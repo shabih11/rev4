@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
@@ -113,7 +114,7 @@ export const EmployeeDashboard: React.FC = () => {
               <p className="text-center text-gray-500 text-sm">لا يوجد تقييمات مرتبطة بك بعد.</p>
             )}
 
-            {reviews.filter(r => r.linkedEmployeeIds.includes(user.id)).map(r => {
+            {reviews.filter(r => r.linkedEmployeeIds.includes(user.id)).sort(newestFirst).map(r => {
               const ratingNum = parseInt(r.rating) || 0;
               const isPositive = ratingNum >= 4;
               const stars = '★'.repeat(ratingNum) + '☆'.repeat(5 - ratingNum);
@@ -180,7 +181,7 @@ export const EmployeeDashboard: React.FC = () => {
         
         {showShifts && (
           <div className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
-            {timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).map(event => (
+            {timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).sort(newestFirst).map(event => (
               <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                 <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
                 <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id).length ? `مع ${event.employees.filter(employee => employee.id !== user.id).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
