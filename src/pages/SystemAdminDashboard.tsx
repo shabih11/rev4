@@ -1645,8 +1645,8 @@ export const SystemAdminDashboard: React.FC = () => {
 
                   <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-gray-900">المزامنة التلقائية (Auto-Sync Interval)</h4>
-                      <p className="text-xs text-gray-500">التحقق التلقائي واستدعاء التقييمات كل 10 دقائق</p>
+                      <h4 className="text-sm font-bold text-gray-900">المزامنة التلقائية كل دقيقة</h4>
+                      <p className="text-xs text-gray-500">يفحص Windsor كل دقيقة ما دامت لوحة الإدارة مفتوحة. قد يعيد Windsor بيانات مخزنة؛ وتيرة جلب البيانات الجديدة تعتمد على خطة الحساب.</p>
                     </div>
                     <button
                       onClick={() => {

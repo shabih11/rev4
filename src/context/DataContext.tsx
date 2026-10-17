@@ -114,6 +114,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [windsorApiUrl, setWindsorApiUrlState] = useState<string>(() => localStorage.getItem('app_windsor_api_url') || '');
   const [windsorApiUrl2, setWindsorApiUrl2State] = useState<string>(() => localStorage.getItem('app_windsor_api_url_2') || '');
   const [windsorAutoSync, setWindsorAutoSyncState] = useState<boolean>(() => localStorage.getItem('app_windsor_autosync') === 'true');
+  const windsorSyncInFlight = React.useRef(false);
 
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
     let newUsers: UserAccount[] = [];
@@ -510,6 +511,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (urls.length === 0) {
       return { success: false, count: 0, error: 'لم يتم تحديد أي رابط API لـ Windsor.ai' };
     }
+    if (windsorSyncInFlight.current) return { success: true, count: 0 };
+    windsorSyncInFlight.current = true;
 
     try {
       const results = await Promise.allSettled(urls.map(url => fetchReviewsFromWindsor(url)));
@@ -596,14 +599,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e: any) {
       console.error('Failed to fetch from Windsor.ai', e);
       return { success: false, count: 0, error: e?.message || 'تعذر الاتصال بـ Windsor.ai' };
+    } finally {
+      windsorSyncInFlight.current = false;
     }
   };
 
   useEffect(() => {
     if (session.account?.role !== 'admin' || !windsorAutoSync || (!windsorApiUrl && !windsorApiUrl2)) return;
     const interval = setInterval(() => {
-      fetchAndProcessWindsorReviews();
-    }, 10 * 60 * 1000); // Check every 10 minutes
+      void fetchAndProcessWindsorReviews();
+    }, 60 * 1000); // Check every minute while the admin app is open.
     return () => clearInterval(interval);
   }, [session.account?.role, windsorAutoSync, windsorApiUrl, windsorApiUrl2, windsorBranchMapping, reviews, timeline]);
 
