@@ -44,7 +44,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="bg-white rounded-3xl p-8 shadow-xl flex items-center justify-between">
           <div>
             <p className="text-gray-500 font-bold mb-1">النقاط الكلية</p>
-            <h2 className="text-5xl font-extrabold text-gray-800">{user.points}</h2>
+            <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
           </div>
           <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-500">
             <Award size={40} />
@@ -67,7 +67,7 @@ export const EmployeeDashboard: React.FC = () => {
             <Star className="text-green-500" size={20} />
             إيجابي
           </div>
-          <p className="text-3xl font-extrabold">+{user.stats.positive}</p>
+          <p className="text-3xl font-extrabold">+{user.stats.positive.toFixed(1)}</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-red-500">

@@ -99,7 +99,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                       <h3 className="text-xl sm:text-2xl font-bold">{employee.name}</h3>
                       <p className="text-blue-100 text-sm mb-1">{employee.branch}</p>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(2) : '0.00'}</button>
+                        <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
                         <p className="text-[10px] sm:text-xs bg-blue-500/50 px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
                       </div>
                       {favoritePartnerName && (
@@ -207,7 +207,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                           <p className="text-blue-100 text-sm">من إجمالي ١١ نقطة</p>
                         </div>
                       </div>
-                      <p className="text-4xl font-extrabold">{employee.points?.toFixed(2)}</p>
+                      <p className="text-4xl font-extrabold">{employee.points?.toFixed(1)}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
@@ -216,7 +216,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                           <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات الإيجابية</p>
                           <p className="text-xs text-gray-400">من أصل ٥ نقاط</p>
                         </div>
-                        <p className="text-2xl font-bold text-green-600 mt-2">{employee.stats?.positive?.toFixed(2) || '0.00'}</p>
+                        <p className="text-2xl font-bold text-green-600 mt-2">{employee.stats?.positive?.toFixed(1) || '0.0'}</p>
                       </div>
                       
                       <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
@@ -224,7 +224,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                           <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات السلبية</p>
                           <p className="text-xs text-gray-400">من أصل ٢ نقاط</p>
                         </div>
-                        <p className="text-2xl font-bold text-red-500 mt-2">{employee.stats?.negative?.toFixed(2) || '0.00'}</p>
+                        <p className="text-2xl font-bold text-red-500 mt-2">{employee.stats?.negative?.toFixed(1) || '0.0'}</p>
                       </div>
 
                       <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between sm:col-span-2">
@@ -232,7 +232,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                           <p className="text-gray-500 text-sm font-bold mb-1">نقاط الجودة (الشكاوى والسلامة)</p>
                           <p className="text-xs text-gray-400">من أصل ٤ نقاط</p>
                         </div>
-                        <p className="text-2xl font-bold text-blue-600 mt-2">{((employee.stats?.complaints === 0 && employee.stats?.safety === 0) ? 4 : (4 - (employee.stats?.complaints || 0) - (employee.stats?.safety || 0))).toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-blue-600 mt-2">{((employee.stats?.complaints === 0 && employee.stats?.safety === 0) ? 4 : (4 - (employee.stats?.complaints || 0) - (employee.stats?.safety || 0))).toFixed(1)}</p>
                       </div>
                     </div>
                   </div>

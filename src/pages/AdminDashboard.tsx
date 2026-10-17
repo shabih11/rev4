@@ -360,10 +360,10 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-gray-800 text-lg">{emp.name}</p>
-                      <p className="text-sm text-gray-500">إيجابي: <span className="text-green-600 font-bold">{emp.stats.positive}</span> | سلبي: <span className="text-red-600 font-bold">{emp.stats.negative}</span></p>
+                      <p className="text-sm text-gray-500">إيجابي: <span className="text-green-600 font-bold">{emp.stats.positive.toFixed(1)}</span> | سلبي: <span className="text-red-600 font-bold">{emp.stats.negative.toFixed(1)}</span></p>
                     </div>
                     <div className="text-left">
-                      <p className="text-2xl font-extrabold text-blue-600">{emp.points}</p>
+                      <p className="text-2xl font-extrabold text-blue-600">{emp.points.toFixed(1)}</p>
                       <p className="text-xs text-gray-400">نقاط</p>
                     </div>
                   </div>

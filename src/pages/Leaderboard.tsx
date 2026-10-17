@@ -340,9 +340,6 @@ export const Leaderboard: React.FC = () => {
               
               {activeSlide.type === 'employee' && (
                 <>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لا توجد شريكة هذا الشهر'}</h2>
-                  {partnerAccount && <p className="text-xs text-blue-100">الشريكة المفضلة</p>}
-
                   <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium mb-1.5 sm:mb-3 hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mt-1 sm:mt-2">
                     {activeSlide.data.branch}
                   </button>
@@ -350,7 +347,7 @@ export const Leaderboard: React.FC = () => {
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">النقاط</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(2)}</p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(1)}</p>
                     </div>
                     <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
@@ -358,6 +355,8 @@ export const Leaderboard: React.FC = () => {
                       <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount ?? 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
+                  <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
+                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لا توجد شريكة هذا الشهر'}</h2>
                   {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {activePartner.count} تقييم خلال هذا الشهر</p>}
                 </>
               )}

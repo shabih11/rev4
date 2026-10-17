@@ -826,7 +826,7 @@ export const SystemAdminDashboard: React.FC = () => {
                                 <div>
                                   <p className="font-bold text-sm text-gray-800">{emp.name}</p>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    <span className="text-green-600 font-bold">{emp.stats.positive}</span> إيجابي | <span className="text-red-600 font-bold">{emp.stats.negative}</span> سلبي
+                                    <span className="text-green-600 font-bold">{emp.stats.positive.toFixed(1)}</span> إيجابي | <span className="text-red-600 font-bold">{emp.stats.negative.toFixed(1)}</span> سلبي
                                   </p>
                                 </div>
                               </div>
