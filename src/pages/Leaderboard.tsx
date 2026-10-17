@@ -10,6 +10,7 @@ import { useData } from '../context/DataContext';
 import { formatDateTime, isWithinLastDays} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
+import { favoritePartner, newestFirst } from '../lib/employeeActivity';
 
 type SlideData = 
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -39,7 +40,7 @@ export const Leaderboard: React.FC = () => {
   const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, syncError, currentAccount } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
-    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' }));
+    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
   }, [privateReviews, reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
@@ -173,37 +174,16 @@ export const Leaderboard: React.FC = () => {
     : undefined);
 
   const swiperRef = useRef<any>(null);
-  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTouchStart = () => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.stop();
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (swiperRef.current && swiperRef.current.swiper) {
-      touchTimeoutRef.current = setTimeout(() => {
-        if (swiperRef.current && swiperRef.current.swiper) {
-          swiperRef.current.swiper.autoplay.start();
-        }
-      }, 5000);
-    }
-  };
-
-  const handleModalOpen = useCallback(() => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.stop();
-    }
+  const hasInteracted = useRef(false);
+  const handleTouchStart = useCallback(() => {
+    hasInteracted.current = true;
+    swiperRef.current?.swiper?.autoplay.stop();
   }, []);
-
-  const handleModalClose = useCallback(() => {
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.start();
-    }
-  }, []);
+  const handleModalOpen = handleTouchStart;
+  const handleModalClose = useCallback(() => {}, []);
+  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
+  const partnerAccount = users.find(user => user.id === activePartner.id);
+  const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
   if (slidesData.length === 0) return null;
 
@@ -211,10 +191,9 @@ export const Leaderboard: React.FC = () => {
     <div 
       className="w-full h-screen bg-white overflow-hidden flex flex-col justify-between items-center relative pb-10 font-alexandria overscroll-none touch-none" 
       dir="rtl"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleTouchStart}
-      onMouseUp={handleTouchEnd}
+      onPointerDownCapture={handleTouchStart}
+      onTouchStartCapture={handleTouchStart}
+      onKeyDownCapture={handleTouchStart}
     >
       
       {/* Top Header - Contextual */}
@@ -225,7 +204,12 @@ export const Leaderboard: React.FC = () => {
           className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800 absolute top-0"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
-            {activeSlide.type === 'employee' && `الترتيب : ${activeSlide.rank}`}
+            {activeSlide.type === 'employee' && <>
+              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p>
+              <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                <button className="mt-2 text-xl sm:text-3xl" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
+              </EmployeeCard>
+            </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
             {activeSlide.type === 'active_branch' && `إحصائية الأسبوع`}
             {activeSlide.type === 'active_employee' && `نشاط الأسبوع`}
@@ -235,7 +219,7 @@ export const Leaderboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Center Image Swiper */}
-      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-14 sm:pt-16 pb-[35vh] sm:pb-[33vh]">
+      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-14 sm:pt-16 pb-[40vh] sm:pb-[38vh]">
         <Swiper
           ref={swiperRef}
           dir="ltr"
@@ -243,7 +227,8 @@ export const Leaderboard: React.FC = () => {
           grabCursor={true}
           centeredSlides={true}
           slidesPerView={1}
-          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          autoplay={{ delay: 3000, disableOnInteraction: true }}
+          onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           creativeEffect={{
             limitProgress: 1,
@@ -326,21 +311,21 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       {/* Bottom Blue Curved Card */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[35vh] sm:h-[33vh]">
+      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[40vh] sm:h-[38vh]">
         <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-16 sm:pb-8 relative">
+        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-5 sm:pb-5 relative">
           
           {/* Left/Right Action Buttons */}
           <button 
-            onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
+            aria-label="جميع الموظفات" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
             className="absolute left-4 sm:left-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Users size={22} className="text-white" />
           </button>
           <button 
-            onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
+            aria-label="الفروع" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
             className="absolute right-4 sm:right-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Building2 size={22} className="text-white" />
@@ -355,12 +340,9 @@ export const Leaderboard: React.FC = () => {
               
               {activeSlide.type === 'employee' && (
                 <>
-                  <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group">
-                      <h2 className="text-2xl sm:text-5xl font-bold mb-0.5 sm:mb-1">{activeSlide.data.name}</h2>
-                    </button>
-                  </EmployeeCard>
-                  
+                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لا توجد شريكة هذا الشهر'}</h2>
+                  {partnerAccount && <p className="text-xs text-blue-100">الشريكة المفضلة</p>}
+
                   <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium mb-1.5 sm:mb-3 hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mt-1 sm:mt-2">
                     {activeSlide.data.branch}
                   </button>
@@ -376,6 +358,7 @@ export const Leaderboard: React.FC = () => {
                       <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount ?? 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
+                  {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {activePartner.count} تقييم خلال هذا الشهر</p>}
                 </>
               )}
 
@@ -537,7 +520,9 @@ export const Leaderboard: React.FC = () => {
                       key={branchName} 
                       className="bg-white p-4 rounded-xl border shadow-sm cursor-pointer hover:border-blue-300 transition-colors relative"
                       onClick={() => {
+                        setShowAllBranchesModal(false);
                         setManualBranchName(branchName);
+                        setBranchModalSelectedDate(null);
                         setShowBranchModal(true);
                       }}
                     >
@@ -553,16 +538,12 @@ export const Leaderboard: React.FC = () => {
                       {top2.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 relative z-10">
                           {top2.map(emp => (
-                            <div key={emp.id} onClick={(e) => e.stopPropagation()}>
-                              <EmployeeCard employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                                <button className="w-full flex items-center gap-2 hover:opacity-80 transition-opacity text-right">
-                                  <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
-                                  <div className="overflow-hidden flex-1">
-                                    <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
-                                    <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>
-                                  </div>
-                                </button>
-                              </EmployeeCard>
+                            <div key={emp.id} className="w-full flex items-center gap-2 text-right">
+                              <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
+                              <div className="overflow-hidden flex-1">
+                                <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
+                                <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -781,7 +762,7 @@ export const Leaderboard: React.FC = () => {
                             {formatDateTime(r.date, r.time)}
                           </span>
                         </div>
-                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : 'ملخص التقييم؛ التعليق متاح للموظفة المرتبطة والإدارة المخولة.')}</p>
+                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : `تقييم ${r.rating} نجوم في فرع ${r.branch}، مرتبط بـ ${r.linkedEmployeeIds.length} من الموظفات.`)}</p>
                         <p className="text-xs text-green-700 font-bold mt-2">
                           {r.linkedEmployeeIds && r.linkedEmployeeIds.length > 0 
                             ? `الموظفات: ${r.linkedEmployeeIds.map(id => users.find(u => u.id === id)?.name).join('، ')}`

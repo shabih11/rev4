@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { ActivityChart } from './ActivityChart';
+import { favoritePartner, newestFirst } from '../lib/employeeActivity';
 import type { UserAccount } from '../lib/mockData';
 import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -15,12 +18,12 @@ interface Props {
 
 export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen, onModalClose }) => {
   const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'points'>('points');
+  const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
   const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, syncError } = useData();
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
   const employeeReviews = reviewSummaries
     .filter(review => review.linkedEmployeeIds.includes(employee.id) || review.linkedEmployeeIds.includes(employee.name))
-    .map(review => ({ ...review, comment: privateReviews.get(review.id)?.comment }));
+    .map(review => ({ ...review, comment: privateReviews.get(review.id)?.comment })).sort(newestFirst);
   const canReadAllShifts = currentAccount?.role === 'admin' || currentAccount?.id === employee.id ||
     (currentAccount?.role === 'manager' && currentAccount.branch === employee.branch);
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
@@ -30,32 +33,10 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
     if (employee.aliases && name && employee.aliases.includes(name)) return true;
     return false;
   };
-  const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name)));
+  const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name))).sort(newestFirst);
 
-  let favoritePartnerName = '';
-  if (employeeReviews.length > 0) {
-    const partnerCounts: Record<string, number> = {};
-    employeeReviews.forEach(r => {
-      r.linkedEmployeeIds?.forEach(id => {
-        if (id !== employee.id) {
-          partnerCounts[id] = (partnerCounts[id] || 0) + 1;
-        }
-      });
-    });
-    
-    let maxPartnerId = '';
-    let maxCount = 0;
-    Object.entries(partnerCounts).forEach(([id, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        maxPartnerId = id;
-      }
-    });
-
-    if (maxPartnerId) {
-      favoritePartnerName = users.find(u => u.id === maxPartnerId)?.name || '';
-    }
-  }
+  const partner = favoritePartner(employee.id, reviewSummaries);
+  const favoritePartnerName = users.find(user => user.id === partner.id)?.name || '';
 
   useEffect(() => {
     if (showModal) {
@@ -81,15 +62,16 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
   return (
     <>
-      <div onClick={() => setShowModal(true)}>
+      <div onClick={event => { event.stopPropagation(); setShowModal(true); }}>
         {children}
       </div>
 
-      <AnimatePresence>
+      {createPortal(<AnimatePresence>
         {showModal && (
           <div 
             className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 font-alexandria touch-auto"
-            dir="rtl"
+            dir="rtl" role="dialog" aria-modal="true" aria-label={`بيانات ${employee.name}`}
+            onClick={event => event.stopPropagation()}
           >
             {/* Backdrop */}
             <motion.div 
@@ -106,7 +88,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full sm:w-auto min-w-[320px] sm:min-w-[400px] bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-2xl min-w-0 bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -117,7 +99,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                       <h3 className="text-xl sm:text-2xl font-bold">{employee.name}</h3>
                       <p className="text-blue-100 text-sm mb-1">{employee.branch}</p>
                       <div className="flex gap-2 mt-1 flex-wrap">
-                        <p className="text-[10px] sm:text-xs bg-blue-500/50 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(2) : '0.00'}</p>
+                        <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(2) : '0.00'}</button>
                         <p className="text-[10px] sm:text-xs bg-blue-500/50 px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
                       </div>
                       {favoritePartnerName && (
@@ -149,14 +131,14 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                   className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'shifts' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
                 >
                   <CalendarClock size={18} />
-                  أيامي
+                  شفتاتي
                 </button>
                 <button 
-                  onClick={() => setActiveTab('points')}
-                  className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'points' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+                  onClick={() => setActiveTab('activity')}
+                  className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'activity' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
                 >
                   <Award size={18} />
-                  نقاطي
+                  نشاطي
                 </button>
               </div>
 
@@ -180,7 +162,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                             {formatDateTime(r.date, r.time)}
                           </span>
                         </div>
-                        {r.comment !== undefined ? <p className="text-gray-700 text-sm">{r.comment || 'تقييم بدون تعليق'}</p> : <p className="text-xs text-gray-500">ملخص التقييم؛ التعليق متاح للموظفة المرتبطة والإدارة المخولة.</p>}
+                        {r.comment !== undefined ? <p className="text-gray-700 text-sm">{r.comment || 'تقييم بدون تعليق'}</p> : <p className="text-xs text-gray-500">تقييم {r.rating} نجوم في فرع {r.branch}، مرتبط بـ {r.linkedEmployeeIds.length} من الموظفات.</p>}
                         {employee.branch === 'موظفة خارجية' && (
                           <p className="text-xs text-blue-600 mt-2 font-bold">الفرع: {r.branch}</p>
                         )}
@@ -213,6 +195,8 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                       recordsReady && !syncError && <p className="text-center text-gray-500 py-10">{canReadAllShifts ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات مشتركة متاحة لحسابك.'}</p>
                     )}
                   </div>
+                ) : activeTab === 'activity' ? (
+                  <ActivityChart reviews={employeeReviews} />
                 ) : activeTab === 'points' ? (
                   <div className="space-y-4">
                     <div className="bg-blue-600 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg">
@@ -258,7 +242,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>, document.body)}
       <ShiftDetailsModal shift={selectedShift} onClose={() => setSelectedShift(null)} reviews={reviews} users={users} />
     </>
   );
@@ -267,7 +251,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 {/* Shift Details Modal */}
 export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: TimelineEvent | null, onClose: () => void, reviews: any[], users: any[] }) => {
   if (!shift) return null;
-  const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date);
+  const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date).sort(newestFirst);
   
   return (
     <AnimatePresence>

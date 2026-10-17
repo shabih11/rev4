@@ -13,10 +13,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { syncStatus, syncError, currentAccount } = useData();
+  const { syncError, currentAccount } = useData();
   return (
     <>
-    {currentAccount && <div role={syncError ? "alert" : "status"} dir="rtl" className={`px-4 py-2 text-sm text-center ${syncError ? "bg-red-100 text-red-900" : "bg-emerald-50 text-emerald-900"}`}>{syncError || syncStatus}</div>}
+    {currentAccount && syncError && <div role="alert" dir="rtl" className={`px-4 py-2 text-sm text-center ${syncError ? "bg-red-100 text-red-900" : "bg-emerald-50 text-emerald-900"}`}>{syncError}</div>}
     <HashRouter>
       <Routes>
         <Route path="/" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
