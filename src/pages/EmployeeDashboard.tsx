@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
 import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export const EmployeeDashboard: React.FC = () => {
   const [showShifts, setShowShifts] = useState(false);
 
   if (!user) return null;
+  const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
 
   return (
     <div className="w-full min-h-screen bg-gray-50 font-alexandria" dir="rtl">
@@ -123,14 +125,14 @@ export const EmployeeDashboard: React.FC = () => {
               let shiftInfo = '';
               if (r.linkedShiftId) {
                 const s = timeline.find(t => t.id === r.linkedShiftId);
-                if (s) shiftInfo = `في شفت (${s.time} - ${s.endTime || 'نهاية اليوم'})`;
+                if (s) shiftInfo = `في ${shiftName(s.time)} (${formatTime(s.time)} - ${s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'})`;
               }
 
               return (
                 <div key={r.id} className={`${isPositive ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex text-yellow-400 text-sm">{stars}</div>
-                    <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{r.date} - {r.time}</div>
+                    <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{formatDateTime(r.date, r.time)}</div>
                   </div>
                   <p className="text-gray-700 text-sm">"{r.comment}"</p>
                   
@@ -154,7 +156,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <p className="text-gray-700 text-sm">"{t.comment}"</p>
                 <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-gray-500">الوقت: {t.time}</p>
+                  <p className="text-xs text-gray-500">الوقت: {formatTime(t.time)}</p>
                   <p className={`text-xs ${t.title.includes('سلامة') ? 'text-red-400' : 'text-orange-400'}`}>مسجلة بواسطة الإدارة</p>
                 </div>
               </div>
@@ -180,8 +182,8 @@ export const EmployeeDashboard: React.FC = () => {
           <div className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
             {timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).map(event => (
               <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <p className="font-bold text-gray-800">{event.date} — {event.time} إلى {event.endTime || 'غير محدد'}</p>
-                <p className="text-xs text-gray-500 mt-1">{event.branch} · {event.employees?.map(employee => employee.name).join('، ')}</p>
+                <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
+                <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id).length ? `مع ${event.employees.filter(employee => employee.id !== user.id).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
               </div>
             ))}
             {!timeline.some(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)) && <p className="text-sm text-gray-500">لا توجد شفتات مسجلة.</p>}
@@ -196,11 +198,11 @@ export const EmployeeDashboard: React.FC = () => {
           
           <div className="bg-blue-50 p-4 rounded-xl flex justify-between items-center mb-4">
             <div>
-              <p className="text-blue-800 font-bold text-lg">من 16:00 إلى 00:00</p>
-              <p className="text-blue-600 text-sm">تم تسجيل حضورك في هذا الشفت.</p>
+              <p className="text-blue-800 font-bold text-lg">{todayShifts.length ? `${shiftName(todayShifts[0].time)}: ${formatTime(todayShifts[0].time)} إلى ${formatTime(todayShifts[0].endTime) || 'غير محدد'}` : 'لا يوجد شفت مسجل اليوم'}</p>
+              <p className="text-blue-600 text-sm">{todayShifts.length ? 'الشفت مسجل في النظام.' : 'يمكنك تقديم اعتراض إذا كان هناك شفت مفقود.'}</p>
             </div>
             <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-sm">
-              نشط
+              {todayShifts.length ? 'مسجل' : 'غير مسجل'}
             </div>
           </div>
 

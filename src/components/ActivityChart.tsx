@@ -1,7 +1,7 @@
 import { useId, useState } from 'react';
 import type { ReviewSummary } from '../context/DataContext';
 import { weeklyActivity, newestFirst, reviewTimestamp } from '../lib/employeeActivity';
-import { formatDateTime, toEnglishNumerals } from '../lib/formatDate';
+import { formatDateTime, toEnglishNumerals, formatDate } from '../lib/formatDate';
 
 export function ActivityChart({ reviews }: { reviews: (ReviewSummary & { comment?: string })[] }) {
   const weeks = weeklyActivity(reviews);
@@ -11,7 +11,7 @@ export function ActivityChart({ reviews }: { reviews: (ReviewSummary & { comment
   const x = (index: number) => 40 + index * 520 / Math.max(1, weeks.length - 1);
   const y = (count: number) => 205 - count * 165 / max;
   const line = (key: 'negative' | 'positive') => weeks.map((week, index) => `${x(index)},${y(week[key])}`).join(' ');
-  const format = (date: Date) => new Intl.DateTimeFormat('ar-SA', { calendar: 'gregory', timeZone: 'UTC', month: 'short', day: 'numeric' }).format(date);
+  const format = (date: Date) => formatDate(`${date.getUTCDate()}-${date.getUTCMonth() + 1}-${date.getUTCFullYear()}`);
   const active = weeks[selected ?? weeks.length - 1];
   const selectedReviews = selected === null ? [] : reviews.filter(review => {
     const date = reviewTimestamp({ date: review.date });

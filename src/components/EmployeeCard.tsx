@@ -7,7 +7,7 @@ import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import type { TimelineEvent } from '../context/DataContext';
-import { formatDateTime, toEnglishNumerals } from '../lib/formatDate';
+import { formatDateTime, toEnglishNumerals, formatDate, formatTime, shiftName } from '../lib/formatDate';
 
 interface Props {
   employee: UserAccount;
@@ -180,15 +180,13 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
                       <Clock size={18} className="text-blue-600" />
                       <p className="font-bold text-sm">{totalHours} ساعات في صناعة تجربة العميل</p>
                     </div>}
-                    {!canReadAllShifts && <p className="text-sm text-gray-500 text-center">تظهر هنا الشفتات المشتركة المتاحة لحسابك. السجل الكامل متاح للموظفة وإدارة فرعها.</p>}
+
 
                     {employeeShifts.length > 0 ? employeeShifts.map((shift, idx) => {
-                      const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date && r.linkedEmployeeIds?.includes(employee.id));
                       return (
                         <div key={shift.id || idx} onClick={() => setSelectedShift(shift)} className="bg-white p-4 rounded-xl border shadow-sm flex flex-col relative cursor-pointer hover:bg-gray-50 transition-colors">
-                          <div className="absolute left-4 top-4 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">شفت {shift.time}</div>
-                          <p className="font-bold text-gray-800">{shift.date} اكتسبت {shiftReviews.length} تقييمات</p>
-                          <p className="text-xs text-gray-400 mt-1">(مع {shift.employees?.filter(e => !isEmpMatch(e.id, e.name)).map(e => e.name).join(' و ') || 'لا أحد'})</p>
+                          <p className="font-bold text-gray-800">{formatDate(shift.date)} <span className="text-xs font-medium text-gray-500">({shiftName(shift.time)})</span></p>
+                          <p className="text-xs text-gray-400 mt-1">{shift.employees?.filter(e => !isEmpMatch(e.id, e.name)).length ? `مع ${shift.employees.filter(e => !isEmpMatch(e.id, e.name)).map(e => e.name).join(' و')}` : 'بدون شريكة'}</p>
                         </div>
                       );
                     }) : (
@@ -260,8 +258,8 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
          <motion.div initial={{y:50, opacity:0}} animate={{y:0, opacity:1}} exit={{y:50, opacity:0}} className="relative w-full max-w-lg bg-gray-100 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="bg-white p-4 shadow-sm z-10 flex justify-between items-center shrink-0">
                <div>
-                 <h3 className="text-lg font-bold text-gray-800">{shift.branch} - {shift.date || 'اليوم'}</h3>
-                 <p className="text-sm text-gray-500">{shift.time} - {shift.endTime || 'نهاية اليوم'}</p>
+                 <h3 className="text-lg font-bold text-gray-800">{shift.branch} - {formatDate(shift.date) || 'اليوم'}</h3>
+                 <p className="text-sm text-gray-500">{shiftName(shift.time)} · {formatTime(shift.time)} - {shift.endTime ? formatTime(shift.endTime) : 'نهاية اليوم'}</p>
                </div>
                <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600"><X size={20}/></button>
             </div>
@@ -285,7 +283,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
                                 <p className="font-bold text-gray-800 text-sm">{r.reviewerName}</p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                   {[1,2,3,4,5].map(s => <Star key={s} size={12} className={s <= parseInt(r.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'} />)}
-                                  <span className="text-[10px] text-gray-400 mr-2">{r.time}</span>
+                                  <span className="text-[10px] text-gray-400 mr-2">{formatTime(r.time)}</span>
                                 </div>
                              </div>
                           </div>

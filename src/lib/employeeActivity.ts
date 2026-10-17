@@ -47,3 +47,7 @@ export function weeklyActivity(reviews: ReviewSummary[], now = new Date()) {
   }
   return buckets;
 }
+
+export function monthlyEmployeeOrder(a: { monthReviewsCount?: number; name: string; id: string }, b: { monthReviewsCount?: number; name: string; id: string }) {
+  return (b.monthReviewsCount || 0) - (a.monthReviewsCount || 0) || a.name.localeCompare(b.name, 'ar') || a.id.localeCompare(b.id);
+}

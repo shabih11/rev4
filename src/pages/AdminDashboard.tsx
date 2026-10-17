@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { CalendarClock, LogOut, Search, Plus, Activity, Users, Send, AlertOctagon, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatDateTime } from '../lib/formatDate';
+import { formatDateTime, formatTime } from '../lib/formatDate';
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -239,8 +239,8 @@ export const AdminDashboard: React.FC = () => {
                       <div className="flex items-center justify-between mb-1">
                         <h4 className={`font-bold ${item.type === 'gap' ? 'text-red-600' : 'text-green-600'}`}>{item.title}</h4>
                         <time className="text-xs font-medium text-gray-500">
-                          {item.date ? formatDateTime(item.date, item.time) : item.time}
-                          {item.endTime && ` - ${item.endTime}`}
+                          {item.date ? formatDateTime(item.date, item.time) : formatTime(item.time)}
+                          {item.endTime && ` - ${formatTime(item.endTime)}`}
                         </time>
                       </div>
                       

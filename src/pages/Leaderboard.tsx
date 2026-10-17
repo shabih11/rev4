@@ -2,15 +2,16 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCreative, Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
-import { formatDateTime, isWithinLastDays} from '../lib/formatDate';
+import { formatDateTime, isWithinLastDays, formatDate} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
-import { favoritePartner, newestFirst } from '../lib/employeeActivity';
+import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
 
 type SlideData = 
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -52,14 +53,14 @@ export const Leaderboard: React.FC = () => {
     // 1. Top 10 Employees
     const sorted = users
       .filter(u => u.role === 'employee')
-      .sort((a, b) => b.points - a.points)
+      .sort(monthlyEmployeeOrder)
       .slice(0, 10);
     
     const sData: SlideData[] = sorted.map((emp, i) => ({ type: 'employee', data: emp, rank: i + 1 }));
 
     // 2. Partnerships (Best per branch)
     const branchReviewsMap: Record<string, typeof reviews> = {};
-    reviews.forEach(r => {
+    reviews.filter(review => isInCurrentMonth(review.date) && isPositiveReview(review.rating)).forEach(r => {
       if (!branchReviewsMap[r.branch]) branchReviewsMap[r.branch] = [];
       branchReviewsMap[r.branch].push(r);
     });
@@ -162,7 +163,8 @@ export const Leaderboard: React.FC = () => {
       });
     }
 
-    return sData;
+    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, partnership: 3, employee: 4 };
+    return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
   }, [users, reviews]);
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -196,6 +198,11 @@ export const Leaderboard: React.FC = () => {
       onKeyDownCapture={handleTouchStart}
     >
       
+      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
+      <div className="absolute inset-x-3 top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
+        <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
+        <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
+      </div>
       {/* Top Header - Contextual */}
       <AnimatePresence mode="wait">
         <motion.div 
@@ -206,9 +213,7 @@ export const Leaderboard: React.FC = () => {
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
             {activeSlide.type === 'employee' && <>
               <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p>
-              <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                <button className="mt-2 text-xl sm:text-3xl" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
-              </EmployeeCard>
+
             </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
             {activeSlide.type === 'active_branch' && `إحصائية الأسبوع`}
@@ -225,6 +230,8 @@ export const Leaderboard: React.FC = () => {
           dir="ltr"
           effect={'creative'}
           grabCursor={true}
+          allowTouchMove={true}
+          rewind={true}
           centeredSlides={true}
           slidesPerView={1}
           autoplay={{ delay: 3000, disableOnInteraction: true }}
@@ -340,9 +347,12 @@ export const Leaderboard: React.FC = () => {
               
               {activeSlide.type === 'employee' && (
                 <>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium mb-1.5 sm:mb-3 hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mt-1 sm:mt-2">
-                    {activeSlide.data.branch}
-                  </button>
+                  <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
+                    <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
+                    </EmployeeCard>
+                    <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
+                  </div>
 
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
@@ -356,7 +366,7 @@ export const Leaderboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لا توجد شريكة هذا الشهر'}</h2>
+                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لازلت أعمل على ذلك'}</h2>
                   {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {activePartner.count} تقييم خلال هذا الشهر</p>}
                 </>
               )}
@@ -451,7 +461,7 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {users.filter(u => u.role === 'employee').sort((a, b) => (b.monthReviewsCount ?? 0) - (a.monthReviewsCount ?? 0) || a.name.localeCompare(b.name, 'ar')).map((emp, idx) => (
+                {users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder).map((emp, idx) => (
                   <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
@@ -711,7 +721,7 @@ export const Leaderboard: React.FC = () => {
 
                   {branchModalSelectedDate && (
                     <div className="bg-blue-50 p-4 border-b border-blue-100 shadow-inner shrink-0">
-                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {branchModalSelectedDate}:</p>
+                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {formatDate(branchModalSelectedDate)}:</p>
                        <div className="flex flex-wrap gap-2">
                          {(() => {
                            const dayShifts = timeline.filter(t => t.branch === modalBranchName && t.type === 'shift' && t.date === branchModalSelectedDate);

@@ -5,7 +5,7 @@ import { AlertOctagon, Users, LogOut, Building2, Activity, CalendarClock, Messag
 import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
 import { matchEmployee } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
-import { formatDateTime, toEnglishNumerals } from '../lib/formatDate';
+import { formatDateTime, toEnglishNumerals, formatDate, formatTime, formatTimestamp, shiftName } from '../lib/formatDate';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -660,8 +660,8 @@ export const SystemAdminDashboard: React.FC = () => {
                         </h4>
                         <div className="flex items-center gap-2">
                           <time className="text-xs font-medium text-gray-500">
-                            {item.date ? formatDateTime(item.date, item.time) : item.time}
-                            {item.endTime && ` - ${item.endTime}`}
+                            {item.date ? formatDateTime(item.date, item.time) : formatTime(item.time)}
+                            {item.endTime && ` - ${formatTime(item.endTime)}`}
                           </time>
                           <button onClick={() => handleDeleteTimelineEvent(item.id, item.reviewId)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button>
                         </div>
@@ -1057,7 +1057,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           <>
                             <h3 className={`font-bold ${t.title.includes('شكوى') ? 'text-red-700' : 'text-orange-700'}`}>{t.title}</h3>
                             <p className="text-gray-600 text-sm mt-1">{t.comment}</p>
-                            <p className="text-xs text-gray-400 mt-2">{t.time} • {t.branch}</p>
+                            <p className="text-xs text-gray-400 mt-2">{formatTime(t.time)} • {t.branch}</p>
                           </>
                         )}
                       </div>
@@ -1203,7 +1203,7 @@ export const SystemAdminDashboard: React.FC = () => {
                         return (
                           <div key={s.id || idx} className="flex justify-between items-center p-3 bg-white rounded border border-indigo-100">
                             <div>
-                              <div className="font-bold text-sm text-gray-800">شفت ({s.time} - {s.endTime})</div>
+                              <div className="font-bold text-sm text-gray-800">{formatDate(s.date)} <span className="text-xs font-medium">({shiftName(s.time)})</span></div>
                               <div className="text-xs text-gray-500 mt-1">
                                 {s.employees.map((e: any) => e.name).join('، ')}
                               </div>
@@ -1362,7 +1362,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           - فرع {batch.branch}
                         </div>
                         <div className="text-sm text-gray-500 mt-1">
-                          تاريخ العملية: {new Date(batch.time).toLocaleString('ar-SA')}
+                          تاريخ العملية: {formatTimestamp(batch.time)}
                         </div>
                         <div className="text-sm text-gray-600 mt-1 font-bold">
                           العدد المحقون: {batch.count}
@@ -1404,8 +1404,8 @@ export const SystemAdminDashboard: React.FC = () => {
                     <div key={s.id} className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
                       <div>
                         <div className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                          ⏱ شفت ({s.time} - {s.endTime || 'نهاية اليوم'})
-                          {s.date && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">{s.date}</span>}
+                          {formatDate(s.date)} <span className="text-xs font-medium text-gray-500">({shiftName(s.time)})</span>
+                          <p className="text-xs text-gray-500">{formatTime(s.time)} – {s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'}</p>
                         </div>
                         <div className="text-sm text-gray-500 mt-2 flex flex-wrap gap-1">
                           {s.employees?.map(e => (
@@ -1487,7 +1487,7 @@ export const SystemAdminDashboard: React.FC = () => {
                       const start = (document.getElementById('dangerStart') as HTMLInputElement).value;
                       const end = (document.getElementById('dangerEnd') as HTMLInputElement).value;
                       if (!start || !end) { showToast('يرجى تحديد فترة صحيحة'); return; }
-                      if (confirm(`هل أنت متأكد من حذف البيانات للفترة ${start} إلى ${end} لـ ${branch === 'all' ? 'جميع الفروع' : branch}؟`)) {
+                      if (confirm(`هل أنت متأكد من حذف البيانات للفترة ${formatDate(start)} إلى ${formatDate(end)} لـ ${branch === 'all' ? 'جميع الفروع' : branch}؟`)) {
                          clearData(branch, start, end);
                          showToast('تم حذف بيانات الفترة بنجاح');
                       }
@@ -1563,7 +1563,7 @@ export const SystemAdminDashboard: React.FC = () => {
               {verifiedImportReport && (
                 <section className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-3">
                   <h3 className="font-bold text-emerald-900">تم استيراد نسخة Windsor.ai الفعلية</h3>
-                  <p className="text-sm text-emerald-900">الفترة: {verifiedImportReport.dateFrom} إلى {verifiedImportReport.dateTo} — {verifiedImportReport.received} تقييمًا بمعرفات Google الأصلية.</p>
+                  <p className="text-sm text-emerald-900">الفترة: {formatDate(verifiedImportReport.dateFrom)} إلى {formatDate(verifiedImportReport.dateTo)} — {verifiedImportReport.received} تقييمًا بمعرفات Google الأصلية.</p>
                   <p className="text-sm">مرتبطة بالشفتات: {verifiedImportReport.linked} — دون شفت مطابق: {verifiedImportReport.unlinked}. المضافة: {verifiedImportReport.added}، الموجودة مسبقًا: {verifiedImportReport.alreadyPresent}.</p>
                   {verifiedImportReport.archived > 0 && <p className="text-xs text-gray-700">حُفظت {verifiedImportReport.archived} من التقييمات السابقة المرفقة بالتطبيق في الأرشيف، مع نسخة كاملة من البيانات قبل الاستيراد.</p>}
                   <table className="w-full text-sm text-right"><thead><tr><th>الفرع</th><th>التقييمات</th><th>مرتبطة</th><th>دون ربط</th></tr></thead><tbody>
