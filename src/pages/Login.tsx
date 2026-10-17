@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail } from 'lucide-react';
+import { useData } from '../context/DataContext';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { login, user } = useAuth();
+  const { syncError } = useData();
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
@@ -17,13 +19,14 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError('');
     
+    const data = new FormData(e.currentTarget as HTMLFormElement);
     setBusy(true);
-    const success = await login(email, password);
+    const result = await login(String(data.get('email') || ''), String(data.get('password') || ''));
     setBusy(false);
-    if (success) {
+    if (result.success) {
       // Navigation waits for the authenticated server-side profile.
     } else {
-      setError('البريد الإلكتروني أو كلمة المرور غير صحيحة');
+      setError(result.error || 'تعذر تسجيل الدخول');
     }
   };
 
@@ -39,18 +42,18 @@ export const Login: React.FC = () => {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
-          {error && (
+          {(error || syncError) && (
             <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm font-bold text-center">
-              {error}
+              {error || syncError}
             </div>
           )}
 
           <div className="space-y-2">
-            <label className="text-gray-700 font-bold text-sm block">البريد الإلكتروني</label>
+            <label htmlFor="login-email" className="text-gray-700 font-bold text-sm block">البريد الإلكتروني</label>
             <div className="relative">
               <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input 
-                type="email" 
+                id="login-email" name="email" type="email" autoComplete="username" autoCapitalize="none" spellCheck={false} 
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
@@ -62,11 +65,11 @@ export const Login: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-gray-700 font-bold text-sm block">كلمة المرور</label>
+            <label htmlFor="login-password" className="text-gray-700 font-bold text-sm block">كلمة المرور</label>
             <div className="relative">
               <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
               <input 
-                type="password" 
+                id="login-password" name="password" type="password" autoComplete="current-password" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
