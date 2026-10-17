@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ShiftReviewCounts } from '../components/ShiftReviewCounts';
 import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
@@ -7,11 +8,13 @@ import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, Chevron
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { addTimelineEvent, reviews, users, timeline } = useData();
+  const { addTimelineEvent, reviews, reviewSummaries, recordsReady, users, timeline } = useData();
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
 
   if (!user) return null;
+  const privateReviews = new Map(reviews.map(review => [review.id, review]));
+  const countReviews = reviewSummaries.map(summary => ({ ...summary, linkedShiftId: privateReviews.get(summary.id)?.linkedShiftId }));
   const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
 
   return (
@@ -182,9 +185,12 @@ export const EmployeeDashboard: React.FC = () => {
         {showShifts && (
           <div className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
             {timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).sort(newestFirst).map(event => (
-              <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
+                <div className="min-w-0">
                 <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
                 <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id).length ? `مع ${event.employees.filter(employee => employee.id !== user.id).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
+                </div>
+                <ShiftReviewCounts shift={event} employeeId={user.id} reviews={countReviews} ready={recordsReady} />
               </div>
             ))}
             {!timeline.some(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)) && <p className="text-sm text-gray-500">لا توجد شفتات مسجلة.</p>}

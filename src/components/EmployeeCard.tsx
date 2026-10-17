@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { ShiftReviewCounts } from './ShiftReviewCounts';
 import { ActivityChart } from './ActivityChart';
 import { favoritePartner, newestFirst } from '../lib/employeeActivity';
 import type { UserAccount } from '../lib/mockData';
@@ -23,7 +24,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
   const employeeReviews = reviewSummaries
     .filter(review => review.linkedEmployeeIds.includes(employee.id) || review.linkedEmployeeIds.includes(employee.name))
-    .map(review => ({ ...review, comment: privateReviews.get(review.id)?.comment })).sort(newestFirst);
+    .map(review => ({ ...review, comment: privateReviews.get(review.id)?.comment, linkedShiftId: privateReviews.get(review.id)?.linkedShiftId })).sort(newestFirst);
   const canReadAllShifts = currentAccount?.role === 'admin' || currentAccount?.id === employee.id ||
     (currentAccount?.role === 'manager' && currentAccount.branch === employee.branch);
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
@@ -184,9 +185,12 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
                     {employeeShifts.length > 0 ? employeeShifts.map((shift, idx) => {
                       return (
-                        <div key={shift.id || idx} onClick={() => setSelectedShift(shift)} className="bg-white p-4 rounded-xl border shadow-sm flex flex-col relative cursor-pointer hover:bg-gray-50 transition-colors">
+                        <div key={shift.id || idx} onClick={() => setSelectedShift(shift)} className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50 transition-colors">
+                          <div className="min-w-0">
                           <p className="font-bold text-gray-800">{formatDate(shift.date)} <span className="text-xs font-medium text-gray-500">({shiftName(shift.time)})</span></p>
                           <p className="text-xs text-gray-400 mt-1">{shift.employees?.filter(e => !isEmpMatch(e.id, e.name)).length ? `مع ${shift.employees.filter(e => !isEmpMatch(e.id, e.name)).map(e => e.name).join(' و')}` : 'بدون شريكة'}</p>
+                          </div>
+                          <ShiftReviewCounts shift={shift} employeeId={employee.id} reviews={employeeReviews} ready={recordsReady} />
                         </div>
                       );
                     }) : (
