@@ -35,13 +35,15 @@ export function weeklyActivity(reviews: ReviewSummary[], now = new Date()) {
     const date = new Date(firstWeek.getTime() + index * 7 * dayMs);
     const from = new Date(Math.max(date.getTime(), start.getTime()));
     const to = new Date(Math.min(date.getTime() + 6 * dayMs, end.getTime()));
-    return { start: from, end: to, total: 0, positive: 0 };
+    return { start: from, end: to, total: 0, positive: 0, negative: 0 };
   });
   for (const review of reviews) {
     const timestamp = reviewTimestamp({ date: review.date });
     if (timestamp < start.getTime() || timestamp > end.getTime()) continue;
     const index = Math.floor((timestamp - firstWeek.getTime()) / (7 * dayMs));
-    if (buckets[index]) { buckets[index].total++; if (isPositiveReview(review.rating)) buckets[index].positive++; }
+    if (buckets[index]) { buckets[index].total++; if (isPositiveReview(review.rating)) buckets[index].positive++;
+      const rating = parseInt(toEnglishNumerals(review.rating), 10);
+      if (rating === 1 || rating === 2) buckets[index].negative++; }
   }
   return buckets;
 }
