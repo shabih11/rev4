@@ -41,7 +41,42 @@ export const shiftName = (start?: string): string => {
   const minutes = timeMinutes(start);
   return minutes === null ? 'الشفت' : minutes >= 16 * 60 ? 'الشفت الثاني' : 'الشفت الأول';
 };
-export const formatDateTime = (dateStr: string, timeStr: string): string => [formatDate(dateStr), formatTime(timeStr)].filter(Boolean).join('، ');
+export const formatDateTime = (dateStr?: string, timeStr?: string): string => {
+  if (!dateStr) return formatTime(timeStr) || '';
+  const parts = toEnglishNumerals(dateStr).replace(/\//g, '-').split('-').map(Number);
+  if (parts.length < 3 || parts.some(isNaN)) {
+    return [formatDate(dateStr), formatTime(timeStr)].filter(Boolean).join('، ');
+  }
+
+  const [year, month, day] = parts[0] > 31 ? [parts[0], parts[1], parts[2]] : [parts[2], parts[1], parts[0]];
+  const normalizedYear = year < 100 ? 2000 + year : year;
+
+  // Current date in Asia/Riyadh timezone
+  const riyadhNowParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Riyadh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date()).split('-').map(Number);
+
+  const todayUtc = Date.UTC(riyadhNowParts[0], riyadhNowParts[1] - 1, riyadhNowParts[2]);
+  const targetUtc = Date.UTC(normalizedYear, month - 1, day);
+  const diffDays = Math.round((todayUtc - targetUtc) / 86400000);
+
+  const formattedTime = formatTime(timeStr);
+  const formattedDate = formatDate(dateStr);
+
+  if (diffDays === 0) {
+    return formattedTime ? `اليوم، ${formattedTime}` : 'اليوم';
+  } else if (diffDays === 1) {
+    return formattedTime ? `أمس، ${formattedTime}` : 'أمس';
+  } else if (diffDays === 2) {
+    return formattedTime ? `أول أمس، ${formattedTime}` : 'أول أمس';
+  } else {
+    // إذا كان أقدم من ذلك: التاريخ فقط بدون الوقت
+    return formattedDate;
+  }
+};
 export const riyadhDateKey = (now = new Date()) => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now).replace(/\//g, '-');
 export const formatTimestamp = (timestamp: number) => {
   const date = new Date(timestamp);
@@ -51,9 +86,11 @@ export const formatTimestamp = (timestamp: number) => {
 
 export const parseDateStr = (dateStr: string): Date | null => {
   try {
-    const [day, month, year] = dateStr.split('-');
-    if (!day || !month || !year) return null;
-    return new Date(parseInt(toEnglishNumerals(year), 10), parseInt(toEnglishNumerals(month), 10) - 1, parseInt(toEnglishNumerals(day), 10));
+    const parts = toEnglishNumerals(dateStr).replace(/\//g, '-').split('-').map(Number);
+    if (parts.length < 3 || parts.some(isNaN)) return null;
+    const [year, month, day] = parts[0] > 31 ? [parts[0], parts[1], parts[2]] : [parts[2], parts[1], parts[0]];
+    const normalizedYear = year < 100 ? 2000 + year : year;
+    return new Date(normalizedYear, month - 1, day);
   } catch {
     return null;
   }

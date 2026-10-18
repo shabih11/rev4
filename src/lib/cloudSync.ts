@@ -32,7 +32,7 @@ export function useCloudSession(): CloudSession {
 }
 const clean = (value: unknown) => JSON.parse(JSON.stringify(value));
 export function publicProfile(user: UserAccount) {
-  const { email: _email, password: _password, ...profile } = user;
+  const { email: _email, password: _password, mustChangePassword: _mustChangePassword, ...profile } = user as UserAccount & { password?: string };
   return clean(profile);
 }
 export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews' | 'timeline' | 'branches' | 'reviewSignals' | 'noteSignals', session: CloudSession) {
@@ -49,9 +49,9 @@ export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews'
     const role = session.account.role;
     const source = name === 'users' && role !== 'admin' ? 'profiles' : name;
     const constraints: QueryConstraint[] = [];
-    if (role !== 'admin' && (name === 'reviews' || name === 'timeline')) {
+    if (role !== 'admin' && name === 'timeline') {
       if (role === 'manager') constraints.push(where('branch', '==', session.account.branch));
-      else constraints.push(where(name === 'reviews' ? 'linkedEmployeeIds' : 'employeeIds', 'array-contains', session.account.id));
+      else constraints.push(where('employeeIds', 'array-contains', session.account.id));
     }
     const sourceQuery = query(collection(db, APP_PATH, source), ...constraints);
     return onSnapshot(sourceQuery, { includeMetadataChanges: true }, snapshot => {
@@ -102,7 +102,7 @@ export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews'
           }
           if (name === 'reviews') { const { id, branch, rating, date, time, linkedEmployeeIds } = data; batch.set(doc(db, APP_PATH, 'reviewSignals', ref.id), { id, branch, rating, date, time, linkedEmployeeIds }); }
           if (name === 'timeline' && data.type === 'gap') { batch.set(doc(db, APP_PATH, 'noteSignals', ref.id), { id: data.id, branch: data.branch, date: data.date || '', type: 'gap', title: data.title.includes('شكوى') ? 'شكوى' : data.title.includes('سلامة') ? 'سلامة' : '', employees: (data.employees || []).map((employee: {id:string}) => ({id: employee.id, name: ''})) }); }
-          if (name === 'users') batch.set(doc(db, APP_PATH, 'profiles', id), publicProfile(data));
+          if (name === 'users' && session.account!.role === 'admin') batch.set(doc(db, APP_PATH, 'profiles', id), publicProfile(data));
           if (name === 'timeline' && data.type === 'shift') batch.set(doc(db, APP_PATH, 'shifts', id), data);
         });
       }

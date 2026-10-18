@@ -5,6 +5,37 @@ export const WINDSOR_REVIEW_FIELDS = 'account_id,location_title,review_id,review
 export const WINDSOR_API_EXAMPLE = `https://connectors.windsor.ai/google_my_business?api_key=YOUR_API_KEY&date_preset=this_monthT&fields=${WINDSOR_REVIEW_FIELDS}`;
 const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
 
+/**
+ * Strips Google Reviews automated translations and returns only the original text written by the customer.
+ */
+export function stripReviewTranslation(comment?: string): string {
+  if (!comment) return '';
+  let cleaned = comment.trim();
+
+  // Pattern 1: Translation block followed by an Original block
+  // e.g. "(Translated by Google) ... (Original) <original text>"
+  // or "(مترجم بواسطة Google) ... (النص الأصلي) <original text>"
+  const originalRegex = /\((?:Original|النص الأصلي)\)\s*([\s\S]*)/i;
+  const originalMatch = cleaned.match(originalRegex);
+  if (originalMatch && originalMatch[1]?.trim()) {
+    return originalMatch[1].trim();
+  }
+
+  // Pattern 2: Original text followed by a Translated block
+  // e.g. "<original text> (Translated by Google) <translation>"
+  // or "<original text> (مترجم بواسطة Google) <translation>"
+  const translatedMarkerRegex = /\s*(?:\(|\b)(?:Translated by Google|مترجم بواسطة Google|Traduit par Google|Traducido por Google)(?:\)|\b)[\s\S]*/i;
+  if (translatedMarkerRegex.test(cleaned)) {
+    const stripped = cleaned.replace(translatedMarkerRegex, '').trim();
+    if (stripped) return stripped;
+  }
+
+  // Pattern 3: Leading "(Translated by Google)" without an "(Original)" block
+  cleaned = cleaned.replace(/^\s*(?:\(|\b)(?:Translated by Google|مترجم بواسطة Google)(?:\)|\b)\s*/i, '').trim();
+
+  return cleaned;
+}
+
 /** Only import individual reviews with an unambiguous branch, rating and timestamp. */
 export function normalizeWindsorReviews(rawData: unknown, mapping: Record<string, string> = {}): Omit<CustomerReview, 'linkedEmployeeIds'>[] {
   const rows = Array.isArray(rawData) ? rawData : rawData && typeof rawData === 'object' && 'data' in rawData ? (rawData as { data: unknown }).data : null;
@@ -28,7 +59,8 @@ export function normalizeWindsorReviews(rawData: unknown, mapping: Record<string
     const id = String(item.review_id);
     if (seen.has(id)) continue;
     seen.add(id);
-    result.push({ id, reviewerName: String(item.review_reviewer || 'عميل'), rating: String(rating), comment: String(item.review_comment || ''), date: `${part('day')}-${part('month')}-${part('year')}`, time: `${part('hour')}:${part('minute')}`, branch });
+    const cleanComment = stripReviewTranslation(String(item.review_comment || ''));
+    result.push({ id, reviewerName: String(item.review_reviewer || 'عميل'), rating: String(rating), comment: cleanComment, date: `${part('day')}-${part('month')}-${part('year')}`, time: `${part('hour')}:${part('minute')}`, branch });
   }
   return result;
 }

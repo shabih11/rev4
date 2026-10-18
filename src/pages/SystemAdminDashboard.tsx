@@ -1,19 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { AlertOctagon, Users, LogOut, Building2, Activity, CalendarClock, MessageSquareWarning, Upload, ShieldAlert, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Undo2, History, Zap, Copy, Check, RefreshCw, Globe, Link } from 'lucide-react';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, RefreshCw, Globe, Link, GitMerge } from 'lucide-react';
 import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
-import { matchEmployee } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
-import { formatDateTime, toEnglishNumerals, formatDate, formatTime, formatTimestamp, shiftName } from '../lib/formatDate';
+import { formatDateTime, formatDate, formatTime, shiftName } from '../lib/formatDate';
+import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
-  const { users, updateUser, addUser, removeUser, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews } = useData();
-  const [activeTab, setActiveTab] = useState<'timeline' | 'branches' | 'employees' | 'notes' | 'stats' | 'history' | 'shifts' | 'windsor' | 'danger'>('timeline');
+  const { users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews } = useData();
+  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
   const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
   const [tempWindsorUrl, setTempWindsorUrl] = useState(windsorApiUrl);
@@ -43,234 +43,30 @@ export const SystemAdminDashboard: React.FC = () => {
   const effectiveTimelineBranch = globalBranch !== 'all' ? globalBranch : selectedTimelineBranch;
 
   const branchEmployees = users.filter(u => (effectiveBranch === 'موظفة خارجية' ? u.branch === 'موظفة خارجية' : u.branch === effectiveBranch) && u.role === 'employee');
-  const filteredTimeline = timeline.filter(t => t.branch === effectiveTimelineBranch);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingEmpId, setUploadingEmpId] = useState<string | null>(null);
 
-  const [reviewsText, setReviewsText] = useState('');
-  const [shiftsText, setShiftsText] = useState('');
-  const [pendingReviews, setPendingReviews] = useState<{ reviews: any[], timelineEvents: any[] } | null>(null);
-  const [pendingShifts, setPendingShifts] = useState<any[]>([]);
-  const [unmatchedShiftNames, setUnmatchedShiftNames] = useState<string[]>([]);
-  const [shiftMappings, setShiftMappings] = useState<Record<string, string>>({});
+  // Merge Employees State
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [primaryEmpId, setPrimaryEmpId] = useState('');
+  const [duplicateEmpId, setDuplicateEmpId] = useState('');
+  const [mergedName, setMergedName] = useState('');
+  const [mergedBranch, setMergedBranch] = useState(branches[0]);
   
   const [viewingReviewsMonth, setViewingReviewsMonth] = useState('');
-  const [linkingReviewId, setLinkingReviewId] = useState<string | null>(null);
-  const [linkingSelection, setLinkingSelection] = useState<string[]>([]);
-  const [editingTimeId, setEditingTimeId] = useState<string | null>(null);
-  const [editingTimeValue, setEditingTimeValue] = useState<string>('');
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteTitle, setEditingNoteTitle] = useState('');
   const [editingNoteComment, setEditingNoteComment] = useState('');
-  const allAvailableEmployees = users.filter(u => (u.branch === effectiveTimelineBranch || u.branch === 'موظفة خارجية') && u.role === 'employee');
 
   const navItems = [
-    { id: 'timeline', label: 'الخط الزمني', icon: Activity, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'shifts', label: 'الشفتات', icon: CalendarClock, color: 'text-indigo-600', activeBg: 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600' },
-    { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'employees', label: 'الموظفات', icon: Users, color: 'text-emerald-600', activeBg: 'bg-emerald-50 text-emerald-700 border-r-4 border-emerald-600' },
-    { id: 'notes', label: 'الملاحظات', icon: MessageSquareWarning, color: 'text-amber-600', activeBg: 'bg-amber-50 text-amber-700 border-r-4 border-amber-600' },
+    { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'stats', label: 'التقييمات', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
-    { id: 'history', label: 'السجل', icon: History, color: 'text-slate-600', activeBg: 'bg-slate-100 text-slate-800 border-r-4 border-slate-600' },
+    { id: 'notes', label: 'الملاحظات', icon: MessageSquareWarning, color: 'text-amber-600', activeBg: 'bg-amber-50 text-amber-700 border-r-4 border-amber-600' },
     { id: 'windsor', label: 'Windsor.ai', icon: Zap, color: 'text-purple-600', activeBg: 'bg-purple-50 text-purple-700 border-r-4 border-purple-600' },
-    { id: 'danger', label: 'منطقة الخطر', icon: ShieldAlert, color: 'text-red-600', activeBg: 'bg-red-50 text-red-700 border-r-4 border-red-600' },
   ] as const;
-
-  const injectionBatches = React.useMemo(() => {
-    const batches = new Map<string, { id: string, time: number, type: 'review' | 'shift', count: number, branch: string }>();
-    
-    reviews.forEach(r => {
-      if (r.batchId) {
-        if (!batches.has(r.batchId)) {
-          batches.set(r.batchId, { id: r.batchId, time: parseInt(r.batchId.split('_')[1]) || 0, type: 'review', count: 0, branch: r.branch });
-        }
-        batches.get(r.batchId)!.count++;
-      }
-    });
-
-    timeline.forEach(t => {
-      if (t.batchId && t.type === 'shift') {
-        if (!batches.has(t.batchId)) {
-          batches.set(t.batchId, { id: t.batchId, time: parseInt(t.batchId.split('_')[1]) || 0, type: 'shift', count: 0, branch: t.branch });
-        }
-        batches.get(t.batchId)!.count++;
-      }
-    });
-
-    return Array.from(batches.values()).sort((a, b) => b.time - a.time);
-  }, [reviews, timeline]);
-
-  const handleUndoBatch = (batchId: string) => {
-    if (confirm('هل أنت متأكد من التراجع عن عملية الحقن هذه؟ سيتم حذف جميع البيانات المرتبطة بها.')) {
-      undoBatch(batchId);
-      showToast('تم التراجع عن الحقن بنجاح');
-    }
-  };
-
-  const handleInjectReviews = () => {
-    if (!reviewsText.trim()) return;
-    const batchId = `batch_${Date.now()}`;
-    const parsed = parseReviewsText(selectedBranch, reviewsText, batchId);
-    if (parsed.reviews.length > 0) {
-      setPendingReviews(parsed);
-      showToast('تم استخراج التقييمات بنجاح، يرجى مراجعتها وتأكيد الحقن');
-    } else {
-      showToast('لم يتم العثور على تقييمات بصيغة صحيحة');
-    }
-  };
-
-  const handleConfirmReviews = () => {
-    if (!pendingReviews) return;
-    commitReviews(pendingReviews.reviews, pendingReviews.timelineEvents);
-    setPendingReviews(null);
-    setReviewsText('');
-    showToast('تم اعتماد التقييمات بنجاح');
-  };
-
-  const handleRemovePendingReview = (id: string) => {
-    if (!pendingReviews) return;
-    const filteredR = pendingReviews.reviews.filter(r => r.id !== id);
-    const filteredT = pendingReviews.timelineEvents.filter(t => t.id !== id);
-    if (filteredR.length === 0) {
-      setPendingReviews(null);
-    } else {
-      setPendingReviews({ reviews: filteredR, timelineEvents: filteredT });
-    }
-  };
-
-  const handleParseShifts = () => {
-    if (!shiftsText.trim()) return;
-    const blocks = shiftsText.split(/\n\s*\n/);
-    const parsed: any[] = [];
-    const unmatched = new Set<string>();
-
-    blocks.forEach(block => {
-      const startMatch = block.match(/وقت البداية:[ \t]*([^\s]+)(?:[ \t]+([^\s]+))?/);
-      const endMatch = block.match(/وقت النهاية:[ \t]*([^\s]+)(?:[ \t]+([^\s]+))?/);
-      const dateMatch = block.match(/التاريخ:[ \t]*([^\s]+)/);
-      const empMatch = block.match(/الموظفات:\s*(.+)/);
-      
-      if (startMatch && endMatch && empMatch) {
-        const normalize = (s: string) => s.replace(/[٠-٩]/g, (d: any) => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-        const startTime = normalize(startMatch[1].trim());
-        let extractedDate = startMatch[2] ? startMatch[2].trim() : null;
-        if (!extractedDate && dateMatch) {
-          extractedDate = dateMatch[1].trim();
-        }
-        const startDate = extractedDate ? normalize(extractedDate).replace(/\//g, '-') : new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
-        const endTime = normalize(endMatch[1].trim());
-        const endDate = endMatch[2] ? normalize(endMatch[2].trim()).replace(/\//g, '-') : startDate;
-        
-        const nameString = empMatch[1];
-        const names = Array.from(nameString.matchAll(/\(([^)]+)\)/g)).map(m => m[1].trim());
-        if (names.length === 0) {
-          // Fallback if they don't use parentheses
-          names.push(...nameString.split(/[\s,،]+/).filter(n => n.trim().length > 0));
-        }
-        
-        const shiftEmployees: {id: string, name: string}[] = [];
-        names.forEach(name => {
-          const foundEmp = matchEmployee(users, selectedBranch, name);
-          if (foundEmp) {
-            shiftEmployees.push({ id: foundEmp.id, name: foundEmp.name });
-          } else {
-            shiftEmployees.push({ id: `unmatched_${name}`, name: name });
-            unmatched.add(name);
-          }
-        });
-
-        parsed.push({
-          id: `shift_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          branch: selectedBranch,
-          type: 'shift',
-          title: `شفت محقون`,
-          time: startTime,
-          endTime: endTime,
-          date: startDate,
-          endDate: endDate,
-          employees: shiftEmployees
-        });
-      }
-    });
-
-    setPendingShifts(parsed);
-    setUnmatchedShiftNames(Array.from(unmatched));
-    setShiftMappings({});
-    
-    if (parsed.length > 0) {
-      if (unmatched.size > 0) {
-        showToast('يوجد أسماء غير مرتبطة، يرجى ربطها أولاً');
-      } else {
-        showToast('تم استخراج الشفتات بنجاح، يرجى مراجعتها وتأكيد الحقن');
-      }
-    } else {
-      showToast('لم يتم العثور على شفتات بصيغة صحيحة');
-    }
-  };
-
-  const handleConfirmShifts = () => {
-    let finalShifts = [...pendingShifts];
-    
-    for (const name of unmatchedShiftNames) {
-       const mappedValue = shiftMappings[name];
-       if (!mappedValue) {
-          showToast(`يرجى ربط الموظفة: ${name}`);
-          return;
-       }
-       
-       let realId = mappedValue;
-       if (mappedValue === 'new') {
-          realId = `emp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-          addUser({ 
-            id: realId, 
-            name: name, 
-            branch: selectedBranch, 
-            role: 'employee',
-            email: `${realId}@iamspecial.sa`,
-            imageUrl: '/rev4/avatars/avatar_1.png',
-            stats: { positive: 0, negative: 0, complaints: 0, safety: 0 }
-          });
-       }
-       
-       finalShifts = finalShifts.map(s => ({
-         ...s,
-         employees: s.employees?.map((e: any) => e.id === `unmatched_${name}` ? { id: realId, name: mappedValue === 'new' ? name : users.find(u => u.id === realId)?.name || name } : e)
-       }));
-    }
-    
-    const batchId = `batch_${Date.now()}`;
-    commitShifts(finalShifts, batchId);
-    setPendingShifts([]);
-    setUnmatchedShiftNames([]);
-    setShiftMappings({});
-    setShiftsText('');
-    showToast('تم حقن الشفتات بنجاح');
-  };
-
-  const handleRemovePendingShift = (id: string) => {
-    setPendingShifts(prev => prev.filter(s => s.id !== id));
-  };
-  
-  const handleSaveLinking = (timelineId: string, reviewId: string | undefined) => {
-    const selectedEmps = allAvailableEmployees.filter(u => linkingSelection.includes(u.id)).map(e => ({ id: e.id, name: e.name }));
-    updateTimelineEvent(timelineId, { employees: selectedEmps });
-    if (reviewId) {
-      updateReview(reviewId, { linkedEmployeeIds: linkingSelection });
-    }
-    setLinkingReviewId(null);
-    setLinkingSelection([]);
-  };
-
-  const handleDeleteTimelineEvent = (id: string, reviewId?: string) => {
-    if (!confirm('هل أنت متأكد من الحذف؟')) return;
-    if (reviewId) {
-      deleteReview(reviewId);
-    } else {
-      deleteTimelineEvent(id);
-    }
-    showToast('تم الحذف بنجاح');
-  };
 
   // Toast notification
   const [toast, setToast] = useState<string | null>(null);
@@ -612,154 +408,7 @@ export const SystemAdminDashboard: React.FC = () => {
         <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
           <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/80 overflow-x-auto min-h-[75vh]">
           
-          {activeTab === 'timeline' && (
-            <div>
-              <h2 className="text-xl font-bold mb-4 border-b pb-2">الخط الزمني لشفتات الفروع</h2>
-              
-              {globalBranch === 'all' ? (
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  {branches.map(b => (
-                    <button
-                      key={b}
-                      onClick={() => setSelectedTimelineBranch(b)}
-                      className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap ${selectedTimelineBranch === b ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                    >
-                      فرع {b}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center justify-between mb-6 bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-xl font-bold text-sm">
-                  <span className="flex items-center gap-2">
-                    <Building2 size={18} className="text-blue-600" />
-                    عرض الخط الزمني لـ {globalBranch === 'موظفة خارجية' ? 'الموظفات الخارجيات' : `فرع ${globalBranch}`}
-                  </span>
-                  <button onClick={() => handleGlobalBranchChange('all')} className="text-xs bg-white text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 shadow-sm transition">
-                    عرض كل الفروع
-                  </button>
-                </div>
-              )}
 
-              <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-300 before:to-transparent mt-8">
-                {filteredTimeline.map((item) => (
-                  <div key={item.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-sm ${item.type === 'gap' ? 'bg-red-500' : item.type === 'review' ? 'bg-yellow-500' : 'bg-green-500'}`}>
-                      {item.type === 'gap' ? <AlertOctagon size={16} className="text-white" /> : item.type === 'review' ? <span className="text-white text-xs font-bold">★</span> : <CalendarClock size={16} className="text-white" />}
-                    </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white p-4 rounded-xl border shadow-sm">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className={`font-bold ${item.type === 'gap' ? 'text-red-600' : item.type === 'review' ? 'text-yellow-600' : 'text-green-600'}`}>
-                          {item.type === 'review' && item.reviewId ? (
-                            (() => {
-                              const rev = reviews.find(r => r.id === item.reviewId);
-                              return rev ? `تقييم من: ${rev.reviewerName} (${rev.rating})` : item.title;
-                            })()
-                          ) : (
-                            item.title
-                          )}
-                        </h4>
-                        <div className="flex items-center gap-2">
-                          <time className="text-xs font-medium text-gray-500">
-                            {item.date ? formatDateTime(item.date, item.time) : formatTime(item.time)}
-                            {item.endTime && ` - ${formatTime(item.endTime)}`}
-                          </time>
-                          <button onClick={() => handleDeleteTimelineEvent(item.id, item.reviewId)} className="text-red-400 hover:text-red-600"><Trash2 size={14}/></button>
-                        </div>
-                      </div>
-                      
-                      {item.type !== 'review' && item.comment && (
-                        <div className="mt-3 border-t pt-3">
-                          <p className="text-sm bg-gray-50 p-2 rounded text-gray-700 italic border-r-2 border-red-500 mb-3">
-                            {item.title.includes('اعتراض') ? 'الاعتراض: ' : item.title.includes('شكوى') ? 'الشكوى: ' : 'تعليق: '} {item.comment}
-                          </p>
-                          {item.title.includes('اعتراض') && (
-                            <button className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 font-bold" onClick={() => { showToast('تمت الموافقة وتحديث بيانات الشفت'); }}>معالجة وقبول الاعتراض</button>
-                          )}
-                        </div>
-                      )}
-
-                      {item.type === 'review' && (
-                        <div className="mt-3 border-t pt-3">
-                          {item.comment && <p className="text-sm bg-gray-50 p-2 rounded text-gray-700 italic border-r-2 border-yellow-500 mb-2">"{item.comment}"</p>}
-                          
-                          {linkingReviewId === item.id ? (
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 mt-2">
-                              <p className="text-sm font-bold mb-2">تحديد الموظفات المرتبطات بهذا التقييم:</p>
-                              <div className="grid grid-cols-2 gap-2 mb-3 max-h-32 overflow-y-auto">
-                                {allAvailableEmployees.map(emp => (
-                                  <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                                    <input 
-                                      type="checkbox" 
-                                      checked={linkingSelection.includes(emp.id)}
-                                      onChange={(e) => {
-                                        if (e.target.checked) setLinkingSelection(prev => [...prev, emp.id]);
-                                        else setLinkingSelection(prev => prev.filter(id => id !== emp.id));
-                                      }}
-                                    />
-                                    {emp.name}
-                                  </label>
-                                ))}
-                              </div>
-                              <div className="flex gap-2">
-                                <button onClick={() => handleSaveLinking(item.id, item.reviewId)} className="bg-green-600 text-white text-xs px-3 py-1 rounded font-bold">حفظ الربط</button>
-                                <button onClick={() => setLinkingReviewId(null)} className="bg-gray-400 text-white text-xs px-3 py-1 rounded">إلغاء</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between mt-2">
-                              <div className="text-sm">
-                                {item.employees && item.employees.length > 0 ? (
-                                  <span className="text-green-600 font-bold">الموظفات: {item.employees.map(e => e.name).join('، ')}</span>
-                                ) : (
-                                  <span className="text-red-500 font-bold">التقييم غير مرتبط بأي موظفة!</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {editingTimeId === item.id ? (
-                                  <div className="flex items-center gap-1">
-                                    <input type="time" value={editingTimeValue} onChange={e => setEditingTimeValue(e.target.value)}
-                                      className="text-xs border rounded p-1" />
-                                    <button onClick={() => {
-                                      updateTimelineEvent(item.id, { time: editingTimeValue });
-                                      if (item.reviewId) updateReview(item.reviewId, { time: editingTimeValue });
-                                      setEditingTimeId(null);
-                                      showToast('تم تحديث وقت التقييم');
-                                    }} className="text-xs bg-green-600 text-white px-2 py-1 rounded font-bold">حفظ</button>
-                                    <button onClick={() => setEditingTimeId(null)} className="text-xs bg-gray-400 text-white px-2 py-1 rounded">إلغاء</button>
-                                  </div>
-                                ) : (
-                                  <button onClick={() => { setEditingTimeId(item.id); setEditingTimeValue(item.time); }}
-                                    className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-bold hover:bg-gray-200">
-                                    تعديل الوقت
-                                  </button>
-                                )}
-                                <button 
-                                  onClick={() => { 
-                                    setLinkingReviewId(item.id); 
-                                    setLinkingSelection(item.employees ? item.employees.map(e => e.id) : []); 
-                                  }}
-                                  className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold hover:bg-blue-200"
-                                >
-                                  تعديل الربط
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteTimelineEvent(item.id, item.reviewId)}
-                                  className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded font-bold hover:bg-red-200 flex items-center gap-1"
-                                >
-                                  <Trash2 size={12} /> حذف التقييم
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                {filteredTimeline.length === 0 && <p className="text-center text-gray-500 py-10">لا يوجد أحداث في الخط الزمني بعد.</p>}
-              </div>
-            </div>
-          )}
 
           {activeTab === 'branches' && (
             <div>
@@ -848,12 +497,127 @@ export const SystemAdminDashboard: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-4 border-b pb-2 flex-wrap gap-2">
                 <h2 className="text-xl font-bold">إدارة الموظفات</h2>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 items-center flex-wrap">
                   <button onClick={() => setShowAddForm(!showAddForm)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-bold flex gap-2 items-center">
                     <PlusCircle size={16} /> إضافة موظفة
                   </button>
+                  <button onClick={() => setShowMergeModal(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-bold flex gap-2 items-center">
+                    <GitMerge size={16} /> دمج وتوحيد موظفتين
+                  </button>
                 </div>
               </div>
+
+              {/* Merge Employees Modal */}
+              {showMergeModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+                    <div className="flex items-center justify-between border-b pb-3 mb-4">
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <GitMerge className="text-purple-600" size={20} />
+                        دمج وتوحيد حساب موظفتين
+                      </h3>
+                      <button onClick={() => setShowMergeModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                    </div>
+
+                    <p className="text-xs text-slate-600 mb-4 bg-purple-50 p-3 rounded-xl border border-purple-100 leading-relaxed">
+                      عند اختلاف كتابة الاسم بين الفروع أو في بيانات Windsor (مثل الهمزات أو الاختصارات)، يتيح هذا الخيار دمج تقييمات وشفتات الموظفة المكررة في الحساب المعتمد وحذف السجل الإضافي.
+                    </p>
+
+                    <div className="space-y-4 text-xs font-bold text-slate-700">
+                      <div>
+                        <label className="block mb-1">1. الموظفة الأساسية (الملف المعتمد المستمر):</label>
+                        <select 
+                          value={primaryEmpId} 
+                          onChange={e => {
+                            const id = e.target.value;
+                            setPrimaryEmpId(id);
+                            const p = users.find(u => u.id === id);
+                            if (p) {
+                              setMergedName(p.name);
+                              setMergedBranch(p.branch);
+                            }
+                          }}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
+                        >
+                          <option value="">اختر الموظفة الأساسية...</option>
+                          {users.filter(u => u.role === 'employee').map(u => (
+                            <option key={u.id} value={u.id}>{u.name} ({u.branch})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1">2. الموظفة المراد دمجها وإزالتها (المكررة):</label>
+                        <select 
+                          value={duplicateEmpId} 
+                          onChange={e => setDuplicateEmpId(e.target.value)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
+                        >
+                          <option value="">اختر الموظفة المراد دمجها...</option>
+                          {users.filter(u => u.role === 'employee' && u.id !== primaryEmpId).map(u => (
+                            <option key={u.id} value={u.id}>{u.name} ({u.branch})</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block mb-1">3. الاسم الموحد المعتمد:</label>
+                        <input 
+                          type="text" 
+                          value={mergedName} 
+                          onChange={e => setMergedName(e.target.value)}
+                          placeholder="الاسم الموحد الجديد..."
+                          className="w-full p-2.5 border rounded-xl bg-white text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block mb-1">4. الفرع المعتمد:</label>
+                        <select 
+                          value={mergedBranch} 
+                          onChange={e => setMergedBranch(e.target.value)}
+                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
+                        >
+                          {branches.map(b => (
+                            <option key={b} value={b}>فرع {b}</option>
+                          ))}
+                          <option value="موظفة خارجية">موظفة متنقلة (خارجية)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                      <button
+                        onClick={() => {
+                          if (!primaryEmpId || !duplicateEmpId || !mergedName.trim()) {
+                            showToast('يرجى اختيار الموظفتين وتحديد الاسم الموحد');
+                            return;
+                          }
+                          if (primaryEmpId === duplicateEmpId) {
+                            showToast('لا يمكن دمج الموظفة مع نفسها');
+                            return;
+                          }
+                          mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch);
+                          setShowMergeModal(false);
+                          setPrimaryEmpId('');
+                          setDuplicateEmpId('');
+                          setMergedName('');
+                          showToast('تم دمج الموظفتين وتوحيد كافة التقييمات بنجاح');
+                        }}
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-xl font-bold text-sm shadow-md transition"
+                      >
+                        تأكيد الدمج والتوحيد
+                      </button>
+                      <button
+                        onClick={() => setShowMergeModal(false)}
+                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-3 rounded-xl font-bold text-sm transition"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {showAddForm && (
                 <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200">
@@ -909,7 +673,7 @@ export const SystemAdminDashboard: React.FC = () => {
                       <th className="p-2 border" title="نقاط سلبية">سلبي</th>
                       <th className="p-2 border" title="الشكاوى">شكاوى</th>
                       <th className="p-2 border" title="السلامة">سلامة</th>
-                      <th className="p-2 border">إجراءات</th>
+                      <th className="p-2 border text-center">إجراءات / تحويل</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -964,8 +728,26 @@ export const SystemAdminDashboard: React.FC = () => {
                             onBlur={(e) => handleUpdateStats(emp.id, 'safety', parseInt(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-orange-600 font-bold text-xs" />
                         </td>
-                        <td className="p-2 border text-center w-20">
-                          <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">إزالة</button>
+                        <td className="p-2 border text-center w-28">
+                          <div className="flex flex-col gap-1.5 items-center justify-center">
+                            {emp.branch !== 'موظفة خارجية' ? (
+                              <button 
+                                onClick={() => {
+                                  convertToMobile(emp.id);
+                                  showToast(`تم تحويل ${emp.name} إلى موظفة متنقلة بنجاح`);
+                                }} 
+                                className="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md font-bold transition whitespace-nowrap border border-indigo-200"
+                                title="تحويل لموظفة متنقلة خارجية"
+                              >
+                                تحويل لمتنقلة
+                              </button>
+                            ) : (
+                              <span className="text-[10px] bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded border border-purple-200">
+                                متنقلة
+                              </span>
+                            )}
+                            <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">إزالة</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1026,7 +808,7 @@ export const SystemAdminDashboard: React.FC = () => {
 
               <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">السجل الأخير</h3>
               <div className="grid gap-4">
-                {timeline.filter(t => (globalBranch !== 'all' ? t.branch === globalBranch : true) && (t.title.includes('شكوى') || t.title.includes('سلامة') || t.title.includes('مخالفة'))).slice(0, 15).map(t => (
+                {timeline.filter(t => (globalBranch !== 'all' ? t.branch === globalBranch : true) && (t.title.includes('شكوى') || t.title.includes('سلامة') || t.title.includes('مخالفة'))).sort(newestFirst).slice(0, 15).map(t => (
                   <div key={t.id} className={`p-4 rounded-xl border flex items-start justify-between gap-4 ${t.title.includes('شكوى') ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'}`}>
                     <div className="flex items-start gap-4 flex-1">
                       {t.title.includes('شكوى') ? <AlertOctagon className="text-red-500 shrink-0 mt-1" /> : <ShieldAlert className="text-orange-500 shrink-0 mt-1" />}
@@ -1097,172 +879,30 @@ export const SystemAdminDashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-800">الإحصائيات والتقييمات</h2>
               </div>
 
-              <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 mb-8 shadow-sm">
-                <h3 className="font-bold text-blue-900 mb-4 text-lg">حقن التقييمات للفرع</h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-bold text-blue-800 mb-2">اختر الفرع لتسجيل التقييمات</label>
-                  <select value={effectiveBranch} onChange={e => setSelectedBranch(e.target.value)} disabled={globalBranch !== 'all'} className="w-full p-3 border border-blue-200 rounded-lg">
-                    {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
+              {/* Windsor info banner replacing manual injection */}
+              <div className="bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-100 mb-8 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-600 text-white rounded-xl shadow-md">
+                    <Zap size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-gray-900 text-lg">المصدر المعتمد: تكامل Windsor.ai التلقائي</h3>
+                    <p className="text-sm text-gray-600 mt-0.5">
+                      يتم جلب واستدعاء كافة تقييمات الفروع وربطها تلقائياً بالموظفات عبر تكامل Windsor.ai المباشر مع Google Business.
+                    </p>
+                  </div>
                 </div>
-                <div className="mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-bold text-blue-800">النص البرمجي للتقييمات</label>
-                    <button 
-                      onClick={() => {
-                        const template = `معرف التقييم: AbFvOqnT5uVK9_z5olmKcjV1GqNFGJoL5u9rUe2jxJbgdcAHlY-lLODv3Or2Eg6a_f2xndM-cYzl\nاسم المقيم: علي احمد\nالتقييم: 5 نجوم\nالتعليق: مكان جميل جدا\nالتاريخ: 06-07-2026\nالوقت: 14:23`;
-                        navigator.clipboard.writeText(template);
-                        showToast('تم نسخ النموذج');
-                      }}
-                      className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 font-bold flex items-center gap-1"
-                    >
-                      📋 نسخ النموذج
-                    </button>
-                  </div>
-                  <textarea 
-                    value={reviewsText} 
-                    onChange={e => setReviewsText(e.target.value)}
-                    placeholder="الصق التقييمات هنا بالصيغة المطلوبة...&#10;مثال:&#10;معرف التقييم: Abc...&#10;اسم المقيم: أحمد..."
-                    className="w-full h-32 p-4 border border-blue-200 rounded-lg text-left bg-white font-mono text-sm leading-relaxed" dir="rtl"
-                  ></textarea>
-                </div>
-
-                {pendingReviews && (
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-bold text-blue-800 mb-3 text-sm">مراجعة التقييمات المستخرجة ({pendingReviews.reviews.length})</h4>
-                    <div className="max-h-60 overflow-y-auto space-y-2 mb-4 pr-2 custom-scrollbar">
-                      {pendingReviews.reviews.map(r => {
-                        const linkedEmpNames = r.linkedEmployeeIds.map((id: string) => users.find(u => u.id === id)?.name || id).join('، ');
-                        return (
-                          <div key={r.id} className="flex justify-between items-center p-3 bg-white rounded border border-blue-100">
-                            <div>
-                              <div className="font-bold text-sm text-gray-800">{r.reviewerName} - {r.rating}</div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {linkedEmpNames ? `سيتم ربط: ${linkedEmpNames}` : 'لن يتم ربط أي موظفة تلقائياً'}
-                              </div>
-                            </div>
-                            <button onClick={() => handleRemovePendingReview(r.id)} className="text-red-500 hover:text-red-700 p-1 font-bold">✖</button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={handleConfirmReviews} className="flex-1 bg-green-600 text-white p-2 rounded-lg font-bold hover:bg-green-700 text-sm">اعتماد التقييمات</button>
-                      <button onClick={() => setPendingReviews(null)} className="flex-1 bg-gray-500 text-white p-2 rounded-lg font-bold hover:bg-gray-600 text-sm">إلغاء</button>
-                    </div>
-                  </div>
-                )}
-
-                {!pendingReviews && (
-                  <button onClick={handleInjectReviews} className="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700 text-md flex items-center justify-center gap-2 shadow-sm mb-6">
-                    <CheckCircle2 size={18} />
-                    استخراج ومراجعة التقييمات
-                  </button>
-                )}
-
-                <div className="mb-4 pt-4 border-t border-blue-200">
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-bold text-blue-800">النص البرمجي للشفتات</label>
-                    <button 
-                      onClick={() => {
-                        const template = `وقت البداية: ١٦:٠٠ ٠٢-٠٣-٢٠٢٦\nوقت النهاية: ١١:٥٩ ٠٣-٠٣-٢٠٢٦\nالموظفات: (موظفة أولى)(موظفة ثانية)`;
-                        navigator.clipboard.writeText(template);
-                        showToast('تم نسخ النموذج');
-                      }}
-                      className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 font-bold flex items-center gap-1"
-                    >
-                      📋 نسخ النموذج
-                    </button>
-                  </div>
-                  <textarea 
-                    value={shiftsText} 
-                    onChange={e => { setShiftsText(e.target.value); setPendingShifts([]); setUnmatchedShiftNames([]); setShiftMappings({}); }}
-                    placeholder="الصق الشفتات هنا بالصيغة المطلوبة...&#10;مثال:&#10;وقت البداية: ١٦:٠٠ ٠٢-٠٣-٢٠٢٦..."
-                    className="w-full h-32 p-4 border border-blue-200 rounded-lg text-left bg-white font-mono text-sm leading-relaxed" dir="rtl"
-                  ></textarea>
-                </div>
-
-                {pendingShifts.length > 0 && (
-                  <div className="mb-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-                    <h4 className="font-bold text-indigo-800 mb-3 text-sm">مراجعة الشفتات المستخرجة ({pendingShifts.length})</h4>
-                    <div className="max-h-60 overflow-y-auto space-y-2 mb-4 pr-2 custom-scrollbar">
-                      {pendingShifts.map((s, idx) => {
-                        // Estimate how many reviews this shift will capture (unlinked reviews in this time window)
-                        const sTime = parseInt(toEnglishNumerals(s.time).replace(':', ''));
-                        const eTime = parseInt(s.endTime.replace(':', ''));
-                        let reviewsCount = 0;
-                        reviews.filter(r => r.branch === selectedBranch && r.linkedEmployeeIds.length === 0).forEach(r => {
-                          const rTime = parseInt(toEnglishNumerals(r.time).replace(':', ''));
-                          if (eTime < sTime) { // Cross midnight
-                            if (rTime >= sTime || rTime <= eTime) reviewsCount++;
-                          } else {
-                            if (rTime >= sTime && rTime <= eTime) reviewsCount++;
-                          }
-                        });
-                        
-                        return (
-                          <div key={s.id || idx} className="flex justify-between items-center p-3 bg-white rounded border border-indigo-100">
-                            <div>
-                              <div className="font-bold text-sm text-gray-800">{formatDate(s.date)} <span className="text-xs font-medium">({shiftName(s.time)})</span></div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {s.employees.map((e: any) => e.name).join('، ')}
-                              </div>
-                              <div className="text-xs text-indigo-600 mt-1 font-bold">
-                                سيلتقط {reviewsCount} تقييم (تقريبي)
-                              </div>
-                            </div>
-                            <button onClick={() => handleRemovePendingShift(s.id)} className="text-red-500 hover:text-red-700 p-1 font-bold">✖</button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {unmatchedShiftNames.length > 0 && (
-                  <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <h4 className="font-bold text-orange-800 mb-3 text-sm">أسماء غير مرتبطة في الشفتات</h4>
-                    <div className="space-y-3">
-                      {unmatchedShiftNames.map(name => (
-                        <div key={name} className="flex flex-col sm:flex-row items-center gap-2">
-                          <span className="font-bold text-orange-900 min-w-[100px]">{name}</span>
-                          <select 
-                            value={shiftMappings[name] || ''}
-                            onChange={(e) => setShiftMappings(prev => ({...prev, [name]: e.target.value}))}
-                            className="flex-1 p-2 border rounded text-sm bg-white"
-                          >
-                            <option value="" disabled>اختر موظفة للربط...</option>
-                            <option value="new" className="font-bold text-green-600">+ إضافة كموظفة جديدة</option>
-                            {allAvailableEmployees.map(u => (
-                              <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {pendingShifts.length > 0 ? (
-                  <div className="flex gap-2">
-                    <button onClick={handleConfirmShifts} className="flex-1 bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-700 text-md flex items-center justify-center gap-2 shadow-sm">
-                      <CheckCircle2 size={18} />
-                      اعتماد الشفتات
-                    </button>
-                    <button onClick={() => { setPendingShifts([]); setUnmatchedShiftNames([]); }} className="flex-1 bg-gray-500 text-white p-3 rounded-lg font-bold hover:bg-gray-600 text-md">
-                      إلغاء
-                    </button>
-                  </div>
-                ) : (
-                  <button onClick={handleParseShifts} className="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold hover:bg-indigo-700 text-md flex items-center justify-center gap-2 shadow-sm">
-                    <CalendarClock size={18} />
-                    استخراج ومراجعة الشفتات
-                  </button>
-                )}
+                <button
+                  onClick={() => setActiveTab('windsor')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2 text-sm shrink-0 cursor-pointer"
+                >
+                  <Zap size={16} />
+                  إدارة تكامل Windsor.ai
+                </button>
               </div>
 
               <h3 className="font-bold text-xl mb-6 border-b pb-2 flex items-center gap-2 text-gray-800">
-                <Activity className="text-gray-500"/> استعراض تقييمات الفروع
+                <BarChart3 className="text-gray-500"/> استعراض تقييمات الفروع
               </h3>
               
               {globalBranch === 'all' ? (
@@ -1287,7 +927,7 @@ export const SystemAdminDashboard: React.FC = () => {
               )}
               
               <div className="mb-6 flex justify-between items-center bg-gray-50 p-4 rounded-xl border">
-                <h4 className="font-bold text-gray-700">التقييمات المسجلة: {reviews.filter(r => r.branch === selectedTimelineBranch).length}</h4>
+                <h4 className="font-bold text-gray-700">التقييمات المسجلة: {reviews.filter(r => r.branch === effectiveTimelineBranch).length}</h4>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 font-bold">الفلترة:</span>
                   <select 
@@ -1296,7 +936,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     className="p-2 border rounded-lg bg-white text-sm font-bold"
                   >
                     <option value="">جميع الأشهر</option>
-                    {Array.from(new Set(reviews.filter(r => r.branch === selectedTimelineBranch).map(r => r.date.substring(3)))).map(m => (
+                    {Array.from(new Set(reviews.filter(r => r.branch === effectiveTimelineBranch).map(r => r.date.substring(3)))).map(m => (
                       <option key={m as string} value={m as string}>{m as string}</option>
                     ))}
                   </select>
@@ -1304,7 +944,7 @@ export const SystemAdminDashboard: React.FC = () => {
               </div>
               
               <div className="grid gap-4 md:grid-cols-2">
-                {reviews.filter(r => r.branch === selectedTimelineBranch && (viewingReviewsMonth ? r.date.endsWith(viewingReviewsMonth) : true)).map(r => (
+                {reviews.filter(r => r.branch === effectiveTimelineBranch && (viewingReviewsMonth ? r.date.endsWith(viewingReviewsMonth) : true)).sort(newestFirst).map(r => (
                   <div key={r.id} className="bg-white p-5 rounded-xl border shadow-sm flex flex-col gap-3 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-2 h-full bg-yellow-400"></div>
                     <div className="flex items-start gap-4">
@@ -1335,46 +975,13 @@ export const SystemAdminDashboard: React.FC = () => {
                     </div>
                   </div>
                 ))}
-                {reviews.filter(r => r.branch === selectedTimelineBranch).length === 0 && (
+                {reviews.filter(r => r.branch === effectiveTimelineBranch).length === 0 && (
                   <div className="col-span-full text-center text-gray-500 py-12 border-dashed border-2 rounded-xl flex flex-col items-center gap-3">
                     <BarChart3 size={48} className="text-gray-300"/>
-                    <p className="font-bold text-lg">لا توجد تقييمات محقونة لهذا الفرع بعد.</p>
+                    <p className="font-bold text-lg">لا توجد تقييمات مسجلة لهذا الفرع بعد.</p>
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {activeTab === 'history' && (
-            <div>
-              <h2 className="text-xl font-bold mb-6 border-b pb-2 flex items-center gap-2 text-gray-800">
-                <History className="text-gray-500" /> سجل عمليات الحقن
-              </h2>
-              {injectionBatches.length === 0 ? (
-                <div className="text-center text-gray-500 p-8 bg-gray-50 rounded-xl">لا توجد عمليات حقن سابقة مسجلة.</div>
-              ) : (
-                <div className="space-y-4">
-                  {injectionBatches.filter(b => globalBranch !== 'all' ? b.branch === globalBranch : true).map(batch => (
-                    <div key={batch.id} className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
-                      <div>
-                        <div className="font-bold text-gray-800 flex items-center gap-2">
-                          {batch.type === 'review' ? <span className="text-yellow-600">★ تقييمات</span> : <span className="text-indigo-600">⏱ شفتات</span>}
-                          - فرع {batch.branch}
-                        </div>
-                        <div className="text-sm text-gray-500 mt-1">
-                          تاريخ العملية: {formatTimestamp(batch.time)}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1 font-bold">
-                          العدد المحقون: {batch.count}
-                        </div>
-                      </div>
-                      <button onClick={() => handleUndoBatch(batch.id)} className="flex items-center gap-2 bg-red-100 text-red-600 px-4 py-2 rounded-lg font-bold hover:bg-red-200">
-                        <Undo2 size={16} /> تراجع
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           )}
 
@@ -1398,7 +1005,7 @@ export const SystemAdminDashboard: React.FC = () => {
                 </div>
               </div>
               <div className="space-y-4">
-                {timeline.filter(t => t.branch === selectedTimelineBranch && t.type === 'shift').map(s => {
+                {timeline.filter(t => t.branch === effectiveTimelineBranch && t.type === 'shift').sort(newestFirst).map(s => {
                   const linkedReviewsCount = reviews.filter(r => r.linkedShiftId === s.id || (r.branch === s.branch && r.time >= s.time && (s.endTime ? r.time <= s.endTime : true) && r.linkedShiftId === undefined)).length;
                   return (
                     <div key={s.id} className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -1420,7 +1027,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </div>
                   );
                 })}
-                {timeline.filter(t => t.branch === selectedTimelineBranch && t.type === 'shift').length === 0 && (
+                {timeline.filter(t => t.branch === effectiveTimelineBranch && t.type === 'shift').length === 0 && (
                   <div className="text-center text-gray-500 py-12 border-dashed border-2 rounded-xl flex flex-col items-center gap-3">
                     <CalendarClock size={48} className="text-gray-300"/>
                     <p className="font-bold text-lg">لا توجد شفتات مسجلة لهذا الفرع.</p>
@@ -1430,97 +1037,6 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'danger' && (
-            <div>
-              <div className="flex items-center gap-3 mb-6 border-b pb-4">
-                <ShieldAlert className="text-red-600" size={28} />
-                <h2 className="text-2xl font-bold text-red-700">منطقة الخطر</h2>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-red-50 p-6 rounded-xl border border-red-200 shadow-sm">
-                  <h3 className="font-bold text-red-900 mb-2 flex items-center gap-2">
-                    <Trash2 size={20} /> حذف بيانات فرع بالكامل
-                  </h3>
-                  <p className="text-sm text-red-700 mb-4">هذا الإجراء سيقوم بحذف جميع التقييمات والشفتات والملاحظات الخاصة بالفرع المحدد نهائياً، وسيتم خصم النقاط المرتبطة بها من الموظفات.</p>
-                  
-                  <div className="flex flex-col gap-3">
-                    <select id="dangerBranch" className="p-3 border border-red-300 rounded-lg bg-white">
-                      <option value="all">جميع الفروع (تنبيه!)</option>
-                      {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                    <button onClick={() => {
-                      const sel = (document.getElementById('dangerBranch') as HTMLSelectElement).value;
-                      if (confirm(`هل أنت متأكد من حذف كافة بيانات ${sel === 'all' ? 'جميع الفروع' : sel}؟ لا يمكن التراجع عن هذا الإجراء.`)) {
-                         clearData(sel);
-                         showToast('تم حذف البيانات بنجاح');
-                      }
-                    }} className="bg-red-600 text-white p-3 rounded-lg font-bold hover:bg-red-700">
-                      حذف البيانات
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-red-50 p-6 rounded-xl border border-red-200 shadow-sm">
-                  <h3 className="font-bold text-red-900 mb-2 flex items-center gap-2">
-                    <CalendarClock size={20} /> حذف بيانات فترة محددة
-                  </h3>
-                  <p className="text-sm text-red-700 mb-4">اختر النطاق الزمني لحذف كافة البيانات (تقييمات، شفتات) ضمن هذه الفترة فقط للفرع المحدد.</p>
-                  
-                  <div className="flex flex-col gap-3">
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <label className="block text-xs font-bold text-red-800 mb-1">من تاريخ</label>
-                        <input type="date" id="dangerStart" className="w-full p-2 border border-red-300 rounded-lg" />
-                      </div>
-                      <div className="flex-1">
-                        <label className="block text-xs font-bold text-red-800 mb-1">إلى تاريخ</label>
-                        <input type="date" id="dangerEnd" className="w-full p-2 border border-red-300 rounded-lg" />
-                      </div>
-                    </div>
-                    <select id="dangerPeriodBranch" className="p-2 border border-red-300 rounded-lg bg-white">
-                      <option value="all">جميع الفروع</option>
-                      {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                    <button onClick={() => {
-                      const branch = (document.getElementById('dangerPeriodBranch') as HTMLSelectElement).value;
-                      const start = (document.getElementById('dangerStart') as HTMLInputElement).value;
-                      const end = (document.getElementById('dangerEnd') as HTMLInputElement).value;
-                      if (!start || !end) { showToast('يرجى تحديد فترة صحيحة'); return; }
-                      if (confirm(`هل أنت متأكد من حذف البيانات للفترة ${formatDate(start)} إلى ${formatDate(end)} لـ ${branch === 'all' ? 'جميع الفروع' : branch}؟`)) {
-                         clearData(branch, start, end);
-                         showToast('تم حذف بيانات الفترة بنجاح');
-                      }
-                    }} className="bg-red-600 text-white p-3 rounded-lg font-bold hover:bg-red-700">
-                      حذف بيانات الفترة
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2">
-                  <Upload size={20} /> تصدير نسخة احتياطية
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">يمكنك تحميل كافة البيانات (التقييمات، الشفتات، الموظفين، والإعدادات) كملف JSON آمن للاحتفاظ به.</p>
-                <button onClick={() => {
-                   const data = {
-                      users, reviews, timeline, branchSettings
-                   };
-                   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                   const url = URL.createObjectURL(blob);
-                   const a = document.createElement('a');
-                   a.href = url;
-                   a.download = `backup_reviews_system_${new Date().toISOString().split('T')[0]}.json`;
-                   a.click();
-                   URL.revokeObjectURL(url);
-                   showToast('تم تحميل النسخة الاحتياطية بنجاح');
-                }} className="bg-gray-800 text-white px-6 py-3 rounded-lg font-bold hover:bg-black w-full sm:w-auto">
-                  تصدير كافة البيانات (JSON)
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Windsor.ai Integration Tab */}
           {activeTab === 'windsor' && (

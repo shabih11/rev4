@@ -4,11 +4,13 @@ import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
-import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
+import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { addTimelineEvent, reviews, reviewSummaries, recordsReady, users, timeline } = useData();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
 
@@ -18,9 +20,15 @@ export const EmployeeDashboard: React.FC = () => {
   const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 font-alexandria" dir="rtl">
-      {/* Header */}
-      <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
+    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+      {activeTab === 'profile' ? (
+        <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+          <UserProfileTab />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
@@ -233,7 +241,35 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      </>
+      )}
 
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+            activeTab === 'dashboard'
+              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Award size={22} className={activeTab === 'dashboard' ? 'stroke-[2.5px]' : ''} />
+          <span className="text-[11px] font-bold">لوحتي</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+            activeTab === 'profile'
+              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <User size={22} className={activeTab === 'profile' ? 'stroke-[2.5px]' : ''} />
+          <span className="text-[11px] font-bold">شخصي</span>
+        </button>
+      </nav>
     </div>
   );
 };

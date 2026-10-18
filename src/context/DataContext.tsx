@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
-import { fetchReviewsFromWindsor, normalizeWindsorReviews } from '../lib/windsorIntegration';
+import { fetchReviewsFromWindsor, normalizeWindsorReviews, stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 
@@ -41,6 +41,8 @@ interface DataContextType {
   updateUser: (id: string, updates: Partial<UserAccount>) => void;
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
   removeUser: (id: string) => void;
+  convertToMobile: (id: string) => void;
+  mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => void;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
   updateBranchSettings: (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => void;
   timeline: TimelineEvent[];
@@ -223,7 +225,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addUser = (newUser: Omit<UserAccount, 'points' | 'reviewsCount'>) => {
-    const userWithDefaults: UserAccount = { ...newUser, points: 0, reviewsCount: 0 };
+    const userWithDefaults: UserAccount = { ...newUser, points: 0, reviewsCount: 0, mustChangePassword: true };
     const newUsers = [...users, userWithDefaults];
     setUsers(newUsers);
     try {
@@ -237,6 +239,99 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Storage now handled by useEffect
     } catch (e) { console.error(e); }
+  };
+
+  const convertToMobile = (id: string) => {
+    const target = users.find(u => u.id === id);
+    if (!target) return;
+    updateUser(id, {
+      branch: 'موظفة خارجية',
+      assignedBranches: Array.from(new Set([...(target.assignedBranches || []), target.branch])),
+    });
+  };
+
+  const mergeEmployees = (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => {
+    const emp1 = users.find(u => u.id === primaryId);
+    const emp2 = users.find(u => u.id === duplicateId);
+    if (!emp1 || !emp2 || primaryId === duplicateId) return;
+
+    const finalName = newName?.trim() || emp1.name;
+    const finalBranch = newBranch || emp1.branch;
+
+    const combinedAliases = Array.from(new Set([
+      ...(emp1.aliases || []),
+      ...(emp2.aliases || []),
+      emp1.name,
+      emp2.name,
+    ])).filter(a => a && a !== finalName);
+
+    const combinedBranches = Array.from(new Set([
+      ...(emp1.assignedBranches || []),
+      ...(emp2.assignedBranches || []),
+      emp1.branch,
+      emp2.branch,
+    ]));
+
+    const manual1 = emp1.manualStats || {};
+    const manual2 = emp2.manualStats || {};
+    const combinedManual = {
+      positive: (manual1.positive || 0) + (manual2.positive || 0),
+      negative: (manual1.negative || 0) + (manual2.negative || 0),
+      complaints: (manual1.complaints || 0) + (manual2.complaints || 0),
+      safety: (manual1.safety || 0) + (manual2.safety || 0),
+      totalReviews: (manual1.totalReviews || 0) + (manual2.totalReviews || 0),
+      monthReviews: (manual1.monthReviews || 0) + (manual2.monthReviews || 0),
+    };
+
+    // 1. Update primary and remove duplicate
+    setUsers(prev => prev.filter(u => u.id !== duplicateId).map(u => {
+      if (u.id === primaryId) {
+        return {
+          ...u,
+          name: finalName,
+          branch: finalBranch,
+          aliases: combinedAliases,
+          assignedBranches: combinedBranches,
+          manualStats: combinedManual,
+        };
+      }
+      return u;
+    }));
+
+    // 2. Transfer all reviews linked to duplicateId or emp2.name to primaryId
+    setReviews(prev => prev.map(r => {
+      const hasDuplicate = r.linkedEmployeeIds.includes(duplicateId) || r.linkedEmployeeIds.includes(emp2.name);
+      if (!hasDuplicate) return r;
+      const updatedIds = Array.from(new Set(
+        r.linkedEmployeeIds.map(id => (id === duplicateId || id === emp2.name) ? primaryId : id)
+      ));
+      return {
+        ...r,
+        linkedEmployeeIds: updatedIds,
+      };
+    }));
+
+    // 3. Transfer all shifts & timeline events
+    setTimeline(prev => prev.map(t => {
+      if (!t.employees || t.employees.length === 0) return t;
+      const hasDuplicate = t.employees.some(e => e.id === duplicateId || e.name === emp2.name);
+      if (!hasDuplicate) return t;
+      const updatedEmployees: { id: string; name: string }[] = [];
+      const seenIds = new Set<string>();
+      for (const e of t.employees) {
+        const isDup = e.id === duplicateId || e.name === emp2.name;
+        const targetId = isDup ? primaryId : e.id;
+        const targetName = isDup ? finalName : e.name;
+        if (!seenIds.has(targetId)) {
+          seenIds.add(targetId);
+          updatedEmployees.push({ id: targetId, name: targetName });
+        }
+      }
+      return {
+        ...t,
+        employees: updatedEmployees,
+      };
+    }));
   };
 
   const updateReview = (id: string, updates: Partial<CustomerReview>) => {
@@ -405,12 +500,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       let negativeScore = 2; // base score for negative
       let complaintsScore = 0;
       let safetyScore = 0;
+      let monthReviewsBalance = 0;
       
       currentMonthReviews.forEach(r => {
         const rating = parseInt(toEnglishNumerals(r.rating)) || 0;
         const shareCount = r.linkedEmployeeIds.length || 1;
-        if (rating >= 4) {
+        if (isPositiveReview(r.rating)) {
           positiveScore += (0.25 / shareCount);
+          monthReviewsBalance += (1 / shareCount);
         } else if (rating <= 2 && rating >= 1) {
           negativeScore -= (0.5 / shareCount);
         }
@@ -428,6 +525,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       negativeScore += (manual.negative || 0);
       complaintsScore += (manual.complaints || 0);
       safetyScore += (manual.safety || 0);
+      monthReviewsBalance += (manual.monthReviews || 0);
 
       if (positiveScore > 5) positiveScore = 5;
       if (negativeScore < 0) negativeScore = 0;
@@ -438,7 +536,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const calculatedPoints = positiveScore + negativeScore + qualityScore;
       
       const totalReviewsCount = empReviews.length;
-      const monthReviewsCount = currentMonthReviews.filter(r => isPositiveReview(r.rating)).length;
+      const monthReviewsCount = Math.round(monthReviewsBalance * 10) / 10;
 
       // Return updated user
       return {
@@ -617,11 +715,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetTimelineToInjectedShifts = resetUsersToRoster;
   const resetReviewsToInjected = resetUsersToRoster;
 
+  const sanitizedReviews = React.useMemo(() => {
+    return reviews.map(r => ({ ...r, comment: stripReviewTranslation(r.comment) }));
+  }, [reviews]);
+
   return (
     <DataContext.Provider value={{ 
-      users: enrichedUsers, updateUser, addUser, removeUser, branchSettings, updateBranchSettings, 
+      users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
-      reviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
+      reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,

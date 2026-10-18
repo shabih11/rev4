@@ -7,7 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        alexandria: ['Alexandria', 'sans-serif'],
+        alexandria: ['"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sf: ['"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sans: ['"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
       },
     },
   },

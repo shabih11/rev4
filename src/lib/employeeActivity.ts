@@ -3,9 +3,23 @@ import { toEnglishNumerals } from './formatDate';
 import { isInCurrentMonth, isPositiveReview } from './reviewPeriod';
 
 export function reviewTimestamp(review: { date?: string; time?: string }) {
-  const [day, month, year] = toEnglishNumerals(review.date || '').split('-').map(Number);
+  if (!review.date) return 0;
+  const rawDate = toEnglishNumerals(review.date || '').trim();
+  const dateParts = rawDate.split(/[-/]/).map(Number);
+  let day = 1;
+  let month = 1;
+  let year = 2026;
+  if (dateParts.length === 3) {
+    if (dateParts[0] > 1000) {
+      // Format: YYYY-MM-DD
+      [year, month, day] = dateParts;
+    } else {
+      // Format: DD-MM-YYYY
+      [day, month, year] = dateParts;
+    }
+  }
   const [hour = 0, minute = 0] = toEnglishNumerals(review.time || '').split(':').map(Number);
-  const timestamp = Date.UTC(year, month - 1, day, hour, minute);
+  const timestamp = Date.UTC(year, (month || 1) - 1, day || 1, hour, minute);
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 export const newestFirst = (a: { date?: string; time?: string }, b: { date?: string; time?: string }) => reviewTimestamp(b) - reviewTimestamp(a);

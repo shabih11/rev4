@@ -49,12 +49,13 @@ export const Leaderboard: React.FC = () => {
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
   const [branchModalSelectedDate, setBranchModalSelectedDate] = useState<string | null>(null);
   
+  const allEmployeesSorted = useMemo(() => {
+    return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
+  }, [users]);
+
   const slidesData = useMemo(() => {
     // 1. Top 10 Employees
-    const sorted = users
-      .filter(u => u.role === 'employee')
-      .sort(monthlyEmployeeOrder)
-      .slice(0, 10);
+    const sorted = allEmployeesSorted.slice(0, 10);
     
     const sData: SlideData[] = sorted.map((emp, i) => ({ type: 'employee', data: emp, rank: i + 1 }));
 
@@ -165,7 +166,7 @@ export const Leaderboard: React.FC = () => {
 
     const order = { praised_employee: 0, active_employee: 1, active_branch: 2, partnership: 3, employee: 4 };
     return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
-  }, [users, reviews]);
+  }, [allEmployeesSorted, users, reviews]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slidesData[activeIndex] || slidesData[0];
@@ -191,15 +192,15 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div 
-      className="w-full h-screen bg-white overflow-hidden flex flex-col justify-between items-center relative pb-10 font-alexandria overscroll-none touch-none" 
+      className="w-full min-h-screen min-h-[100dvh] bg-white overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y" 
       dir="rtl"
       onPointerDownCapture={handleTouchStart}
       onTouchStartCapture={handleTouchStart}
       onKeyDownCapture={handleTouchStart}
     >
       
-      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
-      <div className="absolute inset-x-3 top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
+      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2 shadow-sm" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
+      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
       </div>
@@ -208,7 +209,7 @@ export const Leaderboard: React.FC = () => {
         <motion.div 
           key={activeIndex + '-header'}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
-          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800 absolute top-0"
+          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
             {activeSlide.type === 'employee' && <>
@@ -224,7 +225,7 @@ export const Leaderboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Center Image Swiper */}
-      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-14 sm:pt-16 pb-[40vh] sm:pb-[38vh]">
+      <div className="w-full flex-1 flex items-center justify-center z-20 pt-4 sm:pt-6 pb-4 min-h-[360px] sm:min-h-[440px]">
         <Swiper
           ref={swiperRef}
           dir="ltr"
@@ -318,22 +319,22 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       {/* Bottom Blue Curved Card */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[40vh] sm:h-[38vh]">
+      <div className="w-full z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-5 sm:pb-5 relative">
+        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-8 sm:pb-6 relative min-h-[200px]">
           
           {/* Left/Right Action Buttons */}
           <button 
             aria-label="جميع الموظفات" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
-            className="absolute left-4 sm:left-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute left-4 sm:left-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Users size={22} className="text-white" />
           </button>
           <button 
             aria-label="الفروع" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
-            className="absolute right-4 sm:right-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute right-4 sm:right-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Building2 size={22} className="text-white" />
           </button>
@@ -362,7 +363,7 @@ export const Leaderboard: React.FC = () => {
                     <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount ?? 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
                   <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
@@ -461,7 +462,7 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder).map((emp, idx) => (
+                {allEmployeesSorted.map((emp, idx) => (
                   <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
@@ -471,8 +472,8 @@ export const Leaderboard: React.FC = () => {
                         <p className="text-xs text-gray-500">{emp.branch}</p>
                       </div>
                       <div className="text-center shrink-0">
-                        <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount ?? 0}</p>
-                        <p className="text-[10px] text-gray-400">تقييم إيجابي هذا الشهر</p>
+                        <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
+                        <p className="text-[10px] text-gray-400">رصيد الشهر</p>
                       </div>
                     </button>
                   </EmployeeCard>

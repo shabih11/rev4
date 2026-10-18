@@ -4,12 +4,16 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { useData } from './context/DataContext';
 import { useAuth } from './context/AuthContext';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
   if (!ready) return <p dir="rtl" className="p-8 text-center">جارٍ التحقق من تسجيل الدخول…</p>;
   if (!user) return <Navigate to="/login" replace />;
-  return <>{children}</>;
+  return <>
+    <ChangePasswordModal isOpen={user.mustChangePassword !== false} isMandatory onClose={() => undefined} />
+    {children}
+  </>;
 }
 
 function App() {

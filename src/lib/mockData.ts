@@ -4,7 +4,7 @@ export type Role = 'manager' | 'employee' | 'admin';
 
 export interface UserAccount extends Employee {
   email: string;
-  password?: string;
+  mustChangePassword?: boolean;
   role: Role;
 }
 
@@ -28,7 +28,7 @@ export function matchEmployee(
   if (!rawName) return undefined;
 
   const cleanedName = rawName
-    .replace(/[\(（]?(?:تغطية|تغطيه)[\)）]?/gi, '')
+    .replace(/[([（]?(?:تغطية|تغطيه)[)）]?/gi, '')
     .trim();
 
   if (!cleanedName) return undefined;

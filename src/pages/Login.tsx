@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { toEnglishNumerals } from '../lib/formatDate';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -20,8 +21,9 @@ export const Login: React.FC = () => {
     setError('');
     
     const data = new FormData(e.currentTarget as HTMLFormElement);
+    const enteredPassword = toEnglishNumerals(String(data.get('password') || '')).trim();
     setBusy(true);
-    const result = await login(String(data.get('email') || ''), String(data.get('password') || ''));
+    const result = await login(String(data.get('email') || ''), enteredPassword);
     setBusy(false);
     if (result.success) {
       // Navigation waits for the authenticated server-side profile.
