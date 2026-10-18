@@ -2,7 +2,7 @@
   "name": "reviews-system",
   "private": true,
   "version": "0.0.0",
-  "homepage": "https://lamspecial.github.io/rev4",
+  "homepage": "https://shabih11.github.io/rev4",
   "type": "module",
   "scripts": {
     "dev": "vite",

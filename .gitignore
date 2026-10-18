@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local migration data and private account provisioning output
+reports/
+scripts/
+src/lib/chatEmployeeRoster.json
+src/lib/verifiedWindsorSnapshot.json
+src/lib/injectedReviews.ts
+src/lib/injectedShifts.ts
+src/lib/employeeRosterImport.ts
+src/lib/verifiedReviewImport.ts
+tests/employeeRosterImport.test.mjs
+tests/verifiedReviewImport.test.mjs

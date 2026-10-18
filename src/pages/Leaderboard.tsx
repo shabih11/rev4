@@ -2,13 +2,16 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCreative, Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
 import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
-import { formatDateTime, isWithinLastDays , toEnglishNumerals} from '../lib/formatDate';
+import { formatDateTime, isWithinLastDays, formatDate} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
+import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
+import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
 
 type SlideData = 
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -35,25 +38,30 @@ const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: strin
 };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews, timeline, branchSettings } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, syncError, currentAccount } = useData();
+  const reviews = useMemo(() => {
+    const details = new Map(privateReviews.map(review => [review.id, review]));
+    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
+  }, [privateReviews, reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
   const [branchModalSelectedDate, setBranchModalSelectedDate] = useState<string | null>(null);
   
+  const allEmployeesSorted = useMemo(() => {
+    return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
+  }, [users]);
+
   const slidesData = useMemo(() => {
     // 1. Top 10 Employees
-    const sorted = users
-      .filter(u => u.role === 'employee')
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 10);
+    const sorted = allEmployeesSorted.slice(0, 10);
     
     const sData: SlideData[] = sorted.map((emp, i) => ({ type: 'employee', data: emp, rank: i + 1 }));
 
     // 2. Partnerships (Best per branch)
     const branchReviewsMap: Record<string, typeof reviews> = {};
-    reviews.forEach(r => {
+    reviews.filter(review => isInCurrentMonth(review.date) && isPositiveReview(review.rating)).forEach(r => {
       if (!branchReviewsMap[r.branch]) branchReviewsMap[r.branch] = [];
       branchReviewsMap[r.branch].push(r);
     });
@@ -156,8 +164,9 @@ export const Leaderboard: React.FC = () => {
       });
     }
 
-    return sData;
-  }, [users, reviews]);
+    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, partnership: 3, employee: 4 };
+    return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
+  }, [allEmployeesSorted, users, reviews]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slidesData[activeIndex] || slidesData[0];
@@ -168,59 +177,45 @@ export const Leaderboard: React.FC = () => {
     : undefined);
 
   const swiperRef = useRef<any>(null);
-  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTouchStart = () => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.stop();
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (swiperRef.current && swiperRef.current.swiper) {
-      touchTimeoutRef.current = setTimeout(() => {
-        if (swiperRef.current && swiperRef.current.swiper) {
-          swiperRef.current.swiper.autoplay.start();
-        }
-      }, 5000);
-    }
-  };
-
-  const handleModalOpen = useCallback(() => {
-    if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.stop();
-    }
+  const hasInteracted = useRef(false);
+  const handleTouchStart = useCallback(() => {
+    hasInteracted.current = true;
+    swiperRef.current?.swiper?.autoplay.stop();
   }, []);
-
-  const handleModalClose = useCallback(() => {
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.autoplay.start();
-    }
-  }, []);
+  const handleModalOpen = handleTouchStart;
+  const handleModalClose = useCallback(() => {}, []);
+  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
+  const partnerAccount = users.find(user => user.id === activePartner.id);
+  const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
   if (slidesData.length === 0) return null;
 
   return (
     <div 
-      className="w-full h-screen bg-white overflow-hidden flex flex-col justify-between items-center relative pb-10 font-alexandria overscroll-none touch-none" 
+      className="w-full min-h-screen min-h-[100dvh] bg-white overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y" 
       dir="rtl"
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onMouseDown={handleTouchStart}
-      onMouseUp={handleTouchEnd}
+      onPointerDownCapture={handleTouchStart}
+      onTouchStartCapture={handleTouchStart}
+      onKeyDownCapture={handleTouchStart}
     >
       
+      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2 shadow-sm" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
+      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
+        <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
+        <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
+      </div>
       {/* Top Header - Contextual */}
       <AnimatePresence mode="wait">
         <motion.div 
           key={activeIndex + '-header'}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
-          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800 absolute top-0"
+          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
-            {activeSlide.type === 'employee' && `الترتيب : ${activeSlide.rank}`}
+            {activeSlide.type === 'employee' && <>
+              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p>
+
+            </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
             {activeSlide.type === 'active_branch' && `إحصائية الأسبوع`}
             {activeSlide.type === 'active_employee' && `نشاط الأسبوع`}
@@ -230,15 +225,18 @@ export const Leaderboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Center Image Swiper */}
-      <div className="flex-1 w-full h-full flex items-center justify-center z-20 pt-14 sm:pt-16 pb-[35vh] sm:pb-[33vh]">
+      <div className="w-full flex-1 flex items-center justify-center z-20 pt-4 sm:pt-6 pb-4 min-h-[360px] sm:min-h-[440px]">
         <Swiper
           ref={swiperRef}
           dir="ltr"
           effect={'creative'}
           grabCursor={true}
+          allowTouchMove={true}
+          rewind={true}
           centeredSlides={true}
           slidesPerView={1}
-          autoplay={{ delay: 3000, disableOnInteraction: false }}
+          autoplay={{ delay: 3000, disableOnInteraction: true }}
+          onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           creativeEffect={{
             limitProgress: 1,
@@ -321,22 +319,22 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       {/* Bottom Blue Curved Card */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 pointer-events-none flex flex-col justify-end h-[35vh] sm:h-[33vh]">
+      <div className="w-full z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+2rem))]">
         <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex-1 flex flex-col items-center justify-center text-white pointer-events-auto pb-16 sm:pb-8 relative">
+        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-8 sm:pb-6 relative min-h-[200px]">
           
           {/* Left/Right Action Buttons */}
           <button 
-            onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
-            className="absolute left-4 sm:left-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            aria-label="جميع الموظفات" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
+            className="absolute left-4 sm:left-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Users size={22} className="text-white" />
           </button>
           <button 
-            onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
-            className="absolute right-4 sm:right-6 top-1/4 -translate-y-1/2 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            aria-label="الفروع" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
+            className="absolute right-4 sm:right-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
              <Building2 size={22} className="text-white" />
           </button>
@@ -350,27 +348,27 @@ export const Leaderboard: React.FC = () => {
               
               {activeSlide.type === 'employee' && (
                 <>
-                  <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group">
-                      <h2 className="text-2xl sm:text-5xl font-bold mb-0.5 sm:mb-1">{activeSlide.data.name}</h2>
-                    </button>
-                  </EmployeeCard>
-                  
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium mb-1.5 sm:mb-3 hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mt-1 sm:mt-2">
-                    {activeSlide.data.branch}
-                  </button>
+                  <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
+                    <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
+                    </EmployeeCard>
+                    <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
+                  </div>
 
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">النقاط</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(2)}</p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(1)}</p>
                     </div>
                     <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.reviewsCount} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
                     </div>
                   </div>
+                  <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
+                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لازلت أعمل على ذلك'}</h2>
+                  {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {activePartner.count} تقييم خلال هذا الشهر</p>}
                 </>
               )}
 
@@ -464,7 +462,7 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {users.filter(u => u.role === 'employee').sort((a, b) => b.points - a.points).map((emp, idx) => (
+                {allEmployeesSorted.map((emp, idx) => (
                   <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
@@ -474,8 +472,8 @@ export const Leaderboard: React.FC = () => {
                         <p className="text-xs text-gray-500">{emp.branch}</p>
                       </div>
                       <div className="text-center shrink-0">
-                        <p className="text-lg font-black text-blue-600">{emp.points?.toFixed(2) || '0.00'}</p>
-                        <p className="text-[10px] text-gray-400">نقطة</p>
+                        <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
+                        <p className="text-[10px] text-gray-400">رصيد الشهر</p>
                       </div>
                     </button>
                   </EmployeeCard>
@@ -512,22 +510,11 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
-                {branches.map(branchName => {
-                  const currentMonth = new Date().getMonth();
-                  const currentYear = new Date().getFullYear();
-                  
-                  const branchMonthReviews = reviews.filter(r => {
-                    if (r.branch !== branchName) return false;
-                    const dateParts = r.date.split('-');
-                    if (dateParts.length === 3) {
-                      const d = new Date(parseInt(toEnglishNumerals(dateParts[2])), parseInt(toEnglishNumerals(dateParts[1])) - 1, parseInt(toEnglishNumerals(dateParts[0])));
-                      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-                    }
-                    return false;
-                  });
-                  
-                  const branchMonthPositiveReviews = branchMonthReviews.filter(r => parseInt(r.rating) >= 4);
-                  
+                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
+                {recordsReady && branches.map(branchName => {
+                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date));
+                  const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));
+
                   const empPositiveReviewCounts: Record<string, number> = {};
                   branchMonthPositiveReviews.forEach(r => {
                     r.linkedEmployeeIds.forEach(id => {
@@ -543,7 +530,9 @@ export const Leaderboard: React.FC = () => {
                       key={branchName} 
                       className="bg-white p-4 rounded-xl border shadow-sm cursor-pointer hover:border-blue-300 transition-colors relative"
                       onClick={() => {
+                        setShowAllBranchesModal(false);
                         setManualBranchName(branchName);
+                        setBranchModalSelectedDate(null);
                         setShowBranchModal(true);
                       }}
                     >
@@ -559,16 +548,12 @@ export const Leaderboard: React.FC = () => {
                       {top2.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 relative z-10">
                           {top2.map(emp => (
-                            <div key={emp.id} onClick={(e) => e.stopPropagation()}>
-                              <EmployeeCard employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                                <button className="w-full flex items-center gap-2 hover:opacity-80 transition-opacity text-right">
-                                  <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
-                                  <div className="overflow-hidden flex-1">
-                                    <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
-                                    <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>
-                                  </div>
-                                </button>
-                              </EmployeeCard>
+                            <div key={emp.id} className="w-full flex items-center gap-2 text-right">
+                              <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
+                              <div className="overflow-hidden flex-1">
+                                <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
+                                <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -590,7 +575,7 @@ export const Leaderboard: React.FC = () => {
         if (!modalBranchName) return null;
         const branchStart = branchSettings[modalBranchName]?.start || '16:00';
         
-        const branchReviews = reviews.filter(r => r.branch === modalBranchName).map(r => ({
+        const branchReviews = reviews.filter(r => r.branch === modalBranchName && isInCurrentMonth(r.date)).map(r => ({
            ...r,
            businessDate: getBusinessDate(r.date, r.time, branchStart)
         }));
@@ -737,7 +722,7 @@ export const Leaderboard: React.FC = () => {
 
                   {branchModalSelectedDate && (
                     <div className="bg-blue-50 p-4 border-b border-blue-100 shadow-inner shrink-0">
-                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {branchModalSelectedDate}:</p>
+                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {formatDate(branchModalSelectedDate)}:</p>
                        <div className="flex flex-wrap gap-2">
                          {(() => {
                            const dayShifts = timeline.filter(t => t.branch === modalBranchName && t.type === 'shift' && t.date === branchModalSelectedDate);
@@ -745,7 +730,7 @@ export const Leaderboard: React.FC = () => {
                            dayShifts.forEach(s => s.employees?.forEach(e => empIds.add(e.id)));
                            const emps = users.filter(u => empIds.has(u.id));
                            
-                           if (emps.length === 0) return <p className="text-xs text-gray-500">لا توجد شفتات مسجلة.</p>;
+                           if (emps.length === 0) return <p className="text-xs text-gray-500">{currentAccount?.role === 'admin' || (currentAccount?.role === 'manager' && currentAccount.branch === modalBranchName) ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات متاحة ضمن صلاحيات حسابك لهذا اليوم.'}</p>;
                            
                            return emps.map(emp => (
                              <div key={emp.id} className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-blue-100 text-xs text-blue-700 font-bold shadow-sm">
@@ -787,7 +772,7 @@ export const Leaderboard: React.FC = () => {
                             {formatDateTime(r.date, r.time)}
                           </span>
                         </div>
-                        <p className="text-gray-700 text-sm">"{r.comment}"</p>
+                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : `تقييم ${r.rating} نجوم في فرع ${r.branch}، مرتبط بـ ${r.linkedEmployeeIds.length} من الموظفات.`)}</p>
                         <p className="text-xs text-green-700 font-bold mt-2">
                           {r.linkedEmployeeIds && r.linkedEmployeeIds.length > 0 
                             ? `الموظفات: ${r.linkedEmployeeIds.map(id => users.find(u => u.id === id)?.name).join('، ')}`

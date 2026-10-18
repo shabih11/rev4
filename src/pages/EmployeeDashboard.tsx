@@ -1,20 +1,46 @@
 import React, { useState } from 'react';
+import { ShiftReviewCounts } from '../components/ShiftReviewCounts';
+import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
+import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
-import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react';
+import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
+import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { addTimelineEvent, reviews, users, timeline } = useData();
+  const { addTimelineEvent, reviews, reviewSummaries, recordsReady, users, timeline } = useData();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
 
+  // Default password alert modal for 123456
+  const [showDefaultPassModal, setShowDefaultPassModal] = useState(() => {
+    return sessionStorage.getItem('must_change_default_password') === 'true' || user?.password === '123456';
+  });
+
   if (!user) return null;
+  const privateReviews = new Map(reviews.map(review => [review.id, review]));
+  const countReviews = reviewSummaries.map(summary => ({ ...summary, linkedShiftId: privateReviews.get(summary.id)?.linkedShiftId }));
+  const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 font-alexandria" dir="rtl">
-      {/* Header */}
-      <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
+    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+      {/* Default Password Change Alert Modal */}
+      <ChangePasswordModal
+        isOpen={showDefaultPassModal}
+        onClose={() => setShowDefaultPassModal(false)}
+      />
+
+      {activeTab === 'profile' ? (
+        <div className="p-4 sm:p-6 max-w-2xl mx-auto">
+          <UserProfileTab />
+        </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
@@ -44,7 +70,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="bg-white rounded-3xl p-8 shadow-xl flex items-center justify-between">
           <div>
             <p className="text-gray-500 font-bold mb-1">النقاط الكلية</p>
-            <h2 className="text-5xl font-extrabold text-gray-800">{user.points}</h2>
+            <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
           </div>
           <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-500">
             <Award size={40} />
@@ -67,7 +93,7 @@ export const EmployeeDashboard: React.FC = () => {
             <Star className="text-green-500" size={20} />
             إيجابي
           </div>
-          <p className="text-3xl font-extrabold">+{user.stats.positive}</p>
+          <p className="text-3xl font-extrabold">+{user.stats.positive.toFixed(1)}</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-red-500">
@@ -111,7 +137,7 @@ export const EmployeeDashboard: React.FC = () => {
               <p className="text-center text-gray-500 text-sm">لا يوجد تقييمات مرتبطة بك بعد.</p>
             )}
 
-            {reviews.filter(r => r.linkedEmployeeIds.includes(user.id)).map(r => {
+            {reviews.filter(r => r.linkedEmployeeIds.includes(user.id)).sort(newestFirst).map(r => {
               const ratingNum = parseInt(r.rating) || 0;
               const isPositive = ratingNum >= 4;
               const stars = '★'.repeat(ratingNum) + '☆'.repeat(5 - ratingNum);
@@ -123,14 +149,14 @@ export const EmployeeDashboard: React.FC = () => {
               let shiftInfo = '';
               if (r.linkedShiftId) {
                 const s = timeline.find(t => t.id === r.linkedShiftId);
-                if (s) shiftInfo = `في شفت (${s.time} - ${s.endTime || 'نهاية اليوم'})`;
+                if (s) shiftInfo = `في ${shiftName(s.time)} (${formatTime(s.time)} - ${s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'})`;
               }
 
               return (
                 <div key={r.id} className={`${isPositive ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex text-yellow-400 text-sm">{stars}</div>
-                    <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{r.date} - {r.time}</div>
+                    <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{formatDateTime(r.date, r.time)}</div>
                   </div>
                   <p className="text-gray-700 text-sm">"{r.comment}"</p>
                   
@@ -154,7 +180,7 @@ export const EmployeeDashboard: React.FC = () => {
                 </div>
                 <p className="text-gray-700 text-sm">"{t.comment}"</p>
                 <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-gray-500">الوقت: {t.time}</p>
+                  <p className="text-xs text-gray-500">الوقت: {formatTime(t.time)}</p>
                   <p className={`text-xs ${t.title.includes('سلامة') ? 'text-red-400' : 'text-orange-400'}`}>مسجلة بواسطة الإدارة</p>
                 </div>
               </div>
@@ -178,21 +204,16 @@ export const EmployeeDashboard: React.FC = () => {
         
         {showShifts && (
           <div className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col relative">
-              <div className="absolute left-4 top-4 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">8 ساعات عمل</div>
-              <p className="font-bold text-gray-800">الثلاثاء ٤ مايو اكتسبت ٦ تقييمات</p>
-              <p className="text-xs text-gray-400 mt-1">(مع رغد واسماء)</p>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col relative">
-              <div className="absolute left-4 top-4 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">8 ساعات عمل</div>
-              <p className="font-bold text-gray-800">الخميس ٦ مايو اكتسبت ٣ تقييمات</p>
-              <p className="text-xs text-gray-400 mt-1">(مع فاطمة فقط)</p>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col relative">
-              <div className="absolute left-4 top-4 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">6 ساعات عمل</div>
-              <p className="font-bold text-gray-800">السبت ٨ مايو اكتسبت ٤ تقييمات</p>
-              <p className="text-xs text-gray-400 mt-1">(مع ياسمين ونورة)</p>
-            </div>
+            {timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).sort(newestFirst).map(event => (
+              <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
+                <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id).length ? `مع ${event.employees.filter(employee => employee.id !== user.id).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
+                </div>
+                <ShiftReviewCounts shift={event} employeeId={user.id} reviews={countReviews} ready={recordsReady} />
+              </div>
+            ))}
+            {!timeline.some(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)) && <p className="text-sm text-gray-500">لا توجد شفتات مسجلة.</p>}
           </div>
         )}
       </div>
@@ -204,11 +225,11 @@ export const EmployeeDashboard: React.FC = () => {
           
           <div className="bg-blue-50 p-4 rounded-xl flex justify-between items-center mb-4">
             <div>
-              <p className="text-blue-800 font-bold text-lg">من 16:00 إلى 00:00</p>
-              <p className="text-blue-600 text-sm">تم تسجيل حضورك في هذا الشفت.</p>
+              <p className="text-blue-800 font-bold text-lg">{todayShifts.length ? `${shiftName(todayShifts[0].time)}: ${formatTime(todayShifts[0].time)} إلى ${formatTime(todayShifts[0].endTime) || 'غير محدد'}` : 'لا يوجد شفت مسجل اليوم'}</p>
+              <p className="text-blue-600 text-sm">{todayShifts.length ? 'الشفت مسجل في النظام.' : 'يمكنك تقديم اعتراض إذا كان هناك شفت مفقود.'}</p>
             </div>
             <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-sm">
-              نشط
+              {todayShifts.length ? 'مسجل' : 'غير مسجل'}
             </div>
           </div>
 
@@ -232,7 +253,35 @@ export const EmployeeDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+      </>
+      )}
 
+      {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+            activeTab === 'dashboard'
+              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Award size={22} className={activeTab === 'dashboard' ? 'stroke-[2.5px]' : ''} />
+          <span className="text-[11px] font-bold">لوحتي</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+            activeTab === 'profile'
+              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              : 'text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <User size={22} className={activeTab === 'profile' ? 'stroke-[2.5px]' : ''} />
+          <span className="text-[11px] font-bold">شخصي</span>
+        </button>
+      </nav>
     </div>
   );
 };

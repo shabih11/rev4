@@ -20,4 +20,7 @@ export interface Employee {
     complaints?: number;
     safety?: number;
   };
+  assignedBranches?: string[];
+  code?: string;
+  aliases?: string[];
 }
