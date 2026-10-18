@@ -1,8 +1,10 @@
 import React, { createContext, useContext } from 'react';
 import { signInWithEmailAndPassword, signOut, updatePassword } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
+import { APP_PATH, auth, db } from '../lib/firebase';
 import { normalizeLoginEmail, normalizeLoginPassword, loginErrorMessage } from '../lib/loginInput';
 import type { UserAccount } from '../lib/mockData';
+import { cloudId } from '../lib/cloudSync';
 import { useData } from './DataContext';
 
 interface AuthContextType {
@@ -30,13 +32,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const changePassword = async (newPass: string): Promise<{ success: boolean; error?: string }> => {
+    let passwordUpdated = false;
     try {
-      if (auth.currentUser) {
-        await updatePassword(auth.currentUser, newPass);
-      }
+      if (!auth.currentUser || !user) return { success: false, error: 'انتهت جلسة الدخول. سجّلي الدخول مجددًا ثم حاولي مرة أخرى.' };
+      await updatePassword(auth.currentUser, newPass);
+      passwordUpdated = true;
+      await updateDoc(doc(db, APP_PATH, 'users', await cloudId(user.id)), { mustChangePassword: false });
       return { success: true };
     } catch (error: any) {
       console.error('Password update error:', error);
+      if (passwordUpdated) return { success: false, error: 'تغيّرت كلمة المرور، لكن تعذّر حفظ اكتمال الخطوة. سجّلي الخروج ثم ادخلي بكلمة المرور الجديدة وأعيدي المحاولة.' };
       const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
       if (code === 'auth/requires-recent-login') {
         return { success: false, error: 'يتطلب تغيير كلمة المرور إعادة تسجيل الدخول أولاً لدواعي الأمان' };

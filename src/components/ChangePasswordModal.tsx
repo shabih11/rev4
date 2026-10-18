@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -15,7 +14,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   isMandatory = false,
 }) => {
   const { user, changePassword } = useAuth();
-  const { updateUser } = useData();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -45,7 +43,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setIsSubmitting(false);
 
     if (res.success) {
-      updateUser(user.id, { mustChangePassword: false });
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);

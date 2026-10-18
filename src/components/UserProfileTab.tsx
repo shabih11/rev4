@@ -49,7 +49,6 @@ export const UserProfileTab: React.FC = () => {
     setIsUpdatingPass(false);
 
     if (res.success) {
-      updateUser(user.id, { mustChangePassword: false });
       setNewPassword('');
       setConfirmPassword('');
       setPassMsg({ text: 'تم تحديث كلمة المرور بنجاح!', type: 'success' });

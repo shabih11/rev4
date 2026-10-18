@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Leaderboard } from './pages/Leaderboard';
 import { Login } from './pages/Login';
@@ -8,10 +9,15 @@ import { ChangePasswordModal } from './components/ChangePasswordModal';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
+  const [passwordChangeCompleted, setPasswordChangeCompleted] = useState(false);
   if (!ready) return <p dir="rtl" className="p-8 text-center">جارٍ التحقق من تسجيل الدخول…</p>;
   if (!user) return <Navigate to="/login" replace />;
   return <>
-    <ChangePasswordModal isOpen={user.mustChangePassword !== false} isMandatory onClose={() => undefined} />
+    <ChangePasswordModal
+      isOpen={user.mustChangePassword !== false && !passwordChangeCompleted}
+      isMandatory
+      onClose={() => setPasswordChangeCompleted(true)}
+    />
     {children}
   </>;
 }
