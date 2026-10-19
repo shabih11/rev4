@@ -5,6 +5,7 @@ import ts from 'typescript';
 let source = readFileSync(new URL('../src/lib/windsorIntegration.ts', import.meta.url), 'utf8');
 const formatSource = ts.transpileModule(readFileSync(new URL('../src/lib/formatDate.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 source = source.replace("'./formatDate'", JSON.stringify('data:text/javascript;base64,' + Buffer.from(formatSource).toString('base64')));
+source = source.replace("'./windsorReviewModel.mjs'", JSON.stringify(new URL('../src/lib/windsorReviewModel.mjs', import.meta.url).href));
 const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const { normalizeWindsorReviews, fetchReviewsFromWindsor, stripReviewTranslation } = await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'));
 const row = { account_id: 'locations/123', review_id: 'review-1', review_reviewer: 'عميل تجريبي', review_star_rating: 'FIVE', review_comment: 'ممتاز', review_create_time: '2026-10-10T22:30:00Z' };

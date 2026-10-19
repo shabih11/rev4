@@ -13,7 +13,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
-  const { recordsReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews } = useData();
+  const { recordsReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
   const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
@@ -1167,21 +1167,10 @@ export const SystemAdminDashboard: React.FC = () => {
                     </button>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-900">المزامنة التلقائية كل دقيقة</h4>
-                      <p className="text-xs text-gray-500">يفحص Windsor كل دقيقة ما دامت لوحة الإدارة مفتوحة. قد يعيد Windsor بيانات مخزنة؛ وتيرة جلب البيانات الجديدة تعتمد على خطة الحساب.</p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const newVal = !windsorAutoSync;
-                        setWindsorAutoSync(newVal);
-                        showToast(newVal ? 'تم تفعيل المزامنة الآلية مع Windsor.ai' : 'تم إيقاف المزامنة الآلية');
-                      }}
-                      className={`relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${windsorAutoSync ? 'bg-emerald-500' : 'bg-gray-300'}`}
-                    >
-                      <span className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${windsorAutoSync ? '-translate-x-7' : 'translate-x-0'}`} />
-                    </button>
+                  <div className="pt-2 border-t border-gray-100">
+                    <h4 className="text-sm font-bold text-gray-900">المزامنة المركزية اليومية</h4>
+                    <p className="text-xs text-gray-500">تُشغّل من GitHub Actions بعد إعداد الاتصال الآمن. يقرأ التطبيق التقييمات المحفوظة في Firestore. الاستيراد اليدوي متاح عند الحاجة.</p>
+                    <a className="text-sm text-blue-600" href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer">حالة المزامنة وتشغيلها يدويًا</a>
                   </div>
                 </div>
 

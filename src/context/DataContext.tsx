@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
@@ -66,8 +66,6 @@ interface DataContextType {
   setWindsorApiUrl: (url: string) => void;
   windsorApiUrl2: string;
   setWindsorApiUrl2: (url: string) => void;
-  windsorAutoSync: boolean;
-  setWindsorAutoSync: (enabled: boolean) => void;
   fetchAndProcessWindsorReviews: (customUrl?: string) => Promise<{ success: boolean; count: number; error?: string }>;
   resetUsersToRoster: () => void;
   resetTimelineToInjectedShifts: () => void;
@@ -93,7 +91,6 @@ const safeStorageSet = (key: string, value: any) => {
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useCloudSession();
-  const [windsorAutoSync, setWindsorAutoSyncState] = useState<boolean>(() => localStorage.getItem('app_windsor_autosync') === 'true');
   const [recordDemands, setRecordDemands] = useState<Record<string, { uid: string | null; demand: RecordDemand }>>({});
   const requestRecords = useCallback((id: string, demand: RecordDemand | null) => {
     setRecordDemands(previous => {
@@ -105,7 +102,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [session.uid]);
   const demands = Object.values(recordDemands).filter(entry => entry.uid === session.uid).map(entry => entry.demand);
   // Background imports compare and relink all records, so they require a complete view.
-  if (session.account?.role === 'admin' && windsorAutoSync) demands.push({ reviews: { all: true }, timeline: { all: true } });
   const reviewScope = combineRecordScopes(demands.map(demand => demand.reviews));
   const timelineScope = combineRecordScopes(demands.map(demand => demand.timeline));
   const userCloud = useCloudList<UserAccount>('users', session);
@@ -635,11 +631,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     safeStorageSet('app_windsor_api_url_2', url);
   };
 
-  const setWindsorAutoSync = (enabled: boolean) => {
-    setWindsorAutoSyncState(enabled);
-    safeStorageSet('app_windsor_autosync', enabled ? 'true' : 'false');
-  };
-
   const fetchAndProcessWindsorReviews = async (customUrl?: string): Promise<{ success: boolean; count: number; error?: string }> => {
     if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
       return { success: false, count: 0, error: 'انتظري اكتمال تحميل التقييمات والشفتات قبل الاستيراد' };
@@ -741,16 +732,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const windsorSyncCallback = React.useRef(fetchAndProcessWindsorReviews);
-  useEffect(() => { windsorSyncCallback.current = fetchAndProcessWindsorReviews; });
-  useEffect(() => {
-    if (session.account?.role !== 'admin' || !windsorAutoSync || !reviewCloud.ready || !timelineCloud.ready || (!windsorApiUrl && !windsorApiUrl2)) return;
-    const interval = setInterval(() => {
-      void windsorSyncCallback.current();
-    }, 60 * 1000); // Check every minute while the admin app is open.
-    return () => clearInterval(interval);
-  }, [session.account?.role, windsorAutoSync, reviewCloud.ready, timelineCloud.ready, windsorApiUrl, windsorApiUrl2]);
-
   // Historical imports are server-side maintenance operations; never republish embedded data.
   const resetUsersToRoster = () => { window.alert('تتم إدارة الاستيراد التاريخي من أداة الإدارة الآمنة خارج المتصفح'); };
   const resetTimelineToInjectedShifts = resetUsersToRoster;
@@ -766,7 +747,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
-      windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews,
+      windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
