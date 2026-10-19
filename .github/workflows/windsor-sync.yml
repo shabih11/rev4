@@ -2,7 +2,7 @@ name: Windsor to Firestore
 
 on:
   schedule:
-    - cron: '23 3 * * *' # 06:23 Asia/Riyadh, once daily
+    - cron: '0 19 * * *' # 22:00 Asia/Riyadh, once daily
   workflow_dispatch:
     inputs:
       date_from:

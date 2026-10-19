@@ -1,7 +1,7 @@
 # Windsor → Firestore
 
 المصدر Google My Business عبر Windsor، والوجهة `iamspec / apps/rev4`.
-تعمل `.github/workflows/windsor-sync.yml` يوميًا الساعة 06:23 بتوقيت الرياض؛ قد يتأخر تشغيل GitHub المجدول.
+تعمل `.github/workflows/windsor-sync.yml` يوميًا الساعة 22:00 بتوقيت الرياض؛ قد يتأخر تشغيل GitHub المجدول.
 يمكن تشغيلها يدويًا من Actions مع تحديد تاريخ البداية والنهاية للمراجعة التاريخية.
 
 ## التفعيل
