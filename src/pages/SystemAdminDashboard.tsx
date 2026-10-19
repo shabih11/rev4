@@ -1,3 +1,4 @@
+import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -334,6 +335,8 @@ export const SystemAdminDashboard: React.FC = () => {
               <p className="text-[10px] text-slate-400 font-mono truncate" dir="ltr">{user?.email}</p>
             </div>
           </div>
+          <div className="flex items-center gap-1">
+            <LeaderboardLink />
           <button
             onClick={logout}
             className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer"
@@ -341,6 +344,7 @@ export const SystemAdminDashboard: React.FC = () => {
             <LogOut size={14} />
             تسجيل الخروج
           </button>
+          </div>
         </div>
       </aside>
 
@@ -355,10 +359,13 @@ export const SystemAdminDashboard: React.FC = () => {
               </div>
               <h1 className="text-base font-bold">لوحة الإدارة العامة</h1>
             </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <LeaderboardLink className="text-slate-200 hover:bg-slate-700" />
             <button onClick={logout} className="p-1.5 hover:bg-slate-700 rounded-lg flex items-center gap-1.5 text-xs font-bold text-slate-200">
               <LogOut size={15} />
               خروج
             </button>
+            </div>
           </div>
 
           {/* Mobile Global Branch Selector */}
@@ -1245,3 +1252,4 @@ export const SystemAdminDashboard: React.FC = () => {
     </div>
   );
 };
+

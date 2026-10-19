@@ -165,7 +165,7 @@ export const Leaderboard: React.FC = () => {
       });
     }
 
-    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, partnership: 3, employee: 4 };
+    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, employee: 3, partnership: 4 };
     return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
   }, [allEmployeesSorted, users, reviews]);
 
@@ -205,7 +205,7 @@ export const Leaderboard: React.FC = () => {
     >
       
       <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2 shadow-sm" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
-      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
+      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
       </div>
@@ -798,3 +798,4 @@ export const Leaderboard: React.FC = () => {
     </div>
   );
 };
+

@@ -1,3 +1,4 @@
+import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
 import { User, Lock, Mail, Building2, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -186,7 +187,8 @@ export const UserProfileTab: React.FC = () => {
       </div>
 
       {/* Logout button */}
-      <div className="pt-2 flex justify-center">
+      <div className="pt-2 flex items-center justify-center gap-2">
+        <LeaderboardLink />
         <button
           onClick={logout}
           className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-6 py-3 rounded-2xl border border-red-200 transition text-sm flex items-center gap-2 cursor-pointer"
@@ -198,3 +200,4 @@ export const UserProfileTab: React.FC = () => {
     </div>
   );
 };
+

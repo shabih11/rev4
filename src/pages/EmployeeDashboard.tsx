@@ -1,3 +1,4 @@
+import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
 import { ShiftReviewCounts } from '../components/ShiftReviewCounts';
 import { newestFirst } from '../lib/employeeActivity';
@@ -36,12 +37,15 @@ export const EmployeeDashboard: React.FC = () => {
             <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
             <p className="text-blue-600 font-bold">{user.branch}</p>
           </div>
+          <div className="flex items-center gap-2">
+            <LeaderboardLink />
           <button 
             onClick={logout}
             className="p-3 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
           >
             <LogOut size={24} />
           </button>
+          </div>
         </div>
         
         {/* Employee Image */}
@@ -275,3 +279,4 @@ export const EmployeeDashboard: React.FC = () => {
     </div>
   );
 };
+
