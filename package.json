@@ -35,5 +35,9 @@
     "tailwindcss": "^3.4.19",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shabih11/rev4.git"
   }
 }

@@ -8,6 +8,7 @@ import 'swiper/css';
 import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
+import { useRecordScope } from '../hooks/useRecordScope';
 import { formatDateTime, isWithinLastDays, formatDate} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
@@ -175,6 +176,10 @@ export const Leaderboard: React.FC = () => {
     : activeSlide?.type === 'partnership' ? activeSlide.branch 
     : activeSlide?.type === 'active_branch' ? activeSlide.branch 
     : undefined);
+  useRecordScope(showBranchModal && modalBranchName ? {
+    reviews: { branches: [modalBranchName] },
+    timeline: branchModalSelectedDate ? { branches: [modalBranchName] } : undefined,
+  } : {});
 
   const swiperRef = useRef<any>(null);
   const hasInteracted = useRef(false);

@@ -4,11 +4,13 @@ import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
 import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
+import { useRecordScope } from '../hooks/useRecordScope';
 import { LogOut, Star, Award, ShieldAlert, AlertTriangle, CalendarClock, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  useRecordScope({ reviews: { employeeIds: [user?.id || '', user?.name || ''] }, timeline: { employeeIds: [user?.id || ''] } });
   const { addTimelineEvent, reviews, reviewSummaries, recordsReady, users, timeline } = useData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);

@@ -7,6 +7,7 @@ import type { UserAccount } from '../lib/mockData';
 import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
+import { useRecordScope } from '../hooks/useRecordScope';
 import type { TimelineEvent } from '../context/DataContext';
 import { formatDateTime, toEnglishNumerals, formatDate, formatTime, shiftName } from '../lib/formatDate';
 
@@ -46,6 +47,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 };
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
+  useRecordScope({ reviews: { employeeIds: [employee.id, employee.name] }, timeline: { employeeIds: [employee.id, employee.name, ...(employee.aliases || [])] } });
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
   const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, syncError } = useData();
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
@@ -278,6 +280,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
 
 {/* Shift Details Modal */}
 export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: TimelineEvent | null, onClose: () => void, reviews: any[], users: any[] }) => {
+  useRecordScope(shift ? { reviews: { branches: [shift.branch] } } : {});
   if (!shift) return null;
   const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date).sort(newestFirst);
   

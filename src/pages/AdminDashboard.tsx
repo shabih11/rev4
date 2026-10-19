@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { CalendarClock, LogOut, Search, CheckCircle2, ChevronRight, ChevronLeft, Calendar as CalendarIcon, User, Clock, Check, Lock, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useRecordScope } from '../hooks/useRecordScope';
 import { formatTime, timeMinutes } from '../lib/formatDate';
 import { UserProfileTab } from '../components/UserProfileTab';
 import employeeImg from '../assets/employee.png';
@@ -79,7 +80,8 @@ const WEEK_DAYS_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', '�
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
+  const { recordsReady, users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
+  useRecordScope({ reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } });
 
   const [activeTab, setActiveTab] = useState<'shifts' | 'profile'>('shifts');
 
@@ -235,6 +237,10 @@ export const AdminDashboard: React.FC = () => {
 
   // Save shifts for the selected day
   const handleSaveDayShifts = () => {
+    if (!recordsReady) {
+      showToast('انتظري اكتمال تحميل السجلات قبل الحفظ');
+      return;
+    }
     if (!monthEditStatus.editable) {
       showToast(monthEditStatus.reason || 'عفواً، لا يمكن تعديل شفتات هذا الشهر');
       return;
@@ -973,6 +979,7 @@ export const AdminDashboard: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleSaveDayShifts}
+                    disabled={!recordsReady}
                     className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3 px-6 rounded-2xl shadow-md transition text-sm flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Check size={18} />

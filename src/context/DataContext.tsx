@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
 import { fetchReviewsFromWindsor, normalizeWindsorReviews, stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
+import { combineRecordScopes, type RecordDemand } from '../lib/cloudReadPlan';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 
 export interface CustomerReview {
@@ -37,6 +38,7 @@ export interface TimelineEvent {
 }
 
 interface DataContextType {
+  requestRecords: (id: string, demand: RecordDemand | null) => void;
   users: UserAccount[];
   updateUser: (id: string, updates: Partial<UserAccount>) => void;
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
@@ -91,11 +93,26 @@ const safeStorageSet = (key: string, value: any) => {
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useCloudSession();
+  const [windsorAutoSync, setWindsorAutoSyncState] = useState<boolean>(() => localStorage.getItem('app_windsor_autosync') === 'true');
+  const [recordDemands, setRecordDemands] = useState<Record<string, { uid: string | null; demand: RecordDemand }>>({});
+  const requestRecords = useCallback((id: string, demand: RecordDemand | null) => {
+    setRecordDemands(previous => {
+      const next = { ...previous };
+      if (demand) next[id] = { uid: session.uid, demand };
+      else delete next[id];
+      return next;
+    });
+  }, [session.uid]);
+  const demands = Object.values(recordDemands).filter(entry => entry.uid === session.uid).map(entry => entry.demand);
+  // Background imports compare and relink all records, so they require a complete view.
+  if (session.account?.role === 'admin' && windsorAutoSync) demands.push({ reviews: { all: true }, timeline: { all: true } });
+  const reviewScope = combineRecordScopes(demands.map(demand => demand.reviews));
+  const timelineScope = combineRecordScopes(demands.map(demand => demand.timeline));
   const userCloud = useCloudList<UserAccount>('users', session);
-  const reviewCloud = useCloudList<CustomerReview>('reviews', session);
+  const reviewCloud = useCloudList<CustomerReview>('reviews', session, reviewScope);
   const reviewSignals = useCloudList<ReviewSummary>('reviewSignals', session);
   const noteSignals = useCloudList<TimelineEvent>('noteSignals', session);
-  const timelineCloud = useCloudList<TimelineEvent>('timeline', session);
+  const timelineCloud = useCloudList<TimelineEvent>('timeline', session, timelineScope);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
   const branchCloud = useCloudList<BranchRecord>('branches', session);
   const users = userCloud.rows, setUsers = userCloud.change;
@@ -115,7 +132,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const [windsorApiUrl, setWindsorApiUrlState] = useState<string>(() => localStorage.getItem('app_windsor_api_url') || '');
   const [windsorApiUrl2, setWindsorApiUrl2State] = useState<string>(() => localStorage.getItem('app_windsor_api_url_2') || '');
-  const [windsorAutoSync, setWindsorAutoSyncState] = useState<boolean>(() => localStorage.getItem('app_windsor_autosync') === 'true');
   const windsorSyncInFlight = React.useRef(false);
 
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
@@ -158,6 +174,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addTimelineEvent = (event: Omit<TimelineEvent, 'id'>) => {
+    if (!timelineScope || !timelineCloud.ready || (event.type === 'shift' && (!reviewScope || !reviewCloud.ready))) {
+      window.alert('انتظري اكتمال تحميل التقييمات والشفتات قبل الحفظ');
+      return;
+    }
     const newId = Date.now().toString();
     const newShift: TimelineEvent = { ...event, id: newId };
 
@@ -251,6 +271,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const mergeEmployees = (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => {
+    if (!userCloud.ready || !reviewCloud.ready || !timelineCloud.ready || !reviewScope?.all || !timelineScope?.all) {
+      window.alert('انتظري اكتمال تحميل السجلات قبل دمج الموظفات');
+      return;
+    }
     const emp1 = users.find(u => u.id === primaryId);
     const emp2 = users.find(u => u.id === duplicateId);
     if (!emp1 || !emp2 || primaryId === duplicateId) return;
@@ -341,6 +365,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteReview = (id: string) => {
+    if (!reviewScope || !timelineScope || !reviewCloud.ready || !timelineCloud.ready) {
+      window.alert('انتظري اكتمال تحميل التقييمات والشفتات قبل الحذف');
+      return;
+    }
     const newReviews = reviews.filter(r => r.id !== id);
     setReviews(newReviews);
     deleteTimelineEvent(id);
@@ -451,6 +479,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const commitShifts = (shifts: TimelineEvent[], batchId?: string) => {
+    if (!reviewScope || !timelineScope || !reviewCloud.ready || !timelineCloud.ready) {
+      window.alert('انتظري اكتمال تحميل التقييمات والشفتات قبل الحفظ');
+      return;
+    }
     let finalShifts = batchId ? shifts.map(s => ({ ...s, batchId })) : shifts;
 
     // فحص وربط جميع التقييمات السابقة بالشفتات الجديدة
@@ -555,6 +587,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [users, reviewSignals.rows, noteSignals.rows]);
 
   const clearData = (branch?: string, startDate?: string, endDate?: string) => {
+    if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
+      window.alert('انتظري اكتمال تحميل جميع السجلات قبل المسح');
+      return;
+    }
     // Helper to check if a date string DD-MM-YYYY is between start and end
     const isBetween = (dateStr: string, start?: string, end?: string) => {
       if (!start || !end) return true;
@@ -605,6 +641,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchAndProcessWindsorReviews = async (customUrl?: string): Promise<{ success: boolean; count: number; error?: string }> => {
+    if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
+      return { success: false, count: 0, error: 'انتظري اكتمال تحميل التقييمات والشفتات قبل الاستيراد' };
+    }
     const urls = customUrl ? [customUrl] : [windsorApiUrl, windsorApiUrl2].filter(u => u && u.trim());
     if (urls.length === 0) {
       return { success: false, count: 0, error: 'لم يتم تحديد أي رابط API لـ Windsor.ai' };
@@ -702,13 +741,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const windsorSyncCallback = React.useRef(fetchAndProcessWindsorReviews);
+  useEffect(() => { windsorSyncCallback.current = fetchAndProcessWindsorReviews; });
   useEffect(() => {
-    if (session.account?.role !== 'admin' || !windsorAutoSync || (!windsorApiUrl && !windsorApiUrl2)) return;
+    if (session.account?.role !== 'admin' || !windsorAutoSync || !reviewCloud.ready || !timelineCloud.ready || (!windsorApiUrl && !windsorApiUrl2)) return;
     const interval = setInterval(() => {
-      void fetchAndProcessWindsorReviews();
+      void windsorSyncCallback.current();
     }, 60 * 1000); // Check every minute while the admin app is open.
     return () => clearInterval(interval);
-  }, [session.account?.role, windsorAutoSync, windsorApiUrl, windsorApiUrl2, windsorBranchMapping, reviews, timeline]);
+  }, [session.account?.role, windsorAutoSync, reviewCloud.ready, timelineCloud.ready, windsorApiUrl, windsorApiUrl2]);
 
   // Historical imports are server-side maintenance operations; never republish embedded data.
   const resetUsersToRoster = () => { window.alert('تتم إدارة الاستيراد التاريخي من أداة الإدارة الآمنة خارج المتصفح'); };
@@ -721,6 +762,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
+      requestRecords,
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
@@ -728,7 +770,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
-      reviewSummaries: reviewSignals.rows, recordsReady: reviewSignals.ready && reviewCloud.ready && timelineCloud.ready,
+      reviewSummaries: reviewSignals.rows, recordsReady: userCloud.ready && reviewSignals.ready && noteSignals.ready && reviewCloud.ready && timelineCloud.ready,
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
     }}>
       {children}

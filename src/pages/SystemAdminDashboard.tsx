@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useRecordScope } from '../hooks/useRecordScope';
 import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, RefreshCw, Globe, Link, GitMerge } from 'lucide-react';
 import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
 import employeeImg from '../assets/employee.png';
@@ -12,7 +13,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
-  const { users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews } = useData();
+  const { recordsReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, windsorAutoSync, setWindsorAutoSync, fetchAndProcessWindsorReviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
   const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
@@ -49,6 +50,12 @@ export const SystemAdminDashboard: React.FC = () => {
 
   // Merge Employees State
   const [showMergeModal, setShowMergeModal] = useState(false);
+  const needsAllRecords = showMergeModal || activeTab === 'windsor';
+  useRecordScope({
+    reviews: needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
+    timeline: needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
+      : activeTab === 'shifts' || activeTab === 'stats' || activeTab === 'notes' ? { branches: [effectiveTimelineBranch] } : undefined,
+  });
   const [primaryEmpId, setPrimaryEmpId] = useState('');
   const [duplicateEmpId, setDuplicateEmpId] = useState('');
   const [mergedName, setMergedName] = useState('');
@@ -588,6 +595,7 @@ export const SystemAdminDashboard: React.FC = () => {
 
                     <div className="flex gap-2 mt-6">
                       <button
+                        disabled={!recordsReady}
                         onClick={() => {
                           if (!primaryEmpId || !duplicateEmpId || !mergedName.trim()) {
                             showToast('يرجى اختيار الموظفتين وتحديد الاسم الموحد');
@@ -604,7 +612,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           setMergedName('');
                           showToast('تم دمج الموظفتين وتوحيد كافة التقييمات بنجاح');
                         }}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white p-3 rounded-xl font-bold text-sm shadow-md transition"
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white p-3 rounded-xl font-bold text-sm shadow-md transition"
                       >
                         تأكيد الدمج والتوحيد
                       </button>
