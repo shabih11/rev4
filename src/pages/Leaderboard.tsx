@@ -39,7 +39,7 @@ const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: strin
 };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, syncError, currentAccount } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, summaryReady, summaryGeneratedAt, syncError, requestBasicSummary, currentAccount } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -176,7 +176,7 @@ export const Leaderboard: React.FC = () => {
     : activeSlide?.type === 'partnership' ? activeSlide.branch 
     : activeSlide?.type === 'active_branch' ? activeSlide.branch 
     : undefined);
-  useRecordScope(showBranchModal && modalBranchName ? {
+  useRecordScope(showBranchModal && modalBranchName && branchModalSelectedDate ? {
     reviews: { branches: [modalBranchName] },
     timeline: branchModalSelectedDate ? { branches: [modalBranchName] } : undefined,
   } : {});
@@ -193,7 +193,11 @@ export const Leaderboard: React.FC = () => {
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  if (slidesData.length === 0) return null;
+  if (slidesData.length === 0) return <div className="p-8 text-center space-y-4">
+    <p role={syncError ? 'alert' : 'status'}>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>
+    <button onClick={requestBasicSummary} className="rounded-xl bg-blue-600 text-white px-4 py-2">تحميل البيانات الأساسية عند الطلب</button>
+    <p className="text-xs text-gray-500">خيار مؤقت إذا لم يُجهز الملخص اليومي بعد. لا تُحمّل التفاصيل تلقائيًا.</p>
+  </div>;
 
   return (
     <div 
@@ -209,6 +213,7 @@ export const Leaderboard: React.FC = () => {
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
       </div>
+      {summaryGeneratedAt && <p className="absolute top-16 right-4 text-[10px] text-gray-400 z-30">ملخص يومي: {formatDate(summaryGeneratedAt.slice(0, 10))}</p>}
       {/* Top Header - Contextual */}
       <AnimatePresence mode="wait">
         <motion.div 
@@ -515,8 +520,8 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
-                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
-                {recordsReady && branches.map(branchName => {
+                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !summaryReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
+                {summaryReady && branches.map(branchName => {
                   const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date));
                   const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));
 
@@ -798,4 +803,3 @@ export const Leaderboard: React.FC = () => {
     </div>
   );
 };
-

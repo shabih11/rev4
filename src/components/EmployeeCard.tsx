@@ -47,9 +47,9 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 };
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
-  useRecordScope({ reviews: { employeeIds: [employee.id, employee.name] }, timeline: { employeeIds: [employee.id, employee.name, ...(employee.aliases || [])] } });
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
-  const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, syncError } = useData();
+  useRecordScope({ reviews: activeTab === 'reviews' ? { employeeIds: [employee.id, employee.name] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
+  const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, summaryReady, summaryGeneratedAt, employeeHours, syncError } = useData();
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
@@ -77,19 +77,13 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const partner = favoritePartner(employee.id, reviewSummaries);
   const favoritePartnerName = users.find(user => user.id === partner.id)?.name || '';
 
-  let totalHours = 0;
-  employeeShifts.forEach(s => {
-    if (s.time && s.endTime) {
-      const [sh, sm] = s.time.split(':').map(Number);
-      const [eh, em] = s.endTime.split(':').map(Number);
-      let diff = (eh + em / 60) - (sh + sm / 60);
-      if (diff < 0) diff += 24;
-      totalHours += diff;
-    } else {
-      totalHours += 8;
-    }
-  });
-  totalHours = Math.round(totalHours);
+  const totalHours = Math.round(employeeHours[employee.id] ?? employeeShifts.reduce((total, shift) => {
+    const minutes = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+    let duration = minutes(shift.endTime || shift.time) - minutes(shift.time);
+    if (duration < 0) duration += 1440;
+    return total + (Number.isFinite(duration) ? duration / 60 : 0);
+  }, 0));
+  const tabReady = activeTab === 'activity' || activeTab === 'points' ? summaryReady : recordsReady;
 
   return (
     <>
@@ -170,10 +164,11 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
 
           {/* Body */}
           <div className="p-4 sm:p-6 bg-gray-50 h-[50vh] overflow-y-auto">
-            {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !recordsReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
+            {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !tabReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
+            {summaryGeneratedAt && <p className="text-xs text-gray-400 mb-3">ملخص يومي: {formatDateTime(summaryGeneratedAt.slice(0, 10), '')}</p>}
             {activeTab === 'reviews' ? (
               <div className="space-y-4 pt-2 pb-2">
-                {employeeReviews.map(r => {
+                {(recordsReady ? employeeReviews : []).map(r => {
                   const linkedNames = r.linkedEmployeeIds.map((id: string) => users.find((u: any) => u.id === id)?.name || id).join('، ');
                   return (
                     <div key={r.id} className="bg-white p-4 rounded-xl border shadow-sm relative">
@@ -206,7 +201,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             ) : activeTab === 'shifts' ? (
               <div className="space-y-3">
                 {/* Total Hours Badge */}
-                {canReadAllShifts && (
+                {canReadAllShifts && (employeeHours[employee.id] !== undefined || recordsReady) && (
                   <div className="bg-transparent border border-gray-200 text-gray-700 p-2 rounded-xl flex items-center justify-center gap-2 shadow-sm mb-4">
                     <Clock size={18} className="text-blue-600" />
                     <p className="font-bold text-sm">{totalHours} ساعات في صناعة تجربة العميل</p>

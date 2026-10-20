@@ -29,3 +29,11 @@
 تحتاج المزامنة اشتراك Windsor صالحًا؛ وتيرة تحديث المصدر تعتمد على الخطة.
 
 المراجع: [Windsor API](https://windsor.ai/api-documentation/)، [تسعير Firestore](https://firebase.google.com/docs/firestore/pricing)، [Google OIDC](https://github.com/google-github-actions/auth).
+
+## ملخص العرض اليومي
+
+بعد مزامنة Windsor يعمل `daily-read-model.mjs` لإعداد `apps/rev4.dailyReadModel` مرة يوميًا.
+يشمل المدخلات العامة المختصرة وساعات الموظفات؛ لا يشمل أسماء العملاء أو تعليقاتهم أو البريد وكلمات المرور.
+يعرض التطبيق وقت الملخص. قراءة التفاصيل متاحة عند طلب المستخدم، والملخص يتحدث في التشغيل اليومي التالي.
+إذا تجاوزت القاعدة الحصة، يُرفض البناء ولا تُكتب نتيجة ناقصة؛ أعد تشغيل workflow بعد تجدد الحصة.
+للتفعيل الأول، يجب نجاح خطوة **Prepare daily display summary**. نجاح نشر الواجهة وحده لا يثبت تجهيز الملخص.

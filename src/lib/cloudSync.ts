@@ -1,9 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, getDoc, onSnapshot, query, where, or, writeBatch, deleteField } from 'firebase/firestore';
+import { collection, doc, onSnapshot, query, where, or, writeBatch, deleteField } from 'firebase/firestore';
+import type { QuerySnapshot, DocumentSnapshot } from 'firebase/firestore';
 import { APP_PATH, auth, db } from './firebase';
 import type { UserAccount } from './mockData';
 import { recordFilters, type RecordScope } from './cloudReadPlan';
+
+// Each network read closes its listener on confirmation, error, or deadline.
+export function boundedRead<T extends { metadata: { fromCache: boolean } }>(listen: (next: (value: T) => void, error: (reason: unknown) => void) => () => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let stop: (() => void) | undefined;
+    let finished = false;
+    const finish = (value?: T, error?: unknown) => {
+      if (finished) return;
+      finished = true; clearTimeout(timer); stop?.();
+      if (value) resolve(value); else reject(error);
+    };
+    const timer = setTimeout(() => finish(undefined, new Error('read-timeout')), 15000);
+    try {
+      stop = listen(value => { if (!value.metadata.fromCache) finish(value); }, error => finish(undefined, error));
+      if (finished) stop();
+    } catch (error) { finish(undefined, error); }
+  });
+}
+const readCache = new Map<string, { expires: number; promise: Promise<QuerySnapshot> }>();
 
 export interface CloudSession { account: UserAccount | null; ready: boolean; uid: string | null; error: string | null }
 export async function cloudId(id: string) {
@@ -19,9 +39,10 @@ export function useCloudSession(): CloudSession {
       if (!user) { setSession({ account: null, ready: true, uid: null, error: null }); return; }
       setSession({ account: null, ready: false, uid: user.uid, error: null });
       try {
-        const access = await getDoc(doc(db, APP_PATH, 'access', user.uid));
+        const access = await boundedRead<DocumentSnapshot>((next, error) => onSnapshot(doc(db, APP_PATH, 'access', user.uid), { includeMetadataChanges: true }, next, error));
         if (!access.exists()) throw new Error('هذا الحساب غير مخول لاستخدام التطبيق');
-        const profile = await getDoc(doc(db, APP_PATH, 'users', access.data().profileDocId));
+        if (current !== revision) return;
+        const profile = await boundedRead<DocumentSnapshot>((next, error) => onSnapshot(doc(db, APP_PATH, 'users', access.data()!.profileDocId), { includeMetadataChanges: true }, next, error));
         if (!profile.exists()) throw new Error('لم يتم العثور على ملف الموظفة');
         if (current === revision) setSession({ account: profile.data() as UserAccount, ready: true, uid: user.uid, error: null });
       } catch {
@@ -34,7 +55,7 @@ export function useCloudSession(): CloudSession {
 }
 const clean = (value: unknown) => JSON.parse(JSON.stringify(value));
 export function publicProfile(user: UserAccount) {
-  const { email: _email, password: _password, mustChangePassword: _mustChangePassword, ...profile } = user as UserAccount & { password?: string };
+  const { email: _email, password: _password, mustChangePassword: _mustChangePassword, ...profile } = user as UserAccount & { password?: string; mustChangePassword?: boolean };
   return clean(profile);
 }
 const reviewSignal = (data: Record<string, any>) => {
@@ -46,7 +67,7 @@ const noteSignal = (data: Record<string, any>) => ({
   title: data.title.includes('شكوى') ? 'شكوى' : data.title.includes('سلامة') ? 'سلامة' : '',
   employees: (data.employees || []).map((employee: { id: string }) => ({ id: employee.id, name: '' })),
 });
-export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews' | 'timeline' | 'branches' | 'reviewSignals' | 'noteSignals', session: CloudSession, scope: RecordScope | null = { all: true }) {
+export function useCloudList<T extends { id: string }>(name: 'profiles' | 'users' | 'reviews' | 'timeline' | 'branches' | 'reviewSignals' | 'noteSignals', session: CloudSession, scope: RecordScope | null = { all: true }) {
   const [rows, setRows] = useState<T[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,20 +94,29 @@ export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews'
     const constraints = filters.map(filter => where(filter.field, filter.op, filter.value));
     const ref = collection(db, APP_PATH, source);
     const sourceQuery = constraints.length ? query(ref, or(...constraints)) : query(ref);
-    return onSnapshot(sourceQuery, { includeMetadataChanges: true }, snapshot => {
+    let cached = readCache.get(queryKey);
+    if (!cached || cached.expires <= Date.now()) {
+      cached = { expires: Date.now() + 5 * 60_000, promise: boundedRead<QuerySnapshot>((next, error) => onSnapshot(sourceQuery, { includeMetadataChanges: true }, next, error)) };
+      readCache.set(queryKey, cached);
+      const entry = cached;
+      void cached.promise.catch(() => { if (readCache.get(queryKey) === entry) readCache.delete(queryKey); });
+    }
+    void cached.promise.then(snapshot => {
       if (epoch !== generation.current) return;
+      if (snapshot.metadata.fromCache) throw new Error('offline');
       let data = snapshot.docs.map(document => document.data() as T);
       if (name === 'users' && role !== 'admin') data = data.map(row => row.id === session.account!.id ? session.account as unknown as T : { email: '', ...row });
       latest.current = data; setRows(data);
-      // Never permit mutations against a partial/offline cache snapshot.
-      setReady(!snapshot.metadata.fromCache); setConfirmedQuery(queryKey); setError(null);
-    }, () => { if (epoch === generation.current) { setError('تعذر الاتصال بقاعدة البيانات أو لا تتوفر صلاحية الوصول'); setReady(false); } });
+      setReady(true); setConfirmedQuery(queryKey); setError(null);
+    }).catch(() => { readCache.delete(queryKey); if (epoch === generation.current) { setError('تعذر تحميل السجلات. تحققي من الاتصال ثم أغلقي التبويب وأعيدي فتحه.'); setReady(false); } });
+    return () => { if (generation.current === epoch) generation.current = epoch + 1; };
+
   }, [name, session.account, session.uid, scopeKey, queryKey, enabled]);
 
   const queryReady = enabled && ready && confirmedQuery === queryKey;
 
   const change = (action: React.SetStateAction<T[]>) => {
-    if (!queryReady || !session.account) { setError('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
+    if (name === 'profiles' || !queryReady || !session.account) { setError('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
     const before = latest.current;
     const after = typeof action === 'function' ? action(before) : action;
     const previous = new Map(before.map(row => [row.id, row]));
@@ -95,6 +125,7 @@ export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews'
     const removed = [...previous.values()].filter(row => !next.has(row.id));
     if (!changed.length && !removed.length) return;
     const writeSession = sessionKey;
+    const writeGeneration = generation.current;
     setPending(p => p + 1); setError(null);
     // Firebase's local latency compensation emits pending and server-confirmed snapshots.
     void (async () => {
@@ -144,6 +175,11 @@ export function useCloudList<T extends { id: string }>(name: 'users' | 'reviews'
         const batch = writeBatch(db);
         operations.slice(offset, offset + 100).forEach(operation => operation(batch));
         await batch.commit();
+      }
+      // A confirmed write invalidates snapshots; no background listener is needed.
+      readCache.clear();
+      if (writeSession === currentSession.current && generation.current === writeGeneration) {
+        latest.current = after; setRows(after);
       }
     })().catch(() => { if (writeSession === currentSession.current) setError('لم يُحفظ التعديل في Firebase. تحققي من الاتصال والصلاحيات وأعيدي المحاولة.'); })
       .finally(() => setPending(p => Math.max(0, p - 1)));

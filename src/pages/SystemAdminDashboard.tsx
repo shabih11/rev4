@@ -11,6 +11,7 @@ import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const [loadDetails, setLoadDetails] = useState(false);
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
@@ -53,8 +54,9 @@ export const SystemAdminDashboard: React.FC = () => {
   const [showMergeModal, setShowMergeModal] = useState(false);
   const needsAllRecords = showMergeModal || activeTab === 'windsor';
   useRecordScope({
-    reviews: needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
-    timeline: needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
+    users: activeTab === 'employees' || activeTab === 'stats' || activeTab === 'notes',
+    reviews: !(loadDetails || showMergeModal) ? undefined : needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
+    timeline: !(loadDetails || showMergeModal) ? undefined : needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
       : activeTab === 'shifts' || activeTab === 'stats' || activeTab === 'notes' ? { branches: [effectiveTimelineBranch] } : undefined,
   });
   const [primaryEmpId, setPrimaryEmpId] = useState('');
@@ -96,6 +98,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const handleUpdateStats = (id: string, type: 'totalReviews' | 'monthReviews' | 'positive' | 'negative' | 'complaints' | 'safety', val: number) => {
+    if (!recordsReady) { showToast('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
     const emp = users.find(u => u.id === id);
     if (!emp) return;
     
@@ -193,6 +196,7 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   const handleSubmitComplaint = () => {
+    if (!loadDetails || !recordsReady) { showToast('حملي السجلات أولًا قبل التسجيل'); return; }
     if (!complaintBranch || !complaintEmployee || !complaintText) {
       showToast('يرجى ملء جميع الحقول');
       return;
@@ -213,6 +217,7 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   const handleSubmitSafety = () => {
+    if (!loadDetails || !recordsReady) { showToast('حملي السجلات أولًا قبل التسجيل'); return; }
     if (!safetyBranch || !safetyEmployee || !safetyText) {
       showToast('يرجى ملء جميع الحقول');
       return;
@@ -350,6 +355,10 @@ export const SystemAdminDashboard: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 pb-28 md:pb-10">
+        <div className="p-3 text-center">
+          <button type="button" onClick={() => setLoadDetails(true)} disabled={loadDetails} className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm font-bold disabled:bg-gray-400">{loadDetails ? 'تم طلب السجلات' : 'تحميل السجلات عند الحاجة'}</button>
+          {!loadDetails && <p className="text-xs text-gray-500 mt-2">لم تُحمّل التفاصيل. اضغطي الزر لعرض السجلات أو تعديلها.</p>}
+        </div>
         {/* Mobile Header (hidden on md:) */}
         <header className="md:hidden bg-slate-800 text-white p-4 shadow-md sticky top-0 z-30">
           <div className="flex justify-between items-center mb-3">
@@ -1252,4 +1261,3 @@ export const SystemAdminDashboard: React.FC = () => {
     </div>
   );
 };
-

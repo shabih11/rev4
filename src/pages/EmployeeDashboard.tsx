@@ -11,11 +11,11 @@ import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  useRecordScope({ reviews: { employeeIds: [user?.id || '', user?.name || ''] }, timeline: { employeeIds: [user?.id || ''] } });
   const { addTimelineEvent, reviews, reviewSummaries, recordsReady, users, timeline } = useData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
+  useRecordScope({ reviews: activeTab === 'dashboard' && showReviews ? { employeeIds: [user?.id || ''] } : undefined, timeline: activeTab === 'dashboard' && (showShifts || showReviews) ? { employeeIds: [user?.id || ''] } : undefined });
 
   if (!user) return null;
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
@@ -279,4 +279,3 @@ export const EmployeeDashboard: React.FC = () => {
     </div>
   );
 };
-

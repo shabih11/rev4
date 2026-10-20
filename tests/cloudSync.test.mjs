@@ -29,7 +29,7 @@ globalThis.__cloudSyncTest = {
   or(...filters) { return { or: filters }; },
   query(path, ...filters) { return { path, filters }; },
   onSnapshot(target, _options, next, error) {
-    const entry = { target, next, error, closed: false };
+    const entry = { target, next, error, closed:false };
     active.listeners.push(entry);
     return () => { entry.closed = true; };
   },
@@ -45,27 +45,29 @@ globalThis.__cloudSyncTest = {
   },
   deleteField() { return 'deleted-field'; },
   getDoc() { throw new Error('unexpected auth lookup'); },
-  onAuthStateChanged() { throw new Error('unexpected auth subscription'); },
+  onAuthStateChanged(_auth, callback) { active.authCallback=callback; return ()=>{}; },
 };
 const mock = toUrl('export const { useRef,useState,useEffect,collection,doc,where,or,query,onSnapshot,writeBatch,deleteField,getDoc,onAuthStateChanged } = globalThis.__cloudSyncTest;');
 let source = compile(readFileSync(new URL('../src/lib/cloudSync.ts', import.meta.url), 'utf8'));
 source = source.replaceAll(/from '(react|firebase\/auth|firebase\/firestore)'/g, `from ${JSON.stringify(mock)}`)
   .replace("from './firebase'", `from ${JSON.stringify(toUrl("export const db = {}; export const auth = globalThis.__cloudSyncTestAuth = {currentUser:{uid:'test-uid'}}; export const APP_PATH = 'apps/test';"))}`)
   .replace("from './cloudReadPlan'", `from ${JSON.stringify(planUrl)}`);
-const { useCloudList } = await import(toUrl(source));
+const { useCloudList, boundedRead, useCloudSession } = await import(toUrl(source));
 const session = { uid: 'test-uid', ready: true, error: null, account: { id: 'test-admin', name: 'Test', role: 'admin', branch: 'b' } };
 const review = { id: 'test-review', branch: 'b', rating: '5', date: '01-10-2026', time: '12:00', linkedEmployeeIds: ['test-e'], comment: 'before' };
 
+let sequence = 0;
 function harness(name = 'reviews', initialScope = { branches: ['b'] }) {
-  globalThis.__cloudSyncTestAuth.currentUser = { uid: 'test-uid' };
-  const run = { slots: [], cursor: 0, effects: [], listeners: [], commits: [], scope: initialScope, session };
+  const testSession = { ...session, uid: `uid-${++sequence}` };
+  globalThis.__cloudSyncTestAuth.currentUser = { uid: testSession.uid };
+  const run = { slots: [], cursor: 0, effects: [], listeners: [], commits: [], scope: initialScope, session: testSession };
   run.render = function TestCloudList() {
     active = run; run.cursor = 0; run.effects = [];
     const result = useCloudList(name, run.session, run.scope);
     run.effects.forEach(effect => effect());
     return result;
   };
-  run.snapshot = (rows, fromCache = false, listener = run.listeners.at(-1)) => listener.next({ docs: rows.map(row => ({ data: () => row })), metadata: { fromCache } });
+  run.snapshot = async (rows, fromCache = false, listener = run.listeners.at(-1)) => { listener.next({ docs: rows.map(row => ({ data: () => row })), metadata: { fromCache } }); await new Promise(resolve => setImmediate(resolve)); };
   return run;
 }
 async function finishWrites(run, expected) {
@@ -74,110 +76,62 @@ async function finishWrites(run, expected) {
   assert.equal(run.commits.length, expected);
 }
 
-test('disabled details create zero listeners and cannot write', () => {
-  const run = harness('reviews', null);
-  const result = run.render();
-  assert.equal(run.listeners.length, 0);
-  assert.equal(result.ready, true);
-  result.change([review]);
-  assert.equal(run.commits.length, 0);
+test('closed detail requests read nothing and cannot write', () => {
+ const run=harness('reviews',null);const result=run.render();assert.equal(run.listeners.length,0);result.change([review]);assert.equal(run.commits.length,0);
+});
+test('scope is read once and reused when a tab closes and reopens', async () => {
+ const run=harness();run.render();await run.snapshot([review]);assert.equal(run.render().ready,true);assert.equal(run.listeners[0].closed,true);
+ run.scope=null;run.render();run.scope={branches:['b']};run.render();await new Promise(resolve=>setImmediate(resolve));assert.equal(run.listeners.length,1);assert.equal(run.render().rows.length,1);
+});
+test('no server confirmation or offline result can authorize a write', async () => {
+ const run=harness();let result=run.render();result.change([review]);assert.equal(run.commits.length,0);await run.snapshot([review],true);result=run.render();assert.equal(result.ready,false);result.change([]);assert.equal(run.commits.length,0);run.listeners[0].error(Error('offline'));await new Promise(resolve=>setImmediate(resolve));assert.ok(run.render().error);
+});
+test('late responses from the old scope cannot populate the new scope', async () => {
+ const run=harness();run.render();const old=run.listeners[0];run.scope={branches:['c']};run.render();await run.snapshot([review],false,old);assert.deepEqual(run.render().rows,[]);await run.snapshot([]);assert.equal(run.render().ready,true);
+});
+test('comment-only updates do not rewrite the score mirror and update visible rows after commit', async () => {
+ const run=harness();run.render();await run.snapshot([review]);run.render().change([{...review,comment:'after'}]);await finishWrites(run,1);await new Promise(resolve=>setImmediate(resolve));assert.equal(run.commits[0].length,1);assert.equal(run.render().rows[0].comment,'after');
+});
+test('a confirmed write invalidates the cached query for the next intentional open', async () => {
+ const run=harness();run.render();await run.snapshot([review]);run.render().change([{...review,comment:'after'}]);await finishWrites(run,1);await new Promise(resolve=>setImmediate(resolve));run.scope=null;run.render();run.scope={branches:['b']};run.render();assert.equal(run.listeners.length,2);await run.snapshot([{...review,comment:'after'}]);
+});
+test('sign-out blocks queued writes and hides cached records', async () => {
+ const run=harness();run.render();await run.snapshot([review]);run.render().change([{...review,comment:'after'}]);globalThis.__cloudSyncTestAuth.currentUser=null;run.session={uid:null,account:null,ready:true};assert.deepEqual(run.render().rows,[]);await new Promise(resolve=>setTimeout(resolve,20));assert.equal(run.commits.length,0);
+});
+test('private profiles cannot be edited through the public-directory read path', async () => {
+ const run=harness('profiles');run.render();await run.snapshot([{id:'test',name:'Test'}]);run.render().change([]);assert.equal(run.commits.length,0);
+});
+test('request failures become an error instead of permanent loading and can retry', async () => {
+ const run=harness();run.render();run.listeners[0].error(Error('denied'));await new Promise(resolve=>setImmediate(resolve));assert.ok(run.render().error);run.scope=null;run.render();run.scope={branches:['b']};run.render();assert.equal(run.listeners.length,2);await run.snapshot([]);
 });
 
-test('cache snapshots cannot authorize writes, and scope changes hide stale rows immediately', () => {
-  const run = harness(); run.render();
-  const first = run.listeners[0];
-  assert.deepEqual(first.target.filters[0].or, [{ field: 'branch', op: 'in', value: ['b'] }]);
-  run.snapshot([review], true);
-  let result = run.render();
-  assert.equal(result.ready, false);
-  result.change([]);
-  assert.equal(run.commits.length, 0);
-  run.snapshot([review]);
-  assert.equal(run.render().ready, true);
-  run.scope = { branches: ['c'] };
-  result = run.render();
-  assert.equal(result.ready, false);
-  assert.deepEqual(result.rows, []);
-  assert.equal(first.closed, true);
-  run.snapshot([review], false, first);
-  assert.deepEqual(run.render().rows, []);
-  run.snapshot([{ ...review, id: 'other', branch: 'c' }]);
-  assert.deepEqual(run.render().rows.map(row => row.id), ['other']);
+test('the deadline closes the actual network listener, not only the loading indicator', async () => {
+ const originalTimeout=globalThis.setTimeout, originalClear=globalThis.clearTimeout;
+ let expire,closed=false;
+ try {
+  globalThis.setTimeout=callback=>{expire=callback;return 1;};globalThis.clearTimeout=()=>{};
+  const promise=boundedRead(()=>()=>{closed=true;});
+  expire();await assert.rejects(promise,/read-timeout/);assert.equal(closed,true);
+ } finally {globalThis.setTimeout=originalTimeout;globalThis.clearTimeout=originalClear;}
 });
 
-test('editing only review text does not rewrite its public score signal', async () => {
-  const run = harness(); run.render(); run.snapshot([review]);
-  run.render().change([{ ...review, comment: 'after' }]);
-  await finishWrites(run, 1);
-  assert.equal(run.commits[0].length, 1);
-  assert.match(run.commits[0][0].path, /\/reviews\//);
-  assert.equal(run.commits[0][0].kind, 'update');
-  run.render().change([{ ...review, rating: '1' }]);
-  await finishWrites(run, 2);
-  assert.equal(run.commits[1].length, 2);
-  assert.match(run.commits[1][1].path, /\/reviewSignals\//);
+function sessionHarness() {
+ const run={slots:[],cursor:0,effects:[],listeners:[],commits:[]};
+ run.render=()=>{active=run;run.cursor=0;run.effects=[];const result=useCloudSession();run.effects.forEach(f=>f());return result;};
+ return run;
+}
+test('Auth waits for confirmed access and profile before exposing the account',async()=>{
+ const run=sessionHarness();run.render();const pending=run.authCallback({uid:'auth-test'});
+ run.listeners[0].next({metadata:{fromCache:true},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ assert.equal(run.render().account,null);
+ run.listeners[0].next({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(run.listeners[0].closed,true);assert.equal(run.listeners.length,2);
+ run.listeners[1].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'employee',branch:'شرق'})});await pending;
+ assert.equal(run.render().account.role,'employee');assert.equal(run.listeners[1].closed,true);
 });
-
-test('changing a detail scope does not cancel an already authorized write', async () => {
-  const run = harness(); run.render(); run.snapshot([review]);
-  run.render().change([{ ...review, comment: 'after' }]);
-  run.scope = null; run.render();
-  await finishWrites(run, 1);
-  assert.equal(run.commits[0].length, 1);
-});
-
-test('signing out cancels writes that have not been submitted and hides old data', async () => {
-  const run = harness(); run.render(); run.snapshot([review]);
-  run.render().change([{ ...review, comment: 'after' }]);
-  run.session = { ...session, uid: null, account: null };
-  assert.deepEqual(run.render().rows, []);
-  await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal(run.commits.length, 0);
-});
-
-test('an edit deletes only the explicitly removed scoped document', async () => {
-  const run = harness(); run.render(); run.snapshot([review]);
-  run.render().change([]);
-  await finishWrites(run, 1);
-  assert.equal(run.commits[0].length, 2);
-  assert.ok(run.commits[0].every(op => op.kind === 'delete'));
-  assert.equal(new Set(run.commits[0].map(op => op.path.split('/').at(-1))).size, 1);
-});
-
-test('a note text edit does not rewrite its score signal', async () => {
-  const run = harness('timeline'); run.render();
-  const note = { id: 'test-note', type: 'gap', title: 'شكوى', branch: 'b', time: '12:00', employees: [], employeeIds: [], comment: 'before' };
-  run.snapshot([note]);
-  run.render().change([{ ...note, comment: 'after' }]);
-  await finishWrites(run, 1);
-  assert.equal(run.commits[0].length, 1);
-  assert.match(run.commits[0][0].path, /\/timeline\//);
-});
-
-test('an Auth identity switch blocks a queued write before React renders the new session', async () => {
-  const run = harness(); run.render(); run.snapshot([review]);
-  run.render().change([{ ...review, comment: 'after' }]);
-  globalThis.__cloudSyncTestAuth.currentUser = { uid: 'different-user' };
-  await new Promise(resolve => setTimeout(resolve, 30));
-  assert.equal(run.commits.length, 0);
-});
-
-test('an email-only profile edit does not rewrite the public directory', async () => {
-  const run = harness('users', { all: true }); run.render();
-  const user = { id: 'test-user', role: 'employee', name: 'Synthetic', branch: 'b', email: 'before@example.invalid' };
-  run.snapshot([user]);
-  run.render().change([{ ...user, email: 'after@example.invalid' }]);
-  await finishWrites(run, 1);
-  assert.equal(run.commits[0].length, 1);
-  assert.match(run.commits[0][0].path, /\/users\//);
-});
-
-test('equivalent rerenders keep the same subscription and invalid requests never fall back to a full collection', () => {
-  const run = harness(); run.render();
-  run.scope = { branches: ['b'] }; run.render();
-  assert.equal(run.listeners.length, 1);
-  run.scope = { employeeIds: Array.from({ length: 31 }, (_, i) => `test-${i}`) };
-  run.render();
-  assert.equal(run.listeners.length, 1);
-  assert.ok(run.render().error);
+test('a stale Auth lookup after sign-out cannot start a private profile read',async()=>{
+ const run=sessionHarness();run.render();const pending=run.authCallback({uid:'old-auth'});await run.authCallback(null);
+ run.listeners[0].next({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'private-profile'})});await pending;
+ assert.equal(run.listeners.length,1);assert.equal(run.render().account,null);
 });

@@ -53,3 +53,8 @@ jobs:
           WINDSOR_DATE_FROM: ${{ inputs.date_from }}
           WINDSOR_DATE_TO: ${{ inputs.date_to }}
         run: node automation/windsor-sync.mjs
+      - name: Prepare daily display summary
+        if: always() && steps.auth.outcome == 'success'
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+        run: node automation/daily-read-model.mjs

@@ -1,3 +1,4 @@
+import { useDailyReadModel } from '../lib/dailyReadModel';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
@@ -72,6 +73,10 @@ interface DataContextType {
   resetReviewsToInjected: () => void;
   reviewSummaries: ReviewSummary[];
   recordsReady: boolean;
+  summaryReady: boolean;
+  requestBasicSummary: () => void;
+  summaryGeneratedAt: string;
+  employeeHours: Record<string, number>;
   currentAccount: UserAccount | null;
   authReady: boolean;
   syncStatus: string;
@@ -101,23 +106,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [session.uid]);
   const demands = Object.values(recordDemands).filter(entry => entry.uid === session.uid).map(entry => entry.demand);
-  // Background imports compare and relink all records, so they require a complete view.
   const reviewScope = combineRecordScopes(demands.map(demand => demand.reviews));
   const timelineScope = combineRecordScopes(demands.map(demand => demand.timeline));
-  const userCloud = useCloudList<UserAccount>('users', session);
+  const daily = useDailyReadModel(session);
+  const [legacyRequestUid, setLegacyRequestUid] = useState<string | null>(null);
+  const legacyRequested = Boolean(session.uid && legacyRequestUid === session.uid);
+  // Explicit temporary read path while the server's daily summary is not prepared.
+  const legacyScope = legacyRequested && !daily.data ? { all: true } : null;
+  const legacyDirectory = useCloudList<UserAccount>('profiles', session, legacyScope);
+  const legacyReviews = useCloudList<ReviewSummary>('reviewSignals', session, legacyScope);
+  const legacyNotes = useCloudList<TimelineEvent>('noteSignals', session, legacyScope);
+  const legacyReady = legacyRequested && legacyDirectory.ready && legacyReviews.ready && legacyNotes.ready;
+  const userCloud = useCloudList<UserAccount>('users', session, demands.some(d => d.users) ? { all: true } : null);
   const reviewCloud = useCloudList<CustomerReview>('reviews', session, reviewScope);
-  const reviewSignals = useCloudList<ReviewSummary>('reviewSignals', session);
-  const noteSignals = useCloudList<TimelineEvent>('noteSignals', session);
+  const reviewSignals = { rows: daily.data?.reviews || legacyReviews.rows };
+  const noteSignals = { rows: daily.data?.notes || legacyNotes.rows };
   const timelineCloud = useCloudList<TimelineEvent>('timeline', session, timelineScope);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
   const branchCloud = useCloudList<BranchRecord>('branches', session);
-  const users = userCloud.rows, setUsers = userCloud.change;
+  const users = userCloud.rows.length ? userCloud.rows : (daily.data?.directory || legacyDirectory.rows).map(u => u.id === session.account?.id ? session.account : { ...u, email: '' });
+  const setUsers = userCloud.change;
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
   const timeline = timelineCloud.rows, setTimeline = timelineCloud.change;
   const branchSettings = React.useMemo(() => Object.fromEntries(branchCloud.rows.map(({ id, name: _name, ...settings }) => [id, settings])), [branchCloud.rows]);
   const setBranchSettings = (settings: typeof branchSettings) => branchCloud.change(Object.entries(settings).map(([id, value]) => ({ id, name: id, ...value })));
-  const clouds = [userCloud, reviewCloud, timelineCloud, branchCloud, reviewSignals, noteSignals];
-  const syncError = session.error || clouds.find(cloud => cloud.error)?.error || null;
+  const clouds = [userCloud, reviewCloud, timelineCloud, branchCloud, legacyDirectory, legacyReviews, legacyNotes];
+  const syncError = session.error || (!legacyReady ? daily.error : null) || clouds.find(cloud => cloud.error)?.error || null;
   const syncStatus = !session.account ? 'تسجيل الدخول مطلوب' : syncError ? 'تعذرت المزامنة' : clouds.some(cloud => cloud.pending > 0) ? 'جارٍ حفظ التعديلات…' : clouds.every(cloud => cloud.ready) ? 'متصل بـ Firebase' : 'جارٍ تحميل البيانات…';
   const [windsorBranchMapping, setWindsorBranchMappingState] = useState<Record<string, string>>(() => {
     try { return JSON.parse(localStorage.getItem('app_windsor_branch_mapping') || '{}'); } catch { return {}; }
@@ -751,7 +765,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
-      reviewSummaries: reviewSignals.rows, recordsReady: userCloud.ready && reviewSignals.ready && noteSignals.ready && reviewCloud.ready && timelineCloud.ready,
+      reviewSummaries: reviewSignals.rows, recordsReady: (Boolean(reviewScope || timelineScope) || demands.some(d => d.users)) && userCloud.ready && reviewCloud.ready && timelineCloud.ready,
+      summaryReady: Boolean(daily.data) || legacyReady, requestBasicSummary: () => setLegacyRequestUid(session.uid), summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: daily.data?.hours || {},
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
     }}>
       {children}

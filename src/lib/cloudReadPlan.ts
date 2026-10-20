@@ -5,6 +5,7 @@ export interface RecordScope {
 }
 
 export interface RecordDemand {
+  users?: boolean;
   reviews?: RecordScope;
   timeline?: RecordScope;
 }
