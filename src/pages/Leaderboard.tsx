@@ -8,8 +8,8 @@ import 'swiper/css';
 import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
-import { useRecordScope } from '../hooks/useRecordScope';
-import { formatDateTime, isWithinLastDays, formatDate} from '../lib/formatDate';
+import { ActivityChart } from '../components/ActivityChart';
+import { isWithinLastDays, formatDate} from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
@@ -21,25 +21,8 @@ type SlideData =
   | { type: 'active_employee'; employee: UserAccount; count: number }
   | { type: 'praised_employee'; employee: UserAccount; count: number; texts: string[] };
 
-const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: string) => {
-  if (!branchStartStr || !dateStr || !timeStr) return dateStr;
-  const bTime = parseInt(branchStartStr.replace(':', ''), 10);
-  const rTime = parseInt(timeStr.replace(':', ''), 10);
-  
-  if (rTime < bTime && rTime < 1200) {
-    const [d, m, y] = dateStr.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    dateObj.setDate(dateObj.getDate() - 1);
-    const pd = String(dateObj.getDate()).padStart(2, '0');
-    const pm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const py = dateObj.getFullYear();
-    return `${pd}-${pm}-${py}`;
-  }
-  return dateStr;
-};
-
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, summaryReady, summaryGeneratedAt, syncError, currentAccount } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, summaryReady, summaryGeneratedAt, syncError } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -48,7 +31,6 @@ export const Leaderboard: React.FC = () => {
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
-  const [branchModalSelectedDate, setBranchModalSelectedDate] = useState<string | null>(null);
   
   const allEmployeesSorted = useMemo(() => {
     return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
@@ -176,11 +158,6 @@ export const Leaderboard: React.FC = () => {
     : activeSlide?.type === 'partnership' ? activeSlide.branch 
     : activeSlide?.type === 'active_branch' ? activeSlide.branch 
     : undefined);
-  useRecordScope(showBranchModal && modalBranchName && branchModalSelectedDate ? {
-    reviews: { branches: [modalBranchName] },
-    timeline: branchModalSelectedDate ? { branches: [modalBranchName] } : undefined,
-  } : {});
-
   const swiperRef = useRef<any>(null);
   const hasInteracted = useRef(false);
   const handleTouchStart = useCallback(() => {
@@ -461,11 +438,12 @@ export const Leaderboard: React.FC = () => {
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
               className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Users size={24} /> جميع الموظفات</h3>
                 <button 
                   onClick={() => { setShowAllEmployeesModal(false); handleModalClose(); }}
-                  className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                  aria-label="إغلاق نشاط الفرع"
+                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
                 >
                   <X size={20} />
                 </button>
@@ -509,11 +487,12 @@ export const Leaderboard: React.FC = () => {
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
               className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Building2 size={24} /> الفروع</h3>
                 <button 
                   onClick={() => { setShowAllBranchesModal(false); handleModalClose(); }}
-                  className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                  aria-label="إغلاق نشاط الفرع"
+                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
                 >
                   <X size={20} />
                 </button>
@@ -541,7 +520,6 @@ export const Leaderboard: React.FC = () => {
                       onClick={() => {
                         setShowAllBranchesModal(false);
                         setManualBranchName(branchName);
-                        setBranchModalSelectedDate(null);
                         setShowBranchModal(true);
                       }}
                     >
@@ -582,29 +560,8 @@ export const Leaderboard: React.FC = () => {
       {/* Branch Modal (from slide) */}
       {(() => {
         if (!modalBranchName) return null;
-        const branchStart = branchSettings[modalBranchName]?.start || '16:00';
-        
-        const branchReviews = reviews.filter(r => r.branch === modalBranchName && isInCurrentMonth(r.date)).map(r => ({
-           ...r,
-           businessDate: getBusinessDate(r.date, r.time, branchStart)
-        }));
-        
-        const detailedBranchReviews = privateReviews.filter(r => r.branch === modalBranchName).map(r => ({ ...r, businessDate: getBusinessDate(r.date, r.time, branchStart) }));
-        const reviewCountsByDate: Record<string, number> = {};
-        branchReviews.forEach(r => {
-           reviewCountsByDate[r.businessDate] = (reviewCountsByDate[r.businessDate] || 0) + 1;
-        });
-        const maxDailyReviews = Math.max(0, ...Object.values(reviewCountsByDate));
-
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
-        
-        const calendarCells = [];
-        for(let i = 0; i < firstDayOfWeek; i++) calendarCells.push(null);
-        for(let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
+        const branchActivityReviews = reviewSummaries.filter(review => review.branch === modalBranchName);
+        const branchReviews = branchActivityReviews.filter(review => isInCurrentMonth(review.date));
 
         let shiningStar = { name: 'لا يوجد', count: 0 };
         let bestPartnership = { names: 'لا يوجد', count: 0 };
@@ -654,17 +611,18 @@ export const Leaderboard: React.FC = () => {
                 <motion.div 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  onClick={() => { setShowBranchModal(false); setManualBranchName(null); setBranchModalSelectedDate(null); handleModalClose(); }}
+                  onClick={() => { setShowBranchModal(false); setManualBranchName(null); handleModalClose(); }}
                 />
                 <motion.div 
                   initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-                  className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
+                  className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
-                  <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+                  <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
                     <h3 className="text-xl font-bold">{modalBranchName}</h3>
                     <button 
-                      onClick={() => { setShowBranchModal(false); setManualBranchName(null); setBranchModalSelectedDate(null); handleModalClose(); }}
-                      className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                      onClick={() => { setShowBranchModal(false); setManualBranchName(null); handleModalClose(); }}
+                      aria-label="إغلاق نشاط الفرع"
+                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
                     >
                       <X size={20} />
                     </button>
@@ -684,75 +642,9 @@ export const Leaderboard: React.FC = () => {
                      </div>
                   </div>
 
-                  {/* Visual Data (Calendar Heatmap) */}
-                  <div className="p-4 bg-gray-50 border-b border-gray-100 shrink-0">
-                     <p className="text-sm font-bold text-gray-700 mb-3">تقييمات الشهر الحالي (الخريطة الحرارية):</p>
-                     
-                     <div className="max-w-[280px] mx-auto">
-                       <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[10px] text-gray-400 font-bold">
-                         <div>أحد</div><div>إثنين</div><div>ثلاثاء</div><div>أربعاء</div><div>خميس</div><div>جمعة</div><div>سبت</div>
-                       </div>
-                       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-                         {calendarCells.map((day, idx) => {
-                           if (!day) return <div key={`empty-${idx}`} className="w-full aspect-square"></div>;
-                           
-                           const dateStr = `${String(day).padStart(2, '0')}-${String(currentMonth + 1).padStart(2, '0')}-${currentYear}`;
-                           const count = reviewCountsByDate[dateStr] || 0;
-                           
-                           // Calculate shade of blue
-                           let bgClass = "bg-transparent text-gray-400";
-                           if (count > 0) {
-                             const ratio = count / (maxDailyReviews || 1);
-                             if (ratio > 0.8) bgClass = "bg-blue-700 text-white shadow-sm";
-                             else if (ratio > 0.5) bgClass = "bg-blue-500 text-white shadow-sm";
-                             else if (ratio > 0.2) bgClass = "bg-blue-400 text-white shadow-sm";
-                             else bgClass = "bg-blue-200 text-blue-900 shadow-sm";
-                           }
-
-                           const isSelected = branchModalSelectedDate === dateStr;
-
-                           return (
-                             <button 
-                               key={day}
-                               onClick={() => setBranchModalSelectedDate(isSelected ? null : dateStr)}
-                               className={`w-full aspect-square flex items-center justify-center rounded-md transition-all ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-blue-600 scale-105 shadow-md z-10 relative' : 'hover:opacity-80'}`}
-                             >
-                               <span className="text-[10px] font-bold">{day}</span>
-                             </button>
-                           );
-                         })}
-                       </div>
-                       <div className="mt-4 flex justify-between items-center text-[9px] text-gray-400 font-bold px-2">
-                         <span>أقل تفاعلاً</span>
-                         <div className="flex-1 mx-3 h-1.5 bg-gradient-to-l from-blue-700 via-blue-400 to-transparent border border-gray-100 rounded-full"></div>
-                         <span>ذروة التفاعل</span>
-                       </div>
-                     </div>
+                  <div className="p-4 bg-teal-50/50 border-b border-teal-100 shrink-0">
+                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" />
                   </div>
-
-                  {branchModalSelectedDate && (
-                    <div className="bg-blue-50 p-4 border-b border-blue-100 shadow-inner shrink-0">
-                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {formatDate(branchModalSelectedDate)}:</p>
-                       <div className="flex flex-wrap gap-2">
-                         {(() => {
-                           if (!recordsReady) return <p role={syncError ? 'alert' : 'status'} className="text-xs text-gray-500">{syncError || 'جارٍ تحميل تفاصيل اليوم…'}</p>;
-                           const dayShifts = timeline.filter(t => t.branch === modalBranchName && t.type === 'shift' && t.date === branchModalSelectedDate);
-                           const empIds = new Set<string>();
-                           dayShifts.forEach(s => s.employees?.forEach(e => empIds.add(e.id)));
-                           const emps = users.filter(u => empIds.has(u.id));
-                           
-                           if (emps.length === 0) return <p className="text-xs text-gray-500">{currentAccount?.role === 'admin' || (currentAccount?.role === 'manager' && currentAccount.branch === modalBranchName) ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات متاحة ضمن صلاحيات حسابك لهذا اليوم.'}</p>;
-                           
-                           return emps.map(emp => (
-                             <div key={emp.id} className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-blue-100 text-xs text-blue-700 font-bold shadow-sm">
-                               <img src={emp.imageUrl} alt={emp.name} className="w-5 h-5 rounded-full object-cover object-top" />
-                               {emp.name}
-                             </div>
-                           ));
-                         })()}
-                       </div>
-                    </div>
-                  )}
 
                   <div className="bg-white p-4 border-b border-blue-100 grid grid-cols-3 gap-2 text-center shrink-0">
                     <div className="bg-gray-50 rounded-xl p-2 shadow-sm border border-blue-100 flex flex-col justify-center">
@@ -771,30 +663,6 @@ export const Leaderboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 overflow-y-auto flex-1 min-h-0 space-y-3">
-                    {(branchModalSelectedDate 
-                      ? (recordsReady ? detailedBranchReviews : []).filter(r => r.businessDate === branchModalSelectedDate)
-                      : branchReviews
-                    ).map(r => (
-                      <div key={r.id} className="bg-white p-4 rounded-xl border shadow-sm relative">
-                        <div className="flex justify-between items-start">
-                          <div className="flex text-yellow-400 mb-2">★★★★★</div>
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
-                            {formatDateTime(r.date, r.time)}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : `تقييم ${r.rating} نجوم في فرع ${r.branch}، مرتبط بـ ${r.linkedEmployeeIds.length} من الموظفات.`)}</p>
-                        <p className="text-xs text-green-700 font-bold mt-2">
-                          {r.linkedEmployeeIds && r.linkedEmployeeIds.length > 0 
-                            ? `الموظفات: ${r.linkedEmployeeIds.map(id => users.find(u => u.id === id)?.name).join('، ')}`
-                            : 'غير مرتبط'}
-                        </p>
-                      </div>
-                    ))}
-                    {branchReviews.length === 0 && (
-                      <p className="text-center text-gray-500 py-10">لا توجد تقييمات لهذا الفرع.</p>
-                    )}
-                  </div>
                 </motion.div>
               </div>
             )}
