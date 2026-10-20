@@ -124,7 +124,9 @@ test('Auth waits for confirmed access and profile before exposing the account',a
  const run=sessionHarness();run.render();const pending=run.authCallback({uid:'auth-test'});
  run.listeners[0].next({metadata:{fromCache:true},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
  assert.equal(run.render().account,null);
- run.listeners[0].next({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:true},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ assert.equal(run.listeners.length,1);assert.equal(run.render().account,null);
+ run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
  await new Promise(resolve=>setImmediate(resolve));
  assert.equal(run.listeners[0].closed,true);assert.equal(run.listeners.length,2);
  run.listeners[1].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'employee',branch:'شرق'})});await pending;

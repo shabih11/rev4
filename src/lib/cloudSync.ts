@@ -7,7 +7,7 @@ import type { UserAccount } from './mockData';
 import { recordFilters, type RecordScope } from './cloudReadPlan';
 
 // Each network read closes its listener on confirmation, error, or deadline.
-export function boundedRead<T extends { metadata: { fromCache: boolean } }>(listen: (next: (value: T) => void, error: (reason: unknown) => void) => () => void): Promise<T> {
+export function boundedRead<T extends { metadata: { fromCache: boolean; hasPendingWrites?: boolean } }>(listen: (next: (value: T) => void, error: (reason: unknown) => void) => () => void): Promise<T> {
   return new Promise((resolve, reject) => {
     let stop: (() => void) | undefined;
     let finished = false;
@@ -18,7 +18,7 @@ export function boundedRead<T extends { metadata: { fromCache: boolean } }>(list
     };
     const timer = setTimeout(() => finish(undefined, new Error('read-timeout')), 15000);
     try {
-      stop = listen(value => { if (!value.metadata.fromCache) finish(value); }, error => finish(undefined, error));
+      stop = listen(value => { if (!value.metadata.fromCache && !value.metadata.hasPendingWrites) finish(value); }, error => finish(undefined, error));
       if (finished) stop();
     } catch (error) { finish(undefined, error); }
   });
