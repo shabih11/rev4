@@ -117,7 +117,7 @@ test('the deadline closes the actual network listener, not only the loading indi
 
 function sessionHarness() {
  const run={slots:[],cursor:0,effects:[],listeners:[],commits:[]};
- run.render=()=>{active=run;run.cursor=0;run.effects=[];const result=useCloudSession();run.effects.forEach(f=>f());return result;};
+ run.render=function SessionRender(){active=run;run.cursor=0;run.effects=[];const result=useCloudSession();run.effects.forEach(f=>f());return result;};
  return run;
 }
 test('Auth waits for confirmed access and profile before exposing the account',async()=>{
