@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
-import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, RefreshCw, Globe, Link, GitMerge } from 'lucide-react';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, Globe, Link, GitMerge } from 'lucide-react';
 import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
 import employeeImg from '../assets/employee.png';
 import { formatDateTime, formatDate, formatTime, shiftName } from '../lib/formatDate';
@@ -11,18 +11,15 @@ import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [loadDetails, setLoadDetails] = useState(false);
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
-  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews } = useData();
+  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2 } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
   const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
   const [tempWindsorUrl, setTempWindsorUrl] = useState(windsorApiUrl);
   const [tempWindsorUrl2, setTempWindsorUrl2] = useState(windsorApiUrl2);
-  const [isFetchingWindsor, setIsFetchingWindsor] = useState(false);
-  const [windsorStatusMsg, setWindsorStatusMsg] = useState<{ text: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [copiedSchema, setCopiedSchema] = useState(false);
 
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
@@ -52,11 +49,11 @@ export const SystemAdminDashboard: React.FC = () => {
 
   // Merge Employees State
   const [showMergeModal, setShowMergeModal] = useState(false);
-  const needsAllRecords = showMergeModal || activeTab === 'windsor';
+  const needsAllRecords = showMergeModal;
   useRecordScope({
     users: activeTab === 'employees' || activeTab === 'stats' || activeTab === 'notes',
-    reviews: !(loadDetails || showMergeModal) ? undefined : needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
-    timeline: !(loadDetails || showMergeModal) ? undefined : needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
+    reviews: needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
+    timeline: needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
       : activeTab === 'shifts' || activeTab === 'stats' || activeTab === 'notes' ? { branches: [effectiveTimelineBranch] } : undefined,
   });
   const [primaryEmpId, setPrimaryEmpId] = useState('');
@@ -196,7 +193,7 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   const handleSubmitComplaint = () => {
-    if (!loadDetails || !recordsReady) { showToast('حملي السجلات أولًا قبل التسجيل'); return; }
+    if (!recordsReady) { showToast('انتظري اكتمال المزامنة التلقائية قبل التسجيل'); return; }
     if (!complaintBranch || !complaintEmployee || !complaintText) {
       showToast('يرجى ملء جميع الحقول');
       return;
@@ -217,7 +214,7 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   const handleSubmitSafety = () => {
-    if (!loadDetails || !recordsReady) { showToast('حملي السجلات أولًا قبل التسجيل'); return; }
+    if (!recordsReady) { showToast('انتظري اكتمال المزامنة التلقائية قبل التسجيل'); return; }
     if (!safetyBranch || !safetyEmployee || !safetyText) {
       showToast('يرجى ملء جميع الحقول');
       return;
@@ -356,8 +353,6 @@ export const SystemAdminDashboard: React.FC = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 pb-28 md:pb-10">
         <div className="p-3 text-center">
-          <button type="button" onClick={() => setLoadDetails(true)} disabled={loadDetails} className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm font-bold disabled:bg-gray-400">{loadDetails ? 'تم طلب السجلات' : 'تحميل السجلات عند الحاجة'}</button>
-          {!loadDetails && <p className="text-xs text-gray-500 mt-2">لم تُحمّل التفاصيل. اضغطي الزر لعرض السجلات أو تعديلها.</p>}
         </div>
         {/* Mobile Header (hidden on md:) */}
         <header className="md:hidden bg-slate-800 text-white p-4 shadow-md sticky top-0 z-30">
@@ -1079,24 +1074,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </p>
                   </div>
 
-                  <button
-                    onClick={async () => {
-                      setIsFetchingWindsor(true);
-                      setWindsorStatusMsg(null);
-                      const res = await fetchAndProcessWindsorReviews();
-                      setIsFetchingWindsor(false);
-                      if (res.success) {
-                        setWindsorStatusMsg({ text: res.count > 0 ? `تم جلب وحقن ${res.count} تقييمات جديدة بنجاح!` : 'لا توجد تقييمات جديدة في Windsor.ai', type: 'success' });
-                      } else {
-                        setWindsorStatusMsg({ text: res.error || 'حدث خطأ أثناء الجلب', type: 'error' });
-                      }
-                    }}
-                    disabled={isFetchingWindsor}
-                    className="bg-amber-400 hover:bg-amber-300 text-gray-900 font-extrabold px-6 py-3.5 rounded-xl shadow-md transition duration-200 flex items-center gap-2 disabled:opacity-50 shrink-0 cursor-pointer"
-                  >
-                    <RefreshCw size={20} className={isFetchingWindsor ? 'animate-spin' : ''} />
-                    {isFetchingWindsor ? 'جاري الاستدعاء...' : 'جلب التقييمات من Windsor.ai الآن'}
-                  </button>
+                  <p className="text-sm text-purple-100">تصل نتائج المزامنة اليومية تلقائيًا.</p>
                 </div>
               </div>
 
@@ -1111,17 +1089,6 @@ export const SystemAdminDashboard: React.FC = () => {
                   </tbody></table>
                   <p className="text-xs text-gray-600">حُفظت في بيانات التطبيق المحلية. التقييمات دون ربط تبقى محفوظة للمراجعة ولا تُنسب إلى موظفات افتراضيًا.</p>
                 </section>
-              )}
-
-              {/* Status Message Alert */}
-              {windsorStatusMsg && (
-                <div className={`p-4 rounded-xl font-bold flex items-center justify-between shadow-sm ${windsorStatusMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                  <div className="flex items-center gap-2">
-                    {windsorStatusMsg.type === 'success' ? <CheckCircle2 size={20} className="text-emerald-600" /> : <AlertOctagon size={20} className="text-red-600" />}
-                    <span>{windsorStatusMsg.text}</span>
-                  </div>
-                  <button onClick={() => setWindsorStatusMsg(null)} className="text-xs opacity-60 hover:opacity-100">إغلاق</button>
-                </div>
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1185,8 +1152,8 @@ export const SystemAdminDashboard: React.FC = () => {
 
                   <div className="pt-2 border-t border-gray-100">
                     <h4 className="text-sm font-bold text-gray-900">المزامنة المركزية اليومية</h4>
-                    <p className="text-xs text-gray-500">تُشغّل من GitHub Actions بعد إعداد الاتصال الآمن. يقرأ التطبيق التقييمات المحفوظة في Firestore. الاستيراد اليدوي متاح عند الحاجة.</p>
-                    <a className="text-sm text-blue-600" href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer">حالة المزامنة وتشغيلها يدويًا</a>
+                    <p className="text-xs text-gray-500">تُشغّل من GitHub Actions بعد إعداد الاتصال الآمن. يقرأ التطبيق التقييمات المحفوظة في Firestore. تصل تحديثات الملخص إلى الواجهة تلقائيًا.</p>
+                    <a className="text-sm text-blue-600" href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer">حالة المزامنة اليومية</a>
                   </div>
                 </div>
 
@@ -1224,7 +1191,7 @@ export const SystemAdminDashboard: React.FC = () => {
                   <div className="text-xs text-gray-600 space-y-1.5 pt-1">
                     <p className="font-bold text-gray-800">💡 الحقول المدعومة تلقائياً:</p>
                     <p className="font-mono break-all" dir="ltr">{WINDSOR_REVIEW_FIELDS}</p>
-                    <p>يُحوّل وقت التقييم إلى توقيت السعودية. المزامنة تعمل كل 10 دقائق أثناء فتح التطبيق.</p>
+                    <p>يُحوّل وقت التقييم إلى توقيت السعودية. المزامنة المركزية اليومية تعمل من GitHub Actions؛ لا تعتمد على بقاء التطبيق مفتوحًا.</p>
                     <a className="text-purple-700 underline" href="https://windsor.ai/data-field/google_my_business/" target="_blank" rel="noreferrer">دليل حقول Windsor.ai</a>
 
                   </div>

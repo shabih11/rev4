@@ -39,7 +39,7 @@ const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: strin
 };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, summaryReady, summaryGeneratedAt, syncError, requestBasicSummary, currentAccount } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, summaryReady, summaryGeneratedAt, syncError, currentAccount } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -195,8 +195,7 @@ export const Leaderboard: React.FC = () => {
 
   if (!summaryReady || slidesData.length === 0) return <div className="p-8 text-center space-y-4">
     <p role={syncError ? 'alert' : 'status'}>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>
-    <button onClick={requestBasicSummary} className="rounded-xl bg-blue-600 text-white px-4 py-2">تحميل البيانات الأساسية عند الطلب</button>
-    <p className="text-xs text-gray-500">خيار مؤقت إذا لم يُجهز الملخص اليومي بعد. لا تُحمّل التفاصيل تلقائيًا.</p>
+    <p className="text-xs text-gray-500">تُحمّل البيانات تلقائيًا وتُحفظ على هذا الجهاز.</p>
   </div>;
 
   return (

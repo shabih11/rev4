@@ -81,11 +81,10 @@ const WEEK_DAYS_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', '�
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [loadDetails, setLoadDetails] = useState(false);
   const { recordsReady, users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
 
   const [activeTab, setActiveTab] = useState<'shifts' | 'profile'>('shifts');
-  useRecordScope(loadDetails && activeTab === 'shifts' ? { timeline: { branches: [user?.branch || ''] } } : {});
+  useRecordScope(activeTab === 'shifts' ? { reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } } : {});
 
   // Month state for heatmap
   const today = useMemo(() => new Date(), []);
@@ -361,8 +360,6 @@ export const AdminDashboard: React.FC = () => {
       {/* Main Container */}
       <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
         <div className="p-3 text-center">
-          <button type="button" onClick={() => setLoadDetails(true)} disabled={loadDetails} className="rounded-xl bg-blue-600 text-white px-4 py-2 text-sm font-bold disabled:bg-gray-400">{loadDetails ? 'تم طلب السجلات' : 'تحميل السجلات عند الحاجة'}</button>
-          {!loadDetails && <p className="text-xs text-gray-500 mt-2">لم تُحمّل التفاصيل. اضغطي الزر لعرض السجلات أو تعديلها.</p>}
         </div>
         {activeTab === 'shifts' && (
           <div className="space-y-6">

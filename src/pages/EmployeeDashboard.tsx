@@ -16,8 +16,7 @@ export const EmployeeDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
-  const [checkToday, setCheckToday] = useState(false);
-  useRecordScope({ reviews: activeTab === 'dashboard' && showReviews ? { employeeIds: [user?.id || ''] } : undefined, timeline: activeTab === 'dashboard' && (showShifts || showReviews || checkToday) ? { employeeIds: [user?.id || ''] } : undefined });
+  useRecordScope({ reviews: activeTab === 'dashboard' && showReviews ? { employeeIds: [user?.id || ''] } : undefined, timeline: activeTab === 'dashboard' ? { employeeIds: [user?.id || ''] } : undefined });
 
   if (!user) return null;
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
@@ -182,24 +181,23 @@ export const EmployeeDashboard: React.FC = () => {
       <div className="px-6 mb-8">
         <div className="bg-white rounded-3xl p-6 shadow-lg border border-blue-50">
           <h3 className="font-bold text-xl mb-4 text-gray-800">شفت اليوم</h3>
-          <button onClick={() => setCheckToday(true)} disabled={checkToday} className="mb-3 rounded-xl bg-blue-600 text-white px-4 py-2 text-sm disabled:bg-gray-400">التحقق من شفت اليوم عند الطلب</button>
           
           <div className="bg-blue-50 p-4 rounded-xl flex justify-between items-center mb-4">
             <div>
-              <p className="text-blue-800 font-bold text-lg">{!checkToday ? 'لم يُطلب التحقق بعد' : syncError ? 'تعذر التحقق من الشفت' : !recordsReady ? 'جارٍ التحقق…' : todayShifts.length ? `${shiftName(todayShifts[0].time)}: ${formatTime(todayShifts[0].time)} إلى ${formatTime(todayShifts[0].endTime) || 'غير محدد'}` : 'لا يوجد شفت مسجل اليوم'}</p>
-              <p className="text-blue-600 text-sm">{!checkToday || !detailsReady ? 'حملي بيانات الشفت أولًا' : todayShifts.length ? 'الشفت مسجل في النظام.' : 'يمكنك تقديم اعتراض إذا كان هناك شفت مفقود.'}</p>
+              <p className="text-blue-800 font-bold text-lg">{syncError ? 'تعذر التحقق من الشفت' : !recordsReady ? 'جارٍ التحقق…' : todayShifts.length ? `${shiftName(todayShifts[0].time)}: ${formatTime(todayShifts[0].time)} إلى ${formatTime(todayShifts[0].endTime) || 'غير محدد'}` : 'لا يوجد شفت مسجل اليوم'}</p>
+              <p className="text-blue-600 text-sm">{!detailsReady ? 'تتم مزامنة بيانات الشفت تلقائيًا' : todayShifts.length ? 'الشفت مسجل في النظام.' : 'يمكنك تقديم اعتراض إذا كان هناك شفت مفقود.'}</p>
             </div>
             <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-sm">
-              {!checkToday || !detailsReady ? 'غير متحقق' : todayShifts.length ? 'مسجل' : 'غير مسجل'}
+              {!detailsReady ? 'غير متحقق' : todayShifts.length ? 'مسجل' : 'غير مسجل'}
             </div>
           </div>
 
           <div className="border-t pt-4">
             <p className="text-gray-500 text-sm mb-3">هل نسيت مديرة الفرع تسجيل الشفت الخاص بك؟</p>
             <button
-              disabled={!checkToday || !detailsReady}
+              disabled={!detailsReady}
               onClick={() => {
-                if (!checkToday || !detailsReady) return;
+                if (!detailsReady) return;
                 addTimelineEvent({
                   branch: user.branch,
                   type: 'gap',

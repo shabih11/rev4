@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import ts from 'typescript';
 
@@ -33,6 +34,20 @@ globalThis.__cloudSyncTest = {
     active.listeners.push(entry);
     return () => { entry.closed = true; };
   },
+  async runTransaction(_db, callback) {
+    const run = active, ops = [];
+    const transaction = {
+      async get(path) {
+        const row = (run.serverRows || []).find(item => createHash('sha256').update(item.id).digest('hex') === path.split('/').at(-1));
+        return { exists: () => Boolean(row), data: () => row };
+      },
+      set(path,value) { ops.push({kind:'set',path,value}); },
+      update(path,value) { ops.push({kind:'update',path,value}); },
+      delete(path) { ops.push({kind:'delete',path}); },
+    };
+    await callback(transaction);
+    run.commits.push(ops);
+  },
   writeBatch() {
     const run = active;
     const ops = [];
@@ -47,11 +62,12 @@ globalThis.__cloudSyncTest = {
   getDoc() { throw new Error('unexpected auth lookup'); },
   onAuthStateChanged(_auth, callback) { active.authCallback=callback; return ()=>{}; },
 };
-const mock = toUrl('export const { useRef,useState,useEffect,collection,doc,where,or,query,onSnapshot,writeBatch,deleteField,getDoc,onAuthStateChanged } = globalThis.__cloudSyncTest;');
+const mock = toUrl('export const { useRef,useState,useEffect,collection,doc,where,or,query,onSnapshot,writeBatch,runTransaction,deleteField,getDoc,onAuthStateChanged } = globalThis.__cloudSyncTest;');
 let source = compile(readFileSync(new URL('../src/lib/cloudSync.ts', import.meta.url), 'utf8'));
 source = source.replaceAll(/from '(react|firebase\/auth|firebase\/firestore)'/g, `from ${JSON.stringify(mock)}`)
   .replace("from './firebase'", `from ${JSON.stringify(toUrl("export const db = {}; export const auth = globalThis.__cloudSyncTestAuth = {currentUser:{uid:'test-uid'}}; export const APP_PATH = 'apps/test';"))}`)
-  .replace("from './cloudReadPlan'", `from ${JSON.stringify(planUrl)}`);
+  .replace("from './cloudReadPlan'", `from ${JSON.stringify(planUrl)}`)
+  .replace("from './browserReadCache'", `from ${JSON.stringify(toUrl(compile(readFileSync(new URL('../src/lib/browserReadCache.ts', import.meta.url), 'utf8'))))}`);
 const { useCloudList, boundedRead, useCloudSession } = await import(toUrl(source));
 const session = { uid: 'test-uid', ready: true, error: null, account: { id: 'test-admin', name: 'Test', role: 'admin', branch: 'b' } };
 const review = { id: 'test-review', branch: 'b', rating: '5', date: '01-10-2026', time: '12:00', linkedEmployeeIds: ['test-e'], comment: 'before' };
@@ -67,7 +83,7 @@ function harness(name = 'reviews', initialScope = { branches: ['b'] }) {
     run.effects.forEach(effect => effect());
     return result;
   };
-  run.snapshot = async (rows, fromCache = false, listener = run.listeners.at(-1)) => { listener.next({ docs: rows.map(row => ({ data: () => row })), metadata: { fromCache } }); await new Promise(resolve => setImmediate(resolve)); };
+  run.snapshot = async (rows, fromCache = false, listener = run.listeners.at(-1)) => { if (!fromCache) run.serverRows = rows; listener.next({ docs: rows.map(row => ({ data: () => row })), metadata: { fromCache } }); await new Promise(resolve => setImmediate(resolve)); };
   return run;
 }
 async function finishWrites(run, expected) {
@@ -122,13 +138,13 @@ function sessionHarness() {
 }
 test('Auth waits for confirmed access and profile before exposing the account',async()=>{
  const run=sessionHarness();run.render();const pending=run.authCallback({uid:'auth-test'});
- run.listeners[0].next({metadata:{fromCache:true},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ run.listeners[0].next({metadata:{fromCache:true},exists:()=>true,data:()=>({profileDocId:'profile-test',role:'employee',branch:'شرق'})});
  assert.equal(run.render().account,null);
- run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:true},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:true},exists:()=>true,data:()=>({profileDocId:'profile-test',role:'employee',branch:'شرق'})});
  assert.equal(run.listeners.length,1);assert.equal(run.render().account,null);
- run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,data:()=>({profileDocId:'profile-test'})});
+ run.listeners[0].next({metadata:{fromCache:false,hasPendingWrites:false},exists:()=>true,data:()=>({profileDocId:'profile-test',role:'employee',branch:'شرق'})});
  await new Promise(resolve=>setImmediate(resolve));
- assert.equal(run.listeners[0].closed,true);assert.equal(run.listeners.length,2);
+ assert.equal(run.listeners[0].closed,false);assert.equal(run.listeners.length,2);
  run.listeners[1].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'employee',branch:'شرق'})});await pending;
  assert.equal(run.render().account.role,'employee');assert.equal(run.listeners[1].closed,true);
 });
@@ -136,4 +152,43 @@ test('a stale Auth lookup after sign-out cannot start a private profile read',as
  const run=sessionHarness();run.render();const pending=run.authCallback({uid:'old-auth'});await run.authCallback(null);
  run.listeners[0].next({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'private-profile'})});await pending;
  assert.equal(run.listeners.length,1);assert.equal(run.render().account,null);
+});
+
+
+test('manager timeline scopes share the canonical branch query', async () => {
+ const run = harness('timeline', {branches:['b']});
+ run.session = {...run.session, account:{...run.session.account,role:'manager'}};
+ run.render(); await run.snapshot([]);
+ run.scope = {employeeIds:['another-employee']}; run.render();
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(run.listeners.length,1); assert.equal(run.render().ready,true);
+});
+
+test('transaction prevents a stale cached edit from overwriting a newer server row', async () => {
+ const run = harness(); run.render(); await run.snapshot([review]);
+ run.serverRows = [{...review,comment:'newer server change'}];
+ run.render().change([{...review,comment:'stale edit'}]);
+ await new Promise(resolve=>setTimeout(resolve,30));
+ assert.equal(run.commits.length,0); assert.match(run.render().error,/تغيرت البيانات/);
+});
+
+
+test('live permission revocation hides the account and invalidates the saved namespace',async()=>{
+ const run=sessionHarness();run.render();run.authCallback({uid:'revoked-test'});
+ run.listeners[0].next({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'p',role:'employee',branch:'شرق',employeeId:'e'})});
+ await new Promise(resolve=>setImmediate(resolve));
+ run.listeners[1].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'employee',branch:'شرق'})});
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(run.render().account.id,'e');
+ run.listeners[0].next({metadata:{fromCache:false},exists:()=>false});
+ assert.equal(run.render().account,null);assert.ok(run.render().error);
+});
+
+test('permission changes replace the old role even when the private profile still has its previous role',async()=>{
+ const run=sessionHarness();run.render();run.authCallback({uid:'role-test'});
+ const access=(role,branch)=>({metadata:{fromCache:false},exists:()=>true,data:()=>({profileDocId:'p',role,branch,employeeId:'e'})});
+ run.listeners[0].next(access('manager','شرق'));await new Promise(resolve=>setImmediate(resolve));
+ run.listeners[1].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'manager',branch:'شرق'})});await new Promise(resolve=>setImmediate(resolve));assert.equal(run.render().account.role,'manager');
+ run.listeners[0].next(access('employee','سلام'));assert.equal(run.render().account,null);await new Promise(resolve=>setImmediate(resolve));
+ run.listeners[2].next({metadata:{fromCache:false},exists:()=>true,data:()=>({id:'e',role:'manager',branch:'شرق'})});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(run.render().account.role,'employee');assert.equal(run.render().account.branch,'سلام');
 });

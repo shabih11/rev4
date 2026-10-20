@@ -74,7 +74,6 @@ interface DataContextType {
   reviewSummaries: ReviewSummary[];
   recordsReady: boolean;
   summaryReady: boolean;
-  requestBasicSummary: () => void;
   summaryGeneratedAt: string;
   employeeHours: Record<string, number>;
   currentAccount: UserAccount | null;
@@ -109,21 +108,21 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const reviewScope = combineRecordScopes(demands.map(demand => demand.reviews));
   const timelineScope = combineRecordScopes(demands.map(demand => demand.timeline));
   const daily = useDailyReadModel(session);
-  const [legacyRequestUid, setLegacyRequestUid] = useState<string | null>(null);
-  const legacyRequested = Boolean(session.uid && legacyRequestUid === session.uid);
-  // Explicit temporary read path while the server's daily summary is not prepared.
-  const legacyScope = legacyRequested && !daily.data ? { all: true } : null;
-  const legacyDirectory = useCloudList<UserAccount>('profiles', session, legacyScope);
-  const legacyReviews = useCloudList<ReviewSummary>('reviewSignals', session, legacyScope);
-  const legacyNotes = useCloudList<TimelineEvent>('noteSignals', session, legacyScope);
+  const readSession = React.useMemo(() => ({ ...session, dataVersion: daily.revision }), [session, daily.revision]);
+  const legacyRequested = daily.ready && !daily.data;
+  // Automatic recovery when the server summary has not been prepared yet.
+  const legacyScope = legacyRequested ? { all: true } : null;
+  const legacyDirectory = useCloudList<UserAccount>('profiles', readSession, legacyScope);
+  const legacyReviews = useCloudList<ReviewSummary>('reviewSignals', readSession, legacyScope);
+  const legacyNotes = useCloudList<TimelineEvent>('noteSignals', readSession, legacyScope);
   const legacyReady = legacyRequested && legacyDirectory.ready && legacyReviews.ready && legacyNotes.ready;
-  const userCloud = useCloudList<UserAccount>('users', session, demands.some(d => d.users) ? { all: true } : null);
-  const reviewCloud = useCloudList<CustomerReview>('reviews', session, reviewScope);
+  const userCloud = useCloudList<UserAccount>('users', readSession, demands.some(d => d.users) ? { all: true } : null);
+  const reviewCloud = useCloudList<CustomerReview>('reviews', readSession, reviewScope);
   const reviewSignals = { rows: daily.data?.reviews || legacyReviews.rows };
   const noteSignals = { rows: daily.data?.notes || legacyNotes.rows };
-  const timelineCloud = useCloudList<TimelineEvent>('timeline', session, timelineScope);
+  const timelineCloud = useCloudList<TimelineEvent>('timeline', readSession, timelineScope);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
-  const branchCloud = useCloudList<BranchRecord>('branches', session);
+  const branchCloud = useCloudList<BranchRecord>('branches', readSession);
   const users = userCloud.rows.length ? userCloud.rows : (daily.data?.directory || legacyDirectory.rows).map(u => u.id === session.account?.id ? session.account : { ...u, email: '' });
   const setUsers = userCloud.change;
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
@@ -767,7 +766,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
       reviewSummaries: reviewSignals.rows, recordsReady: (Boolean(reviewScope || timelineScope) || demands.some(d => d.users)) && userCloud.ready && reviewCloud.ready && timelineCloud.ready,
-      summaryReady: Boolean(daily.data) || legacyReady, requestBasicSummary: () => setLegacyRequestUid(session.uid), summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: daily.data?.hours || {},
+      summaryReady: Boolean(daily.data) || legacyReady, summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: daily.data?.hours || {},
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
     }}>
       {children}

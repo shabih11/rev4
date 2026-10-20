@@ -27,14 +27,13 @@ export function EmployeeResults({ user, ready, generatedAt, error }: EmployeeRes
         <p className="font-bold">فترة النتيجة: {period}</p>
         {updatedAt && <p>آخر إعداد للملخص: <time dateTime={generatedAt}>{updatedAt}</time> بتوقيت الرياض</p>}
         {ready && !updatedAt && <p>تاريخ إعداد الملخص غير متاح.</p>}
-        <p>تعرض النتائج الملخص المتاح؛ تظهر تحديثات الإدارة بعد إعداد الملخص وإعادة فتح الصفحة.</p>
+        <p>تعرض النتائج الملخص المتاح؛ تصل تحديثات الملخص تلقائيًا دون إعادة تحميل الصفحة.</p>
       </div>
       {!ready ? (
         <div className="mx-6 mb-8 rounded-2xl border bg-white p-6">
           {error ? (
             <div role="alert" className="text-red-700 space-y-3">
               <p>تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p>
-              <button type="button" onClick={() => window.location.reload()} className="rounded-xl bg-blue-600 px-4 py-2 text-white">إعادة تحميل الصفحة</button>
             </div>
           ) : <p role="status">جارٍ تحميل نتائجك…</p>}
         </div>
