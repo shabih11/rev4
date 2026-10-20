@@ -39,7 +39,7 @@ const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: strin
 };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, summaryReady, summaryGeneratedAt, syncError, requestBasicSummary, currentAccount } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, summaryReady, summaryGeneratedAt, syncError, requestBasicSummary, currentAccount } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -590,6 +590,7 @@ export const Leaderboard: React.FC = () => {
            businessDate: getBusinessDate(r.date, r.time, branchStart)
         }));
         
+        const detailedBranchReviews = privateReviews.filter(r => r.branch === modalBranchName).map(r => ({ ...r, businessDate: getBusinessDate(r.date, r.time, branchStart) }));
         const reviewCountsByDate: Record<string, number> = {};
         branchReviews.forEach(r => {
            reviewCountsByDate[r.businessDate] = (reviewCountsByDate[r.businessDate] || 0) + 1;
@@ -735,6 +736,7 @@ export const Leaderboard: React.FC = () => {
                        <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {formatDate(branchModalSelectedDate)}:</p>
                        <div className="flex flex-wrap gap-2">
                          {(() => {
+                           if (!recordsReady) return <p role={syncError ? 'alert' : 'status'} className="text-xs text-gray-500">{syncError || 'جارٍ تحميل تفاصيل اليوم…'}</p>;
                            const dayShifts = timeline.filter(t => t.branch === modalBranchName && t.type === 'shift' && t.date === branchModalSelectedDate);
                            const empIds = new Set<string>();
                            dayShifts.forEach(s => s.employees?.forEach(e => empIds.add(e.id)));
@@ -772,7 +774,7 @@ export const Leaderboard: React.FC = () => {
 
                   <div className="p-4 bg-gray-50 overflow-y-auto flex-1 min-h-0 space-y-3">
                     {(branchModalSelectedDate 
-                      ? branchReviews.filter(r => r.businessDate === branchModalSelectedDate)
+                      ? (recordsReady ? detailedBranchReviews : []).filter(r => r.businessDate === branchModalSelectedDate)
                       : branchReviews
                     ).map(r => (
                       <div key={r.id} className="bg-white p-4 rounded-xl border shadow-sm relative">

@@ -53,7 +53,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
-  const employeeReviews = reviewSummaries
+  const employeeReviews = (activeTab === 'reviews' ? reviews : reviewSummaries)
     .filter(review => review.linkedEmployeeIds.includes(employee.id) || review.linkedEmployeeIds.includes(employee.name))
     .map(review => ({
       ...review,
