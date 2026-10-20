@@ -15,7 +15,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
     try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
   })();
-  const { recordsReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews } = useData();
+  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
   const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
@@ -98,7 +98,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const handleUpdateStats = (id: string, type: 'totalReviews' | 'monthReviews' | 'positive' | 'negative' | 'complaints' | 'safety', val: number) => {
-    if (!recordsReady) { showToast('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
+    if (!recordsReady || !summaryReady) { showToast('انتظري اكتمال تحميل الملخص والبيانات قبل التعديل'); return; }
     const emp = users.find(u => u.id === id);
     if (!emp) return;
     

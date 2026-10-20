@@ -526,6 +526,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const enrichedUsers = React.useMemo(() => {
+    if (!daily.data && !legacyReady) return users.map(user => ({ ...user, imageUrl: employeeImg }));
     return users.map(user => {
       // Force all users to use the unified employee image
       const unifiedUser = { ...user, imageUrl: employeeImg };
@@ -594,7 +595,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
     });
-  }, [users, reviewSignals.rows, noteSignals.rows]);
+  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady]);
 
   const clearData = (branch?: string, startDate?: string, endDate?: string) => {
     if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {

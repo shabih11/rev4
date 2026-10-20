@@ -193,7 +193,7 @@ export const Leaderboard: React.FC = () => {
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  if (slidesData.length === 0) return <div className="p-8 text-center space-y-4">
+  if (!summaryReady || slidesData.length === 0) return <div className="p-8 text-center space-y-4">
     <p role={syncError ? 'alert' : 'status'}>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>
     <button onClick={requestBasicSummary} className="rounded-xl bg-blue-600 text-white px-4 py-2">تحميل البيانات الأساسية عند الطلب</button>
     <p className="text-xs text-gray-500">خيار مؤقت إذا لم يُجهز الملخص اليومي بعد. لا تُحمّل التفاصيل تلقائيًا.</p>
