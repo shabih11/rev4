@@ -18,7 +18,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 export const encode = value => value === null ? { nullValue: null }
   : typeof value === 'string' ? { stringValue: value }
   : typeof value === 'boolean' ? { booleanValue: value }
-  : typeof value === 'number' ? { integerValue: String(value) }
+  : typeof value === 'number' ? (Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value })
   : Array.isArray(value) ? { arrayValue: { values: value.map(encode) } }
   : { mapValue: { fields: fields(value) } };
 const fields = object => Object.fromEntries(Object.entries(object).filter(([, v]) => v !== undefined).map(([k, v]) => [k, encode(v)]));
