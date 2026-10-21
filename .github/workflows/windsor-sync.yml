@@ -1,60 +1,44 @@
-name: Windsor to Firestore
-
+name: Windsor to Supabase
 on:
   schedule:
-    - cron: '0 19 * * *' # 22:00 Asia/Riyadh, once daily
+    - cron: '0 19 * * *' # 22:00 Asia/Riyadh; GitHub may delay scheduled starts.
+  push:
+    branches: [codex/supabase-production]
+    paths: ['.github/workflows/windsor-sync.yml', 'automation/windsor-sync.mjs', 'supabase/functions/windsor-import/**']
   workflow_dispatch:
     inputs:
       date_from:
-        description: 'Optional reconciliation start (YYYY-MM-DD); default previous month'
+        description: 'Optional reconciliation start (YYYY-MM-DD)'
         required: false
       date_to:
-        description: 'Optional reconciliation end (YYYY-MM-DD); default today'
+        description: 'Optional reconciliation end (YYYY-MM-DD)'
         required: false
-
 permissions:
   contents: read
   id-token: write
-
 concurrency:
-  group: windsor-firestore-sync
+  group: windsor-supabase-sync
   cancel-in-progress: false
-
 jobs:
   sync:
-    if: github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    if: github.repository == 'shabih11/rev4' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/supabase-production')
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '24'
+          package-manager-cache: false
       - name: Check Windsor credential
         env:
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
-        run: node -e 'if (!process.env.WINDSOR_API_KEY) { console.error("Add WINDSOR_API_KEY to repository Actions secrets"); process.exit(1); }'
-      - id: auth
-        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
-        with:
-          project_id: iamspec
-          workload_identity_provider: projects/16910957582/locations/global/workloadIdentityPools/rev4-github/providers/github
-          service_account: rev4-windsor-sync@iamspec.iam.gserviceaccount.com
-          token_format: access_token
-          create_credentials_file: false
-          export_environment_variables: false
-          access_token_lifetime: 900s
-      - name: Import changed reviews
+        run: node -e 'if (!process.env.WINDSOR_API_KEY) { console.error("WINDSOR_API_KEY is required"); process.exit(1); }'
+      - name: Import changed reviews using GitHub identity
         env:
-          GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
           WINDSOR_DATE_FROM: ${{ inputs.date_from }}
           WINDSOR_DATE_TO: ${{ inputs.date_to }}
         run: node automation/windsor-sync.mjs
-      - name: Prepare daily display summary
-        if: always() && steps.auth.outcome == 'success'
-        env:
-          GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
-        run: node automation/daily-read-model.mjs

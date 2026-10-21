@@ -2,8 +2,6 @@ import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import ts from 'typescript';
-import { initializeApp, deleteApp } from 'firebase/app';
-import { getFirestore, collection, query, or, where } from 'firebase/firestore';
 const code = ts.transpileModule(readFileSync(new URL('../src/lib/cloudReadPlan.ts', import.meta.url), 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 }).outputText;
@@ -43,13 +41,4 @@ test('timeline queries always retain the existing server authorization constrain
 
 test('query limits fail explicitly instead of returning incomplete data or scanning all records', () => {
   assert.throws(() => recordFilters('reviews', { employeeIds: Array.from({ length: 31 }, (_, i) => `test-${i}`) }, admin));
-});
-
-test('the real Firebase SDK accepts the merged branch and employee query without issuing reads', async () => {
-  const app = initializeApp({ projectId: 'synthetic-read-plan-test' }, 'read-plan-test');
-  try {
-    const ref = collection(getFirestore(app), 'synthetic-records');
-    const filters = recordFilters('reviews', { branches: ['b'], employeeIds: ['test-e', 'Test'] }, admin);
-    assert.doesNotThrow(() => query(ref, or(...filters.map(filter => where(filter.field, filter.op, filter.value)))));
-  } finally { await deleteApp(app); }
 });

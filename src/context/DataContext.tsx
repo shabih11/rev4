@@ -1,9 +1,11 @@
 import { useDailyReadModel } from '../lib/dailyReadModel';
+import { supabase } from '../lib/supabase';
+import { invalidateRows, readNamespace } from '../lib/browserReadCache';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
 import { toEnglishNumerals } from '../lib/formatDate';
-import { fetchReviewsFromWindsor, normalizeWindsorReviews, stripReviewTranslation } from '../lib/windsorIntegration';
+import { stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
 import { combineRecordScopes, type RecordDemand } from '../lib/cloudReadPlan';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
@@ -45,7 +47,7 @@ interface DataContextType {
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
   removeUser: (id: string) => void;
   convertToMobile: (id: string) => void;
-  mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => void;
+  mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
   updateBranchSettings: (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => void;
   timeline: TimelineEvent[];
@@ -61,13 +63,6 @@ interface DataContextType {
   deleteReview: (id: string) => void;
   undoBatch: (batchId: string) => void;
   clearData: (branch?: string, startDate?: string, endDate?: string) => void;
-  windsorBranchMapping: Record<string, string>;
-  setWindsorBranchMapping: (mapping: Record<string, string>) => void;
-  windsorApiUrl: string;
-  setWindsorApiUrl: (url: string) => void;
-  windsorApiUrl2: string;
-  setWindsorApiUrl2: (url: string) => void;
-  fetchAndProcessWindsorReviews: (customUrl?: string) => Promise<{ success: boolean; count: number; error?: string }>;
   resetUsersToRoster: () => void;
   resetTimelineToInjectedShifts: () => void;
   resetReviewsToInjected: () => void;
@@ -83,15 +78,6 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-
-const safeStorageSet = (key: string, value: any) => {
-  try {
-    const stringified = typeof value === 'string' ? value : JSON.stringify(value);
-    localStorage.setItem(key, stringified);
-  } catch (e) {
-    console.error('Storage quota exceeded or error:', e);
-  }
-};
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useCloudSession();
@@ -109,20 +95,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const timelineScope = combineRecordScopes(demands.map(demand => demand.timeline));
   const daily = useDailyReadModel(session);
   const readSession = React.useMemo(() => ({ ...session, dataVersion: daily.revision }), [session, daily.revision]);
-  const legacyRequested = daily.ready && !daily.data;
+  const legacyRequested = false; // Supabase supplies a complete, permission-checked read model.
   // Automatic recovery when the server summary has not been prepared yet.
   const legacyScope = legacyRequested ? { all: true } : null;
   const legacyDirectory = useCloudList<UserAccount>('profiles', readSession, legacyScope);
   const legacyReviews = useCloudList<ReviewSummary>('reviewSignals', readSession, legacyScope);
   const legacyNotes = useCloudList<TimelineEvent>('noteSignals', readSession, legacyScope);
   const legacyReady = legacyRequested && legacyDirectory.ready && legacyReviews.ready && legacyNotes.ready;
-  const userCloud = useCloudList<UserAccount>('users', readSession, demands.some(d => d.users) ? { all: true } : null);
-  const reviewCloud = useCloudList<CustomerReview>('reviews', readSession, reviewScope);
+  const userCloud = useCloudList<UserAccount>('users', readSession, daily.ready && demands.some(d => d.users) ? { all: true } : null);
+  const reviewCloud = useCloudList<CustomerReview>('reviews', readSession, daily.ready ? reviewScope : null);
   const reviewSignals = { rows: daily.data?.reviews || legacyReviews.rows };
   const noteSignals = { rows: daily.data?.notes || legacyNotes.rows };
-  const timelineCloud = useCloudList<TimelineEvent>('timeline', readSession, timelineScope);
+  const timelineCloud = useCloudList<TimelineEvent>('timeline', readSession, daily.ready ? timelineScope : null);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
-  const branchCloud = useCloudList<BranchRecord>('branches', readSession);
+  const branchCloud = useCloudList<BranchRecord>('branches', readSession, daily.ready ? { all: true } : null);
   const users = userCloud.rows.length ? userCloud.rows : (daily.data?.directory || legacyDirectory.rows).map(u => u.id === session.account?.id ? session.account : { ...u, email: '' });
   const setUsers = userCloud.change;
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
@@ -131,17 +117,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setBranchSettings = (settings: typeof branchSettings) => branchCloud.change(Object.entries(settings).map(([id, value]) => ({ id, name: id, ...value })));
   const clouds = [userCloud, reviewCloud, timelineCloud, branchCloud, legacyDirectory, legacyReviews, legacyNotes];
   const syncError = session.error || (!legacyReady ? daily.error : null) || clouds.find(cloud => cloud.error)?.error || null;
-  const syncStatus = !session.account ? 'تسجيل الدخول مطلوب' : syncError ? 'تعذرت المزامنة' : clouds.some(cloud => cloud.pending > 0) ? 'جارٍ حفظ التعديلات…' : clouds.every(cloud => cloud.ready) ? 'متصل بـ Firebase' : 'جارٍ تحميل البيانات…';
-  const [windsorBranchMapping, setWindsorBranchMappingState] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('app_windsor_branch_mapping') || '{}'); } catch { return {}; }
-  });
-  const setWindsorBranchMapping = (mapping: Record<string, string>) => {
-    setWindsorBranchMappingState(mapping);
-    safeStorageSet('app_windsor_branch_mapping', mapping);
-  };
-  const [windsorApiUrl, setWindsorApiUrlState] = useState<string>(() => localStorage.getItem('app_windsor_api_url') || '');
-  const [windsorApiUrl2, setWindsorApiUrl2State] = useState<string>(() => localStorage.getItem('app_windsor_api_url_2') || '');
-  const windsorSyncInFlight = React.useRef(false);
+  const syncStatus = !session.account ? 'تسجيل الدخول مطلوب' : syncError ? 'تعذرت المزامنة' : clouds.some(cloud => cloud.pending > 0) ? 'جارٍ حفظ التعديلات…' : clouds.every(cloud => cloud.ready) ? 'متصل بـ Supabase' : 'جارٍ تحميل البيانات…';
+  React.useEffect(() => {
+    for (const key of ['app_windsor_api_url','app_windsor_api_url_2','app_windsor_branch_mapping','app_verified_windsor_import_report']) {
+      try { localStorage.removeItem(key); } catch { /* Storage may be blocked. */ }
+    }
+    try { indexedDB.deleteDatabase('rev4-read-cache-v1'); } catch { /* The new cache is isolated. */ }
+  }, []);
 
   const updateUser = (id: string, updates: Partial<UserAccount>) => {
     let newUsers: UserAccount[] = [];
@@ -166,69 +148,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try { /* Storage now handled by useEffect */ } catch (e) { console.error(e); }
   };
 
-  const isReviewInShift = (rDate: string, rTimeStr: string, sDate?: string, sStartTime?: string, sEndTime?: string) => {
-    if (sDate && rDate && sDate !== rDate) return false;
-    if (!sStartTime) return false;
-
-    const rTime = parseInt(toEnglishNumerals(rTimeStr).replace(':', ''), 10) || 0;
-    const sStart = parseInt(toEnglishNumerals(sStartTime).replace(':', ''), 10) || 0;
-    const sEnd = parseInt(toEnglishNumerals(sEndTime || '23:59').replace(':', ''), 10) || 0;
-
-    if (sEnd < sStart) {
-      // Overnight shift (e.g. 16:00 to 01:00)
-      return rTime >= sStart || rTime <= sEnd;
-    } else {
-      return rTime >= sStart && rTime <= sEnd;
-    }
-  };
-
   const addTimelineEvent = (event: Omit<TimelineEvent, 'id'>) => {
-    if (!timelineScope || !timelineCloud.ready || (event.type === 'shift' && (!reviewScope || !reviewCloud.ready))) {
-      window.alert('انتظري اكتمال تحميل التقييمات والشفتات قبل الحفظ');
-      return;
-    }
-    const newId = Date.now().toString();
-    const newShift: TimelineEvent = { ...event, id: newId };
-
-    // إذا كان الحدث عبارة عن شفت جديد ويحتوي على موظفات، نقوم بربط جميع التقييمات المتطابقة بالموظفات
-    if (newShift.type === 'shift' && newShift.employees && newShift.employees.length > 0) {
-      const empIds = newShift.employees.map(e => e.id);
-
-      setReviews(prevReviews => {
-        let changed = false;
-        const updated = prevReviews.map(r => {
-          if (r.branch === newShift.branch && isReviewInShift(r.date, r.time, newShift.date, newShift.time, newShift.endTime)) {
-            changed = true;
-            return {
-              ...r,
-              linkedEmployeeIds: empIds,
-              linkedShiftId: newId
-            };
-          }
-          return r;
-        });
-        return changed ? updated : prevReviews;
-      });
-
-      // وتحديث أي أحداث تقييم موجودة في الـ timeline لنفس الفرع والوقت
-      setTimeline(prevTimeline => {
-        const updatedTimeline = prevTimeline.map(t => {
-          if (t.type === 'review' && t.branch === newShift.branch && isReviewInShift(t.date || '', t.time, newShift.date, newShift.time, newShift.endTime)) {
-            return {
-              ...t,
-              employees: newShift.employees
-            };
-          }
-          return t;
-        });
-        return [newShift, ...updatedTimeline];
-      });
-      return;
-    }
-
-    const newTimeline = [newShift, ...timeline];
-    setTimeline(newTimeline);
-    try { /* Storage now handled by useEffect */ } catch (e) { console.error(e); }
+    if (!timelineScope || !timelineCloud.ready) { window.alert('انتظري اكتمال تحميل الشفتات قبل الحفظ'); return; }
+    // PostgreSQL validates the shift and links reviews in the same transaction.
+    setTimeline(previous => [{ ...event, id: crypto.randomUUID() }, ...previous]);
   };
 
   const updateTimelineEvent = (id: string, updates: Partial<TimelineEvent>) => {
@@ -279,93 +202,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const mergeEmployees = (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => {
-    if (!userCloud.ready || !reviewCloud.ready || !timelineCloud.ready || !reviewScope?.all || !timelineScope?.all) {
-      window.alert('انتظري اكتمال تحميل السجلات قبل دمج الموظفات');
-      return;
-    }
-    const emp1 = users.find(u => u.id === primaryId);
-    const emp2 = users.find(u => u.id === duplicateId);
-    if (!emp1 || !emp2 || primaryId === duplicateId) return;
-
-    const finalName = newName?.trim() || emp1.name;
-    const finalBranch = newBranch || emp1.branch;
-
-    const combinedAliases = Array.from(new Set([
-      ...(emp1.aliases || []),
-      ...(emp2.aliases || []),
-      emp1.name,
-      emp2.name,
-    ])).filter(a => a && a !== finalName);
-
-    const combinedBranches = Array.from(new Set([
-      ...(emp1.assignedBranches || []),
-      ...(emp2.assignedBranches || []),
-      emp1.branch,
-      emp2.branch,
-    ]));
-
-    const manual1 = emp1.manualStats || {};
-    const manual2 = emp2.manualStats || {};
-    const combinedManual = {
-      positive: (manual1.positive || 0) + (manual2.positive || 0),
-      negative: (manual1.negative || 0) + (manual2.negative || 0),
-      complaints: (manual1.complaints || 0) + (manual2.complaints || 0),
-      safety: (manual1.safety || 0) + (manual2.safety || 0),
-      totalReviews: (manual1.totalReviews || 0) + (manual2.totalReviews || 0),
-      monthReviews: (manual1.monthReviews || 0) + (manual2.monthReviews || 0),
-    };
-
-    // 1. Update primary and remove duplicate
-    setUsers(prev => prev.filter(u => u.id !== duplicateId).map(u => {
-      if (u.id === primaryId) {
-        return {
-          ...u,
-          name: finalName,
-          branch: finalBranch,
-          aliases: combinedAliases,
-          assignedBranches: combinedBranches,
-          manualStats: combinedManual,
-        };
-      }
-      return u;
-    }));
-
-    // 2. Transfer all reviews linked to duplicateId or emp2.name to primaryId
-    setReviews(prev => prev.map(r => {
-      const hasDuplicate = r.linkedEmployeeIds.includes(duplicateId) || r.linkedEmployeeIds.includes(emp2.name);
-      if (!hasDuplicate) return r;
-      const updatedIds = Array.from(new Set(
-        r.linkedEmployeeIds.map(id => (id === duplicateId || id === emp2.name) ? primaryId : id)
-      ));
-      return {
-        ...r,
-        linkedEmployeeIds: updatedIds,
-      };
-    }));
-
-    // 3. Transfer all shifts & timeline events
-    setTimeline(prev => prev.map(t => {
-      if (!t.employees || t.employees.length === 0) return t;
-      const hasDuplicate = t.employees.some(e => e.id === duplicateId || e.name === emp2.name);
-      if (!hasDuplicate) return t;
-      const updatedEmployees: { id: string; name: string }[] = [];
-      const seenIds = new Set<string>();
-      for (const e of t.employees) {
-        const isDup = e.id === duplicateId || e.name === emp2.name;
-        const targetId = isDup ? primaryId : e.id;
-        const targetName = isDup ? finalName : e.name;
-        if (!seenIds.has(targetId)) {
-          seenIds.add(targetId);
-          updatedEmployees.push({ id: targetId, name: targetName });
-        }
-      }
-      return {
-        ...t,
-        employees: updatedEmployees,
-      };
-    }));
+  const mergeEmployees = async (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => {
+    const primary = users.find(u => u.id === primaryId);
+    if (!primary || !summaryReadyForMerge()) return false;
+    const { error } = await supabase.rpc('merge_employees', { primary_id: primaryId, duplicate_id: duplicateId,
+      requested_name: newName?.trim() || primary.name, requested_branch: newBranch || primary.branch });
+    if (error) { window.alert('تعذر دمج الموظفات؛ لم تُحفظ أي تغييرات جزئية'); return false; }
+    await invalidateRows(readNamespace(session));
+    return true;
   };
+  const summaryReadyForMerge = () => Boolean(session.account?.role === 'admin' && daily.ready);
 
   const updateReview = (id: string, updates: Partial<CustomerReview>) => {
     const newReviews = reviews.map(r => r.id === id ? { ...r, ...updates } : r);
@@ -414,39 +260,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             batchId
           };
 
-          let linkedEmployees: {id: string, name: string}[] = [];
-          const rTime = parseInt(toEnglishNumerals(newReview.time).replace(':', ''));
-          const possibleShifts = timeline.filter(t => t.branch === branch && t.type === 'shift' && t.employees && t.employees.length > 0);
-          
-          let bestShift: TimelineEvent | null = null;
-          for (const s of possibleShifts) {
-            const sTime = parseInt(toEnglishNumerals(s.time).replace(':', ''));
-            const eTimeStr = s.endTime || '23:59';
-            const eTime = parseInt(toEnglishNumerals(eTimeStr).replace(':', ''));
-            
-            if (eTime < sTime) {
-              if (rTime >= sTime || rTime <= eTime) { bestShift = s; break; }
-            } else {
-              if (rTime >= sTime && rTime <= eTime) { bestShift = s; break; }
-            }
-          }
-
-          if (!bestShift) {
-            let maxTime = -1;
-            for (const s of possibleShifts) {
-              const sTime = parseInt(toEnglishNumerals(s.time).replace(':', ''));
-              if (sTime <= rTime && sTime > maxTime) {
-                maxTime = sTime;
-                bestShift = s;
-              }
-            }
-          }
-
-          if (bestShift && bestShift.employees) {
-            linkedEmployees = bestShift.employees;
-            newReview.linkedEmployeeIds = linkedEmployees.map(e => e.id);
-            newReview.linkedShiftId = bestShift.id;
-          }
+          const linkedEmployees: { id: string; name: string }[] = [];
 
           parsedReviews.push(newReview);
 
@@ -469,59 +283,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { reviews: parsedReviews, timelineEvents: newTimelineEvents };
   };
 
-  const commitReviews = (newReviews: CustomerReview[], newTimelineEvents: TimelineEvent[]) => {
-    setReviews(prev => {
-      const updated = [...newReviews, ...prev];
-      return updated;
-    });
-
-    if (newTimelineEvents.length > 0) {
-      setTimeline(prevT => {
-        const updatedT = [...newTimelineEvents, ...prevT].sort((a, b) => {
-           const aTime = parseInt(toEnglishNumerals(a.time).replace(':', '')) || 0;
-           const bTime = parseInt(toEnglishNumerals(b.time).replace(':', '')) || 0;
-           return bTime - aTime;
-        });
-        return updatedT;
-      });
-    }
+  const commitReviews = (newReviews: CustomerReview[], _events: TimelineEvent[]) => {
+    setReviews(previous => [...newReviews, ...previous]);
   };
 
   const commitShifts = (shifts: TimelineEvent[], batchId?: string) => {
-    if (!reviewScope || !timelineScope || !reviewCloud.ready || !timelineCloud.ready) {
-      window.alert('انتظري اكتمال تحميل التقييمات والشفتات قبل الحفظ');
-      return;
-    }
-    let finalShifts = batchId ? shifts.map(s => ({ ...s, batchId })) : shifts;
-
-    // فحص وربط جميع التقييمات السابقة بالشفتات الجديدة
-    setReviews(prevReviews => {
-      let changed = false;
-      const updated = prevReviews.map(r => {
-        // البحث عن أفضل شفت يطابق هذا التقييم
-        const matchingShift = finalShifts.find(s => s.branch === r.branch && isReviewInShift(r.date, r.time, s.date, s.time, s.endTime) && s.employees && s.employees.length > 0);
-        if (matchingShift && matchingShift.employees) {
-          changed = true;
-          return {
-            ...r,
-            linkedEmployeeIds: matchingShift.employees.map(e => e.id),
-            linkedShiftId: matchingShift.id
-          };
-        }
-        return r;
-      });
-      return changed ? updated : prevReviews;
-    });
-
-    setTimeline(prev => {
-      let newTimeline = [...prev, ...finalShifts];
-      newTimeline.sort((a, b) => {
-         const aTime = parseInt(toEnglishNumerals(a.time).replace(':', '')) || 0;
-         const bTime = parseInt(toEnglishNumerals(b.time).replace(':', '')) || 0;
-         return bTime - aTime;
-      });
-      return newTimeline;
-    });
+    if (!timelineCloud.ready) { window.alert('انتظري اكتمال تحميل الشفتات'); return; }
+    setTimeline(previous => [...shifts.map(shift => ({ ...shift, batchId: batchId || shift.batchId })), ...previous]);
   };
 
   const enrichedUsers = React.useMemo(() => {
@@ -531,8 +299,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const unifiedUser = { ...user, imageUrl: employeeImg };
       if (unifiedUser.role !== 'employee') return unifiedUser;
       
-      const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id) || r.linkedEmployeeIds.includes(unifiedUser.name));
-      const empTimeline = noteSignals.rows.filter(t => t.employees?.some(e => e.id === unifiedUser.id || e.name === unifiedUser.name));
+      const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id));
+      const empTimeline = noteSignals.rows.filter(t => t.employees?.some(e => e.id === unifiedUser.id));
       
       const now = new Date();
       const currentMonthReviews = empReviews.filter(review => isInCurrentMonth(review.date, now));
@@ -635,117 +403,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const setWindsorApiUrl = (url: string) => {
-    setWindsorApiUrlState(url);
-    safeStorageSet('app_windsor_api_url', url);
-  };
-
-  const setWindsorApiUrl2 = (url: string) => {
-    setWindsorApiUrl2State(url);
-    safeStorageSet('app_windsor_api_url_2', url);
-  };
-
-  const fetchAndProcessWindsorReviews = async (customUrl?: string): Promise<{ success: boolean; count: number; error?: string }> => {
-    if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
-      return { success: false, count: 0, error: 'انتظري اكتمال تحميل التقييمات والشفتات قبل الاستيراد' };
-    }
-    const urls = customUrl ? [customUrl] : [windsorApiUrl, windsorApiUrl2].filter(u => u && u.trim());
-    if (urls.length === 0) {
-      return { success: false, count: 0, error: 'لم يتم تحديد أي رابط API لـ Windsor.ai' };
-    }
-    if (windsorSyncInFlight.current) return { success: true, count: 0 };
-    windsorSyncInFlight.current = true;
-
-    try {
-      const results = await Promise.allSettled(urls.map(url => fetchReviewsFromWindsor(url)));
-      let allRawData: any[] = [];
-      const errorMessages: string[] = [];
-
-      results.forEach((res, idx) => {
-        if (res.status === 'fulfilled') {
-          if (Array.isArray(res.value)) {
-            allRawData = allRawData.concat(res.value);
-          } else {
-            allRawData.push(res.value);
-          }
-        } else {
-          errorMessages.push(`رابط ${idx + 1}: ${res.reason instanceof Error ? res.reason.message : 'فشل الاتصال بـ Windsor.ai'}`);
-        }
-      });
-
-      if (errorMessages.length > 0) {
-        return { success: false, count: 0, error: errorMessages.join(' | ') };
-      }
-
-      const normalized = normalizeWindsorReviews(allRawData, windsorBranchMapping);
-
-      if (normalized.length === 0) {
-        return { success: true, count: 0 };
-      }
-
-      const batchId = `windsor_${Date.now()}`;
-      const newReviews: CustomerReview[] = [];
-      const newTimelineEvents: TimelineEvent[] = [];
-
-      normalized.forEach(normReview => {
-        const exists = reviews.some(r => r.id === normReview.id);
-        if (exists || newReviews.some(r => r.id === normReview.id)) return;
-
-        let linkedEmployees: { id: string; name: string }[] = [];
-        const reviewDateTime = (date: string, time: string) => {
-          const [day, month, year] = toEnglishNumerals(date).split('-').map(Number);
-          const [hour, minute] = toEnglishNumerals(time).split(':').map(Number);
-          return new Date(year, month - 1, day, hour, minute).getTime();
-        };
-        const reviewTime = reviewDateTime(normReview.date, normReview.time);
-        const bestShift = timeline.filter(s => {
-          if (s.type !== 'shift' || s.branch !== normReview.branch || !s.date || !s.employees?.length) return false;
-          const start = reviewDateTime(s.date, s.time);
-          let end = reviewDateTime(s.endDate || s.date, s.endTime || '23:59');
-          if (!s.endDate && end < start) end += 24 * 60 * 60 * 1000;
-          return reviewTime >= start && reviewTime <= end;
-        }).sort((a, b) => reviewDateTime(b.date!, b.time) - reviewDateTime(a.date!, a.time))[0];
-
-        if (bestShift && bestShift.employees) {
-          linkedEmployees = bestShift.employees;
-        }
-
-        const reviewObj: CustomerReview = {
-          ...normReview,
-          linkedEmployeeIds: linkedEmployees.map(e => e.id),
-          linkedShiftId: bestShift?.id,
-          batchId
-        };
-
-        newReviews.push(reviewObj);
-
-        newTimelineEvents.push({
-          id: normReview.id,
-          branch: normReview.branch,
-          type: 'review',
-          title: `تقييم Windsor.ai (${normReview.rating})`,
-          time: normReview.time,
-          date: normReview.date,
-          comment: normReview.comment,
-          employees: linkedEmployees,
-          reviewId: normReview.id,
-          batchId
-        });
-      });
-
-      if (newReviews.length > 0) {
-        commitReviews(newReviews, newTimelineEvents);
-      }
-
-      return { success: true, count: newReviews.length };
-    } catch (e: any) {
-      console.error('Failed to fetch from Windsor.ai', e);
-      return { success: false, count: 0, error: e?.message || 'تعذر الاتصال بـ Windsor.ai' };
-    } finally {
-      windsorSyncInFlight.current = false;
-    }
-  };
-
   // Historical imports are server-side maintenance operations; never republish embedded data.
   const resetUsersToRoster = () => { window.alert('تتم إدارة الاستيراد التاريخي من أداة الإدارة الآمنة خارج المتصفح'); };
   const resetTimelineToInjectedShifts = resetUsersToRoster;
@@ -761,7 +418,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
-      windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2, fetchAndProcessWindsorReviews,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,

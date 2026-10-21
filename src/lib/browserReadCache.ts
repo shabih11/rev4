@@ -1,5 +1,5 @@
 // Only complete, server-confirmed result sets are stored. No Auth credentials.
-const DATABASE = 'rev4-read-cache-v1';
+const DATABASE = 'rev4-supabase-read-cache-v1';
 const RETENTION = 30 * 24 * 60 * 60 * 1000;
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_ENTRIES = 150;

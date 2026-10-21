@@ -3,25 +3,16 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
-import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, Globe, Link, GitMerge } from 'lucide-react';
-import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, GitMerge } from 'lucide-react';
 import employeeImg from '../assets/employee.png';
 import { formatDateTime, formatDate, formatTime, shiftName } from '../lib/formatDate';
 import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const verifiedImportReport: { received: number; added: number; alreadyPresent: number; archived: number; linked: number; unlinked: number; dateFrom: string; dateTo: string; branches: Record<string, { total: number; linked: number; unlinked: number }> } | null = (() => {
-    try { return JSON.parse(localStorage.getItem('app_verified_windsor_import_report') || 'null'); } catch { return null; }
-  })();
-  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews, windsorBranchMapping, setWindsorBranchMapping, windsorApiUrl, setWindsorApiUrl, windsorApiUrl2, setWindsorApiUrl2 } = useData();
+  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
   
-  const [mappingText, setMappingText] = useState(JSON.stringify(windsorBranchMapping, null, 2));
-  const [tempWindsorUrl, setTempWindsorUrl] = useState(windsorApiUrl);
-  const [tempWindsorUrl2, setTempWindsorUrl2] = useState(windsorApiUrl2);
-  const [copiedSchema, setCopiedSchema] = useState(false);
-
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
   const [globalBranch, setGlobalBranch] = useState<string>('all');
   const [selectedBranch, setSelectedBranch] = useState(branches[0]);
@@ -436,7 +427,7 @@ export const SystemAdminDashboard: React.FC = () => {
                 {(globalBranch === 'all' ? branches : (globalBranch === 'موظفة خارجية' ? [] : [globalBranch])).map(branch => {
                   const currentBranchEmployees = users.filter(u => u.branch === branch && u.role === 'employee');
                   return (
-                    <div key={branch} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-6">
+                    <div key={`${branch}:${JSON.stringify(branchSettings[branch] || {})}`} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-6">
                       <div className="flex justify-between items-center border-b pb-4">
                         <div className="flex-1">
                           <label className="block text-sm font-bold text-gray-700 mb-1">اسم الفرع (تعديل)</label>
@@ -607,7 +598,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     <div className="flex gap-2 mt-6">
                       <button
                         disabled={!recordsReady}
-                        onClick={() => {
+                        onClick={async () => {
                           if (!primaryEmpId || !duplicateEmpId || !mergedName.trim()) {
                             showToast('يرجى اختيار الموظفتين وتحديد الاسم الموحد');
                             return;
@@ -616,7 +607,7 @@ export const SystemAdminDashboard: React.FC = () => {
                             showToast('لا يمكن دمج الموظفة مع نفسها');
                             return;
                           }
-                          mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch);
+                          if (!await mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch)) return;
                           setShowMergeModal(false);
                           setPrimaryEmpId('');
                           setDuplicateEmpId('');
@@ -1059,145 +1050,13 @@ export const SystemAdminDashboard: React.FC = () => {
 
           {/* Windsor.ai Integration Tab */}
           {activeTab === 'windsor' && (
-            <div className="space-y-6">
-              {/* Header Banner */}
-              <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-2">
-                      <Zap size={14} className="text-yellow-300 fill-yellow-300" />
-                      تكامل Windsor.ai
-                    </div>
-                    <h2 className="text-2xl font-black">جلب واستدعاء التقييمات الآلي من Windsor.ai</h2>
-                    <p className="text-purple-100 text-sm mt-1 max-w-2xl">
-                      جلب تقييمات Google Business Profile عبر Windsor.ai وربطها بشفتات الموظفات حسب الفرع والتاريخ والوقت.
-                    </p>
-                  </div>
-
-                  <p className="text-sm text-purple-100">تصل نتائج المزامنة اليومية تلقائيًا.</p>
-                </div>
-              </div>
-
-              {verifiedImportReport && (
-                <section className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 space-y-3">
-                  <h3 className="font-bold text-emerald-900">تم استيراد نسخة Windsor.ai الفعلية</h3>
-                  <p className="text-sm text-emerald-900">الفترة: {formatDate(verifiedImportReport.dateFrom)} إلى {formatDate(verifiedImportReport.dateTo)} — {verifiedImportReport.received} تقييمًا بمعرفات Google الأصلية.</p>
-                  <p className="text-sm">مرتبطة بالشفتات: {verifiedImportReport.linked} — دون شفت مطابق: {verifiedImportReport.unlinked}. المضافة: {verifiedImportReport.added}، الموجودة مسبقًا: {verifiedImportReport.alreadyPresent}.</p>
-                  {verifiedImportReport.archived > 0 && <p className="text-xs text-gray-700">حُفظت {verifiedImportReport.archived} من التقييمات السابقة المرفقة بالتطبيق في الأرشيف، مع نسخة كاملة من البيانات قبل الاستيراد.</p>}
-                  <table className="w-full text-sm text-right"><thead><tr><th>الفرع</th><th>التقييمات</th><th>مرتبطة</th><th>دون ربط</th></tr></thead><tbody>
-                    {Object.entries(verifiedImportReport.branches).map(([branch, stats]) => <tr key={branch} className="border-t border-emerald-100"><td className="py-2">{branch}</td><td>{stats.total}</td><td>{stats.linked}</td><td>{stats.unlinked}</td></tr>)}
-                  </tbody></table>
-                  <p className="text-xs text-gray-600">حُفظت في بيانات التطبيق المحلية. التقييمات دون ربط تبقى محفوظة للمراجعة ولا تُنسب إلى موظفات افتراضيًا.</p>
-                </section>
-              )}
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* API Settings Card */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
-                  <div className="flex items-center gap-3 border-b border-gray-100 pb-4">
-                    <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
-                      <Link size={24} />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-lg">إعدادات Windsor.ai API</h3>
-                      <p className="text-xs text-gray-500">أدخل رابط استعلام Google Business Profile من Windsor.ai ثم احفظ الإعدادات قبل الجلب.</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">🔗 رابط API (الحساب الأول / الفرع 1):</label>
-                      <input
-                        type="url"
-                        placeholder="https://connectors.windsor.ai/google_my_business?api_key=..."
-                        value={tempWindsorUrl}
-                        onChange={(e) => setTempWindsorUrl(e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">🔗 رابط API (الحساب الثاني / الفرع 2):</label>
-                      <input
-                        type="url"
-                        placeholder="https://connectors.windsor.ai/google_my_business?api_key=..."
-                        value={tempWindsorUrl2}
-                        onChange={(e) => setTempWindsorUrl2(e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-xl text-xs font-mono focus:bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">ربط معرفات المواقع بالفروع (JSON)</label>
-                      <textarea aria-label="ربط مواقع Windsor بالفروع" dir="ltr" value={mappingText} onChange={e => setMappingText(e.target.value)} placeholder={'{"locations/معرف_الموقع": "جاليري"}'} className="w-full p-3 border rounded-xl text-xs font-mono" rows={7} />
-                      <p className="text-xs text-gray-500">استخدم account_id لكل موقع. لا يمكن تحديد الفرع من اسم النشاط إذا تكرر بين المواقع.</p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        try {
-                          const mapping = JSON.parse(mappingText);
-                          if (!mapping || Array.isArray(mapping) || typeof mapping !== 'object' || Object.values(mapping).some(b => typeof b !== 'string' || !branches.includes(b))) throw new Error();
-                          setWindsorBranchMapping(mapping);
-                        } catch { showToast('أدخل ربط المواقع بصيغة JSON صحيحة وبأسماء الفروع المعتمدة'); return; }
-                        setWindsorApiUrl(tempWindsorUrl);
-                        setWindsorApiUrl2(tempWindsorUrl2);
-                        showToast('تم حفظ روابط Windsor.ai بنجاح');
-                      }}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl shadow-sm transition text-xs"
-                    >
-                      حفظ الروابط
-                    </button>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-100">
-                    <h4 className="text-sm font-bold text-gray-900">المزامنة المركزية اليومية</h4>
-                    <p className="text-xs text-gray-500">تُشغّل من GitHub Actions بعد إعداد الاتصال الآمن. يقرأ التطبيق التقييمات المحفوظة في Firestore. تصل تحديثات الملخص إلى الواجهة تلقائيًا.</p>
-                    <a className="text-sm text-blue-600" href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer">حالة المزامنة اليومية</a>
-                  </div>
-                </div>
-
-                {/* Windsor.ai Payload Guidelines */}
-                <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                        <Globe size={24} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-lg">استعلام تقييمات Windsor.ai</h3>
-                        <p className="text-xs text-gray-500">انسخ الاستعلام وأدخل مفتاحك في الرابط من حساب Windsor.ai. الروابط محفوظة محليًا في هذا المتصفح.</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const schemaText = WINDSOR_API_EXAMPLE;
-                        navigator.clipboard.writeText(schemaText);
-                        setCopiedSchema(true);
-                        setTimeout(() => setCopiedSchema(false), 2000);
-                        showToast('تم نسخ نموذج JSON للقصاصة');
-                      }}
-                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
-                    >
-                      {copiedSchema ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
-                      {copiedSchema ? 'تم النسخ' : 'نسخ النموذج'}
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-900 text-slate-200 p-4 rounded-xl text-xs font-mono overflow-x-auto dir-ltr">
-                    <pre className="whitespace-pre-wrap break-all">{WINDSOR_API_EXAMPLE}</pre>
-                  </div>
-
-                  <div className="text-xs text-gray-600 space-y-1.5 pt-1">
-                    <p className="font-bold text-gray-800">💡 الحقول المدعومة تلقائياً:</p>
-                    <p className="font-mono break-all" dir="ltr">{WINDSOR_REVIEW_FIELDS}</p>
-                    <p>يُحوّل وقت التقييم إلى توقيت السعودية. المزامنة المركزية اليومية تعمل من GitHub Actions؛ لا تعتمد على بقاء التطبيق مفتوحًا.</p>
-                    <a className="text-purple-700 underline" href="https://windsor.ai/data-field/google_my_business/" target="_blank" rel="noreferrer">دليل حقول Windsor.ai</a>
-
-                  </div>
-                </div>
-              </div>
-            </div>
+            <section className="bg-white rounded-3xl border p-6 space-y-4" dir="rtl">
+              <h2 className="text-2xl font-black">المزامنة اليومية من Windsor.ai</h2>
+              <p>تجلب مهمة GitHub تقييمات الفروع يوميًا عند العاشرة مساءً بتوقيت الرياض، وقد يتأخر تشغيلها حسب توفر خوادم GitHub.</p>
+              <p>تُحفظ البيانات في Supabase وتُربط بالشفتات المسجلة. يحتفظ المتصفح بالنتائج ويستقبل إصدار البيانات الجديد تلقائيًا.</p>
+              <p>تُدار بيانات الاتصال في الخادم. لا يحتاج هذا المتصفح إلى مفتاح Windsor.</p>
+              <a href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer" className="text-blue-700 underline">حالة المزامنة</a>
+            </section>
           )}
 
           </div>

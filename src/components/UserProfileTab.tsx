@@ -2,11 +2,9 @@ import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
 import { User, Lock, Mail, Building2, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 
 export const UserProfileTab: React.FC = () => {
-  const { user, changePassword, logout } = useAuth();
-  const { updateUser } = useData();
+  const { user, changePassword, logout, updateName } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
   const [newPassword, setNewPassword] = useState('');
@@ -19,15 +17,15 @@ export const UserProfileTab: React.FC = () => {
 
   if (!user) return null;
 
-  const handleUpdateName = (e: React.FormEvent) => {
+  const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     setNameMsg(null);
     if (!name.trim()) {
       setNameMsg({ text: 'يرجى إدخال اسم صحيح', type: 'error' });
       return;
     }
-    updateUser(user.id, { name: name.trim() });
-    setNameMsg({ text: 'تم تحديث الاسم بنجاح', type: 'success' });
+    const result = await updateName(name.trim());
+    setNameMsg({ text: result.success ? 'تم تحديث الاسم بنجاح' : result.error || 'تعذر حفظ الاسم', type: result.success ? 'success' : 'error' });
     setTimeout(() => setNameMsg(null), 3000);
   };
 

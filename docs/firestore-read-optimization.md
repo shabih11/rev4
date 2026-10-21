@@ -1,3 +1,5 @@
+> وثيقة تاريخية من نسخة Firebase. التشغيل الحالي موثق في [عمليات Supabase](supabase-operations.md).
+
 # مراجعة تقليل قراءات Firestore
 
 التاريخ: 2026-10-19 — مشروع rev4، قاعدة Firestore Standard الحالية.
