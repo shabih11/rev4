@@ -1,12 +1,11 @@
-import { Brand } from '../components/Brand';
+import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCreative, Autoplay } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
-import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
@@ -172,21 +171,19 @@ export const Leaderboard: React.FC = () => {
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  if (!summaryReady || slidesData.length === 0) return <div className="p-8 text-center space-y-4">
-    <p role={syncError ? 'alert' : 'status'}>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>
-    <p className="text-xs text-gray-500">تُحمّل البيانات تلقائيًا وتُحفظ على هذا الجهاز.</p>
-  </div>;
+  if (!summaryReady) return <PageLoading error={syncError} />;
+  if (slidesData.length === 0) return <div className="p-8 text-center" dir="rtl">{syncError || 'لا توجد نتائج لعرضها بعد.'}</div>;
 
   return (
     <div 
-      className="recognition-page w-full min-h-screen min-h-[100dvh] overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
+      className="recognition-page w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
       dir="rtl"
       onPointerDownCapture={handleTouchStart}
       onTouchStartCapture={handleTouchStart}
       onKeyDownCapture={handleTouchStart}
     >
       
-      <header className="recognition-header"><Brand /><Link to="/dashboard" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={18} aria-hidden="true" />صفحتي</Link></header>
+      <header className="recognition-header"><BrandName /><Link to="/dashboard" className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link></header>
       <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
@@ -196,7 +193,7 @@ export const Leaderboard: React.FC = () => {
         <motion.div 
           key={activeIndex + '-header'}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}
-          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800"
+          className="w-full px-4 sm:px-8 pt-3 flex justify-end items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
             {activeSlide.type === 'employee' && <>
@@ -212,11 +209,10 @@ export const Leaderboard: React.FC = () => {
       </AnimatePresence>
 
       {/* Center Image Swiper */}
-      <div className="w-full flex-1 flex items-center justify-center z-20 pt-4 sm:pt-6 pb-4 min-h-[360px] sm:min-h-[440px]">
+      <div className="w-full flex-1 flex items-center justify-center z-20 pt-2 sm:pt-6 pb-3 min-h-0 sm:min-h-[440px]">
         <Swiper
           ref={swiperRef}
           dir="ltr"
-          effect={'creative'}
           grabCursor={true}
           allowTouchMove={true}
           rewind={true}
@@ -226,25 +222,20 @@ export const Leaderboard: React.FC = () => {
           speed={reduceMotion ? 0 : 280}
           onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
-          creativeEffect={{
-            limitProgress: 1,
-            prev: { translate: ['-110%', 0, -100], opacity: 0, scale: 0.9 },
-            next: { translate: ['110%', 0, -100], opacity: 0, scale: 0.9 },
-          }}
-          modules={[EffectCreative, Autoplay]}
-          className="w-full h-full max-w-xs sm:max-w-sm mx-auto"
-          style={{ overflow: 'visible' }}
+          modules={[Autoplay]}
+          className="w-full min-w-0 max-w-xs sm:max-w-sm mx-auto"
+          style={{ overflow: 'hidden' }}
         >
           {slidesData.map((slide, i) => (
-            <SwiperSlide key={i} className="flex justify-center items-center" style={{ overflow: 'visible' }}>
+            <SwiperSlide key={i} className="flex justify-center items-center" style={{ overflow: 'hidden' }}>
               <div className="h-full flex justify-center items-center relative w-full px-4">
                 
                 {slide.type === 'employee' && (
-                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[40vh] sm:h-[55vh] max-w-full object-contain drop-shadow-xl" />
+                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[clamp(180px,38svh,420px)] sm:h-[55vh] max-w-full object-contain drop-shadow-xl" />
                 )}
 
                 {slide.type === 'partnership' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
                     <Users size={48} className="text-blue-500 opacity-20 absolute top-6 right-6" />
                     <div className="flex items-center justify-center -space-x-6 sm:-space-x-8 rtl:space-x-reverse mt-2">
                       <img src={slide.emp1.imageUrl} alt={slide.emp1.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-10" />
@@ -259,7 +250,7 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'active_branch' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
                     <Building2 size={48} className="text-teal-500 opacity-20 absolute top-6 left-6" />
                     <div className="w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
                       <TrendingUp size={32} className="text-teal-500 mb-1" />
@@ -271,7 +262,7 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'active_employee' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
                     <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white mb-3 sm:mb-6 z-10" />
                     <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
@@ -280,7 +271,7 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'praised_employee' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <MessageSquareHeart size={48} className="text-pink-500 opacity-10 absolute bottom-6 left-6" />
                     <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg object-cover object-top bg-white mb-2 sm:mb-4 z-10 shrink-0" />
                     <h3 className="text-lg sm:text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
@@ -307,11 +298,11 @@ export const Leaderboard: React.FC = () => {
       </div>
 
       {/* Bottom Blue Curved Card */}
-      <div className="w-full z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+2rem))]">
+      <div className="w-full shrink-0 z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-8 sm:pb-6 relative min-h-[200px]">
+        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
           
           {/* Left/Right Action Buttons */}
           <button 

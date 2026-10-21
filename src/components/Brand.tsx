@@ -7,6 +7,13 @@ export function Brand({ light = false, compact = false }: { light?: boolean; com
   </div>;
 }
 
-export function PageLoading() {
-  return <div className="page-loading" role="status" dir="rtl"><img className="brand__logo" src={companyLogo} alt="أي آم سبيشل" width={1780} height={877} decoding="async" /><p>جارٍ تجهيز الصفحة…</p></div>;
+export function BrandName() {
+  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm font-extrabold" dir="rtl" aria-label="اي ام سبيشل">
+    <span className="text-red-600">اي ام</span>
+    <span className="text-yellow-500">سبيشل</span>
+  </span>;
+}
+
+export function PageLoading({ error }: { error?: string | null }) {
+  return <div className="page-loading" role={error ? 'alert' : 'status'} dir="rtl"><img className="brand__logo" src={companyLogo} alt="أي آم سبيشل" width={1780} height={877} decoding="async" /><p>{error || 'جاري التحميل…'}</p></div>;
 }
