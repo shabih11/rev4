@@ -1,7 +1,7 @@
 name: Deploy GitHub Pages
 on:
   push:
-    branches: [codex/supabase-production]
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
@@ -25,7 +25,7 @@ jobs:
         with:
           path: dist
   deploy:
-    if: github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/codex/supabase-production'
+    if: github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
