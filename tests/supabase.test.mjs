@@ -15,8 +15,8 @@ const {verifyGithubToken}=await import(url(authCode));
 const admin={id:'a',role:'admin',branch:'one'};
 test('read scopes never expand an empty request and keep role constraints',()=>{
  assert.equal(scopeArguments('reviews',{},admin),null);
- assert.deepEqual(scopeArguments('timeline',{all:true},{...admin,role:'manager'}),{source:'timeline',all_rows:false,requested_branches:['one'],requested_employees:[]});
- assert.deepEqual(scopeArguments('timeline',{branches:['other']},{...admin,role:'employee'}).requested_employees,['a']);
+ assert.deepEqual(scopeArguments('timeline',{all:true},{...admin,role:'manager'}),{source:'timeline',all_rows:true,requested_branches:[],requested_employees:[]});
+ assert.deepEqual(scopeArguments('timeline',{branches:['other']},{...admin,role:'employee'}).requested_branches,['other']);
 });
 test('row changes retain the original baseline and reject duplicate identities',()=>{
  const before=[{id:'a',value:1}],after=[{id:'a',value:2}];

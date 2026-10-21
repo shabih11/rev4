@@ -48,13 +48,13 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
-  useRecordScope({ reviews: activeTab === 'reviews' ? { employeeIds: [employee.id, employee.name] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
-  const { reviews, reviewSummaries, users, timeline, currentAccount, recordsReady, summaryReady, summaryGeneratedAt, employeeHours, syncError } = useData();
+  useRecordScope({ reviews: activeTab === 'reviews' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
+  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, summaryGeneratedAt, employeeHours, syncError } = useData();
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
   const employeeReviews = (activeTab === 'reviews' ? reviews : reviewSummaries)
-    .filter(review => review.linkedEmployeeIds.includes(employee.id) || review.linkedEmployeeIds.includes(employee.name))
+    .filter(review => review.linkedEmployeeIds.includes(employee.id))
     .map(review => ({
       ...review,
       comment: privateReviews.get(review.id)?.comment ?? (review as any).comment,
@@ -62,15 +62,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
     }))
     .sort(newestFirst);
 
-  const canReadAllShifts = currentAccount?.role === 'admin' || currentAccount?.id === employee.id ||
-    (currentAccount?.role === 'manager' && currentAccount.branch === employee.branch);
-
-  const isEmpMatch = (id?: string, name?: string) => {
-    if (!id && !name) return false;
-    if (id === employee.id || name === employee.name) return true;
-    if (employee.aliases && name && employee.aliases.includes(name)) return true;
-    return false;
-  };
+  const isEmpMatch = (id?: string, _name?: string) => id === employee.id;
 
   const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name))).sort(newestFirst);
 
@@ -201,7 +193,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             ) : activeTab === 'shifts' ? (
               <div className="space-y-3">
                 {/* Total Hours Badge */}
-                {canReadAllShifts && (employeeHours[employee.id] !== undefined || recordsReady) && (
+                {(employeeHours[employee.id] !== undefined || recordsReady) && (
                   <div className="bg-transparent border border-gray-200 text-gray-700 p-2 rounded-xl flex items-center justify-center gap-2 shadow-sm mb-4">
                     <Clock size={18} className="text-blue-600" />
                     <p className="font-bold text-sm">{totalHours} ساعات في صناعة تجربة العميل</p>
@@ -219,7 +211,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     </div>
                   );
                 }) : (
-                  recordsReady && !syncError && <p className="text-center text-gray-500 py-10">{canReadAllShifts ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات مشتركة متاحة لحسابك.'}</p>
+                  recordsReady && !syncError && <p className="text-center text-gray-500 py-10">لا توجد شفتات مسجلة.</p>
                 )}
               </div>
             ) : activeTab === 'activity' ? (
@@ -276,8 +268,9 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
 {/* Shift Details Modal */}
 export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: TimelineEvent | null, onClose: () => void, reviews: any[], users: any[] }) => {
   useRecordScope(shift ? { reviews: { branches: [shift.branch] } } : {});
+  const { recordsReady, syncError } = useData();
   if (!shift) return null;
-  const shiftReviews = reviews.filter(r => r.branch === shift.branch && r.date === shift.date).sort(newestFirst);
+  const shiftReviews = reviews.filter(r => r.linkedShiftId === shift.id).sort(newestFirst);
   
   return (
     <AnimatePresence>
@@ -299,7 +292,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                <h4 className="font-bold text-gray-700 mb-2">تقييمات الشفت:</h4>
-               {shiftReviews.length === 0 ? (
+               {!recordsReady ? <p role="status" className="text-center text-gray-500 py-4">جارٍ تحميل تقييمات الشفت…</p> : syncError ? <p role="alert" className="text-red-700">{syncError}</p> : shiftReviews.length === 0 ? (
                   <p className="text-center text-gray-500 py-4">لا توجد تقييمات مسجلة في هذا الشفت.</p>
                ) : (
                   shiftReviews.map(r => (

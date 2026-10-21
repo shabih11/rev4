@@ -630,25 +630,7 @@ export const Leaderboard: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Employees List */}
-                  <div className="p-3 border-b border-gray-100 shrink-0">
-                     <div className="flex flex-wrap justify-center gap-1.5">
-                       {users.filter(u => u.branch === modalBranchName && u.role === 'employee').map(emp => (
-                         <div 
-                           key={emp.id}
-                           className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold text-blue-900 bg-transparent border border-blue-100 shadow-[0_0_6px_rgba(59,130,246,0.2)]"
-                         >
-                           {emp.name}
-                         </div>
-                       ))}
-                     </div>
-                  </div>
-
-                  <div className="p-4 bg-teal-50/50 border-b border-teal-100 shrink-0">
-                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" />
-                  </div>
-
-                  <div className="bg-white p-4 border-b border-blue-100 grid grid-cols-3 gap-2 text-center shrink-0">
+                  <div aria-label="ملخص الفرع" className="bg-white p-4 border-b border-blue-100 grid grid-cols-3 gap-2 text-center shrink-0">
                     <div className="bg-gray-50 rounded-xl p-2 shadow-sm border border-blue-100 flex flex-col justify-center">
                       <p className="text-[10px] sm:text-xs text-blue-600 font-bold mb-1">تقييمات الشهر</p>
                       <p className="text-lg sm:text-xl font-extrabold">{branchReviews.length}</p>
@@ -663,6 +645,25 @@ export const Leaderboard: React.FC = () => {
                       <p className="text-[10px] sm:text-[11px] font-bold leading-tight">{bestPartnership.names}</p>
                       <p className="text-[9px] sm:text-[10px] text-gray-400 mt-1">{bestPartnership.count} مشترك</p>
                     </div>
+                  </div>
+
+                  <div className="p-4 bg-teal-50/50 border-b border-teal-100 shrink-0">
+                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" />
+                  </div>
+
+                  {/* Employees List */}
+                  <div aria-label="موظفات الفرع" className="p-3 border-t border-gray-100 shrink-0">
+                     <div className="flex flex-wrap justify-center gap-1.5">
+                       {users.filter(u => u.branch === modalBranchName && u.role === 'employee').map(emp => (
+                         <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                         <button type="button" aria-label={`عرض سجل ${emp.name}`}
+                           className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold text-blue-900 bg-transparent border border-blue-100 shadow-[0_0_6px_rgba(59,130,246,0.2)] hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                         >
+                           {emp.name}
+                         </button>
+                         </EmployeeCard>
+                       ))}
+                     </div>
                   </div>
 
                 </motion.div>

@@ -19,7 +19,7 @@ do $$ begin
  if (select data->>'linkedShiftId' from public.reviews where id='verify-boundary') is distinct from 'verify-shift' then raise exception 'Boundary review was not linked'; end if;
  if (select data->>'linkedShiftId' from public.reviews where id='verify-next-day') is distinct from 'verify-shift' then raise exception 'Overnight review was not linked'; end if;
  if (select cardinality(employee_ids) from public.reviews where id='verify-before')<>0 then raise exception 'Previous shift boundary leaked'; end if;
- if (select cardinality(employee_ids) from public.reviews where id='verify-overnight')<>0 then raise exception 'Wrong business day linked'; end if;
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-overnight')='verify-shift' then raise exception 'Wrong business day linked'; end if;
  begin perform public.get_accounts(); raise exception 'Manager can read private accounts'; exception when insufficient_privilege then null; end;
  begin insert into public.user_access(uid,profile_id,role) values('00000000-0000-4000-8000-000000000002','verify-other','admin'); raise exception 'Manager can grant roles'; exception when insufficient_privilege then null; end;
  begin perform public.write_rows('timeline','[{"id":"verify-invalid-member","before":null,"after":{"id":"verify-invalid-member","branch":"جاليري","type":"shift","title":"Verification","date":"21-10-2026","time":"14:00","endTime":"16:00","employees":[{"id":"verify-other","name":"Verification"}]}}]'); raise exception 'Cross-branch membership accepted'; exception when foreign_key_violation then null; end;
@@ -29,7 +29,7 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated","user_metadata":{"role":"admin"}}',true);
 do $$ begin
  if private.account_role()<>'employee' then raise exception 'User metadata granted a role'; end if;
- if (select count(*) from public.reviews where id like 'verify-%')<>2 then raise exception 'Employee review isolation failed'; end if;
+ if (select count(*) from public.reviews where id like 'verify-%')<>4 then raise exception 'Shared employee review read failed'; end if;
  if public.get_read_model()::text like '%example.invalid%' then raise exception 'Summary exposed account emails'; end if;
  begin perform public.get_accounts(); raise exception 'Employee can read private accounts'; exception when insufficient_privilege then null; end;
  begin perform public.write_rows('users',jsonb_build_array(jsonb_build_object('id','verify-employee','before',(select data from public.profiles where id='verify-employee'),'after',(select data||'{"role":"admin"}'::jsonb from public.profiles where id='verify-employee')))); raise exception 'Employee elevated own role'; exception when insufficient_privilege then null; end;

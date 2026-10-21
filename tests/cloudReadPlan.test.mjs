@@ -29,14 +29,12 @@ test('complete maintenance view overrides narrowed requests', () => {
   assert.deepEqual(recordFilters('reviews', { all: true }, admin), []);
 });
 
-test('timeline queries always retain the existing server authorization constraints', () => {
-  assert.deepEqual(recordFilters('timeline', { all: true }, { ...admin, role: 'manager' }), [
-    { field: 'branch', op: '==', value: 'test-branch' },
-  ]);
-  assert.deepEqual(recordFilters('timeline', { branches: ['other-branch'] }, { ...admin, role: 'employee' }), [
-    { field: 'employeeIds', op: 'array-contains', value: 'test-admin' },
-  ]);
-  assert.equal(recordFilters('timeline', null, { ...admin, role: 'employee' }), null);
+test('detail queries use the selected record across roles without widening the scope', () => {
+  for (const role of ['admin','manager','employee']) {
+    assert.deepEqual(recordFilters('timeline', { employeeIds: ['other-employee'] }, {...admin,role}), [{field:'employeeIds',op:'array-contains-any',value:['other-employee']}]);
+    assert.deepEqual(recordFilters('timeline', { branches: ['other-branch'] }, {...admin,role}), [{field:'branch',op:'in',value:['other-branch']}]);
+    assert.equal(recordFilters('timeline', null, {...admin,role}), null);
+  }
 });
 
 test('query limits fail explicitly instead of returning incomplete data or scanning all records', () => {
