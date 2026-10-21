@@ -4,13 +4,13 @@
 
 @layer base {
   html, body {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
     -webkit-text-size-adjust: 100%;
     overscroll-behavior-y: contain;
   }
   body {
     @apply bg-gray-50 text-gray-900;
-    font-family: 'SF Arabic', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Alexandria', 'SF Arabic', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
@@ -21,4 +21,19 @@
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+@layer base {
+  html { scroll-padding-block: 5rem; }
+  body { background: var(--canvas); color: var(--navy); line-height: 1.7; }
+  button, input, select, textarea { font: inherit; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button:not(:disabled), select { cursor: pointer; }
+  button:disabled { cursor: wait; opacity: .6; }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea {
+    min-height: 3rem; font-size: 1rem; accent-color: var(--brand);
+  }
+  input:user-invalid, textarea:user-invalid { border-color: #b42318; }
+  h1, h2, h3 { text-wrap: balance; }
 }

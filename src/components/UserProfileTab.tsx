@@ -60,7 +60,7 @@ export const UserProfileTab: React.FC = () => {
   const roleTitle = user.role === 'admin' ? 'الإدارة العامة' : user.role === 'manager' ? 'مديرة فرع' : 'موظفة فرع';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in font-sans" dir="rtl">
+    <div className="profile-panel max-w-2xl mx-auto space-y-6 font-sans" dir="rtl">
       {/* Account Info Header Card */}
       <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-6 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 text-center sm:text-right">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { Brand } from '../components/Brand';
 import { useData } from '../context/DataContext';
 
 export const Login: React.FC = () => {
@@ -11,6 +12,7 @@ export const Login: React.FC = () => {
   const { login, user } = useAuth();
   const { syncError } = useData();
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { if (user) navigate('/dashboard', { replace: true }); }, [user, navigate]);
@@ -32,63 +34,50 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="w-full h-screen bg-gray-50 flex items-center justify-center p-4 font-alexandria" dir="rtl">
-      <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 relative overflow-hidden">
-        {/* Decorative background */}
-        <div className="absolute top-0 left-0 w-full h-32 bg-blue-500 rounded-b-[50%] scale-150 -translate-y-10"></div>
-
-        <div className="relative z-10 text-center mt-4 mb-10 text-white">
-          <h1 className="text-4xl font-extrabold mb-2">أي آم سبيشل</h1>
-          <p className="text-blue-100">إدارة السمعة الرقمية</p>
+    <main className="login-page" dir="rtl">
+      <aside className="login-identity" aria-label="أي آم سبيشل">
+        <Brand light />
+        <div className="login-story">
+          <h2>كل تجربة<br />تصنع سمعتنا.</h2>
+          <p>مساحة واحدة لمتابعة التقييمات، وتنظيم الشفتات، والاحتفاء بأثر الفريق.</p>
+          <div className="login-orbits" aria-hidden="true"><span>✦</span><span>✦</span><span>✦</span></div>
         </div>
-
-        <form onSubmit={handleLogin} className="space-y-6">
-          {(error || syncError) && (
-            <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm font-bold text-center">
-              {error || syncError}
+        <div className="login-benefits"><span>نتائج أوضح</span><span>فريق أقرب</span><span>إدارة أسهل</span></div>
+      </aside>
+      <section className="login-content" aria-labelledby="login-heading">
+        <div className="login-mobile-brand"><Brand /></div>
+        <div className="login-form-wrap">
+          <h1 id="login-heading">مرحباً بعودتك</h1>
+          <p className="login-intro">سجّلي الدخول لمتابعة يومك.</p>
+          <form onSubmit={handleLogin} className="login-form" aria-busy={busy}>
+            {(error || syncError) && <div id="login-error" className="login-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><p>{error || syncError}</p></div>}
+            <div className="login-field">
+              <label htmlFor="login-email">البريد الإلكتروني أو اسم المستخدم</label>
+              <div className="login-input-wrap">
+                <Mail size={18} aria-hidden="true" />
+                <input id="login-email" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}
+                  value={email} onChange={e => setEmail(e.target.value)} className="login-input" placeholder="اسم المستخدم أو البريد الإلكتروني" required dir="ltr" enterKeyHint="next"
+                  aria-describedby={error || syncError ? 'login-error' : undefined} />
+              </div>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <label htmlFor="login-email" className="text-gray-700 font-bold text-sm block">البريد الإلكتروني أو اسم المستخدم</label>
-            <div className="relative">
-              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                id="login-email" name="username" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
-                placeholder="admin أو البريد الإلكتروني"
-                required
-                dir="ltr"
-              />
+            <div className="login-field">
+              <label htmlFor="login-password">كلمة المرور</label>
+              <div className="login-input-wrap">
+                <Lock size={18} aria-hidden="true" />
+                <input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password"
+                  value={password} onChange={e => setPassword(e.target.value)} className="login-input" placeholder="••••••••" required dir="ltr" enterKeyHint="go"
+                  aria-describedby={error || syncError ? 'login-error' : undefined} />
+                <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'} aria-pressed={showPassword}>
+                  {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="login-password" className="text-gray-700 font-bold text-sm block">كلمة المرور</label>
-            <div className="relative">
-              <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                id="login-password" name="password" type="password" autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 text-gray-800 rounded-xl px-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all font-sans"
-                placeholder="••••••••"
-                required
-                dir="ltr"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit" disabled={busy}
-            className="w-full bg-blue-500 text-white font-bold text-xl py-4 rounded-xl shadow-lg hover:bg-blue-600 hover:scale-[1.02] transition-all"
-          >
-            {busy ? 'جارٍ تسجيل الدخول…' : 'دخول'}
-          </button>
-        </form>
-      </div>
-    </div>
+            <button type="submit" disabled={busy} className="primary-button">{busy ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول'}</button>
+          </form>
+          <p className="login-help">تحتاجين مساعدة؟ تواصلي مع مسؤول النظام.</p>
+        </div>
+        <p className="login-footer">أي آم سبيشل · إدارة السمعة الرقمية</p>
+      </section>
+    </main>
   );
 };

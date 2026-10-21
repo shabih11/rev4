@@ -1,7 +1,8 @@
+import { Brand } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCreative, Autoplay } from 'swiper/modules';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
@@ -9,7 +10,7 @@ import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
-import { isWithinLastDays, formatDate} from '../lib/formatDate';
+import { isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
 import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
@@ -22,7 +23,8 @@ type SlideData =
   | { type: 'praised_employee'; employee: UserAccount; count: number; texts: string[] };
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, summaryReady, summaryGeneratedAt, syncError } = useData();
+  const reduceMotion = useReducedMotion();
+  const { users, reviews: privateReviews, reviewSummaries, summaryReady, syncError } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -177,24 +179,23 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div 
-      className="w-full min-h-screen min-h-[100dvh] bg-white overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y" 
+      className="recognition-page w-full min-h-screen min-h-[100dvh] overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
       dir="rtl"
       onPointerDownCapture={handleTouchStart}
       onTouchStartCapture={handleTouchStart}
       onKeyDownCapture={handleTouchStart}
     >
       
-      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2 shadow-sm" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
+      <header className="recognition-header"><Brand /><Link to="/dashboard" className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-50 px-4 text-sm text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={18} aria-hidden="true" />صفحتي</Link></header>
       <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
       </div>
-      {summaryGeneratedAt && <p className="absolute top-16 right-4 text-[10px] text-gray-400 z-30">ملخص يومي: {formatDate(summaryGeneratedAt.slice(0, 10))}</p>}
       {/* Top Header - Contextual */}
       <AnimatePresence mode="wait">
         <motion.div 
           key={activeIndex + '-header'}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}
           className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
@@ -221,7 +222,8 @@ export const Leaderboard: React.FC = () => {
           rewind={true}
           centeredSlides={true}
           slidesPerView={1}
-          autoplay={{ delay: 3000, disableOnInteraction: true }}
+          autoplay={reduceMotion ? false : { delay: 5000, disableOnInteraction: true }}
+          speed={reduceMotion ? 0 : 280}
           onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           creativeEffect={{
@@ -328,7 +330,7 @@ export const Leaderboard: React.FC = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex + '-bottom'}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}
               className="flex flex-col items-center w-full px-4 sm:px-6"
             >
               

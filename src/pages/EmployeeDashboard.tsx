@@ -1,3 +1,4 @@
+import { Brand } from '../components/Brand';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
@@ -27,7 +28,7 @@ export const EmployeeDashboard: React.FC = () => {
   const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+    <div className="workspace employee-space w-full min-h-screen font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
@@ -35,7 +36,8 @@ export const EmployeeDashboard: React.FC = () => {
       ) : (
         <>
           {/* Header */}
-          <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
+          <div className="employee-header px-6 mb-6 relative overflow-hidden flex flex-col items-center">
+        <Brand />
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
@@ -72,7 +74,7 @@ export const EmployeeDashboard: React.FC = () => {
           aria-expanded={showReviews}
           aria-controls="employee-reviews"
           onClick={() => setShowReviews(!showReviews)}
-          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
+          className="workspace-panel w-full bg-white p-5 flex justify-between items-center"
         >
           <div className="flex items-center gap-3">
             <Star className="text-yellow-400" size={22} />
@@ -151,7 +153,7 @@ export const EmployeeDashboard: React.FC = () => {
           aria-expanded={showShifts}
           aria-controls="employee-shifts"
           onClick={() => setShowShifts(!showShifts)}
-          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
+          className="workspace-panel w-full bg-white p-5 flex justify-between items-center"
         >
           <div className="flex items-center gap-3">
             <CalendarClock className="text-blue-500" size={22} />
@@ -218,7 +220,7 @@ export const EmployeeDashboard: React.FC = () => {
       )}
 
       {/* Bottom Navigation */}
-      <nav aria-label="تنقل الموظفة" className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+      <nav aria-label="تنقل الموظفة" className="bottom-nav fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
         <button
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
           onClick={() => setActiveTab('dashboard')}

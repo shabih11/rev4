@@ -21,78 +21,41 @@ export function EmployeeResults({ user, ready, generatedAt, error }: EmployeeRes
     calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
   }).format(new Date());
 
+  const metrics = [
+    { label: 'إجمالي التقييمات', value: String(user.reviewsCount), Icon: Star, color: 'text-blue-600' },
+    { label: 'إيجابي', value: `+${user.stats.positive.toFixed(1)}`, Icon: Star, color: 'text-emerald-700' },
+    { label: 'شكاوى', value: `-${user.stats.complaints}`, Icon: AlertTriangle, color: 'text-red-700' },
+    { label: 'مخالفات سلامة', value: `-${user.stats.safety}`, Icon: ShieldAlert, color: 'text-amber-700' },
+  ];
   return (
-    <section aria-label="نتائجي" aria-busy={!ready && !error}>
-      <div className="px-6 mb-4 text-sm text-gray-600 space-y-1">
-        <p className="font-bold">فترة النتيجة: {period}</p>
-        {updatedAt && <p>آخر إعداد للملخص: <time dateTime={generatedAt}>{updatedAt}</time> بتوقيت الرياض</p>}
+    <section className="results" aria-label="نتائجي" aria-busy={!ready && !error}>
+      <div className="results-meta">
+        <p>فترة النتيجة: {period}</p>
+        {updatedAt && <p>آخر تحديث: <time dateTime={generatedAt}>{updatedAt}</time> بتوقيت الرياض</p>}
         {ready && !updatedAt && <p>تاريخ إعداد الملخص غير متاح.</p>}
-        <p>تعرض النتائج الملخص المتاح؛ تصل تحديثات الملخص تلقائيًا دون إعادة تحميل الصفحة.</p>
       </div>
       {!ready ? (
-        <div className="mx-6 mb-8 rounded-2xl border bg-white p-6">
-          {error ? (
-            <div role="alert" className="text-red-700 space-y-3">
-              <p>تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p>
-            </div>
-          ) : <p role="status">جارٍ تحميل نتائجك…</p>}
+        <div className="result-state">
+          {error ? <p role="alert" className="text-red-700">تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p> : <p role="status">جارٍ تحميل نتائجك…</p>}
         </div>
-      ) : (
-        <>
-          <p className="px-6 mb-4 text-sm text-gray-600">
-            النتيجة = الإيجابي ({user.stats.positive.toFixed(1)}) + رصيد التقييمات السلبية ({user.stats.negative.toFixed(1)}) + الجودة ({Math.max(0, 4 - user.stats.complaints - user.stats.safety).toFixed(1)}).
-          </p>
-      {/* Main Stats */}
-      <div className="px-6 mb-8">
-        <div className="bg-white rounded-3xl p-8 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 font-bold mb-1">نتيجة الشهر الحالي</p>
-            <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
-          </div>
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-500">
-            <Award size={40} />
-          </div>
+      ) : <>
+        <div className="results-score">
+          <div><p>نتيجة الشهر الحالي</p><h2 dir="ltr">{user.points.toFixed(1)}</h2><p>{period}</p></div>
+          <Award size={56} strokeWidth={1.25} aria-hidden="true" />
         </div>
-      </div>
-
-      {/* Detailed Stats Grid */}
-      <div className="px-6 grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-yellow-400">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <Star className="text-yellow-400" size={20} />
-            إجمالي التقييمات
-          </div>
-          <p className="text-3xl font-extrabold">{user.reviewsCount}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-green-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <Star className="text-green-500" size={20} />
-            إيجابي
-          </div>
-          <p className="text-3xl font-extrabold">+{user.stats.positive.toFixed(1)}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-red-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <AlertTriangle className="text-red-500" size={20} />
-            شكاوى
-          </div>
-          <p className="text-3xl font-extrabold">-{user.stats.complaints}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-orange-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <ShieldAlert className="text-orange-500" size={20} />
-            مخالفات سلامة
-          </div>
-          <p className="text-3xl font-extrabold">-{user.stats.safety}</p>
-        </div>
-      </div>
-
-
-        </>
-      )}
+        <p className="results-formula">
+          <span>الإيجابي {user.stats.positive.toFixed(1)}</span>
+          <span>رصيد السلبية {user.stats.negative.toFixed(1)}</span>
+          <span>الجودة {Math.max(0, 4 - user.stats.complaints - user.stats.safety).toFixed(1)}</span>
+        </p>
+        <dl className="results-grid">
+          {metrics.map(({ label, value, Icon, color }) => <div key={label} className="result-metric">
+            <dt><Icon size={17} className={color} aria-hidden="true" />{label}</dt>
+            <dd dir="ltr" className="text-right">{value}</dd>
+          </div>)}
+        </dl>
+      </>}
+      <p className="results-meta mt-4">تصل تحديثات الملخص تلقائياً؛ افتحي السجلات للاطلاع على التفاصيل.</p>
     </section>
   );
 }

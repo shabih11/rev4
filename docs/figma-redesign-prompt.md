@@ -1,0 +1,19 @@
+# برومبت إعادة التصميم — أمر واحد
+
+Design a complete, cohesive Arabic RTL responsive interface for «أي آم سبيشل», an existing Saudi team reputation and shift management application. Produce the entire design in ONE execution; do not request a follow-up generation. All screen content must be editable native Figma layers, using auto layout and reusable imported button/input instances. Use Alexandria Regular/Medium/Bold, true RTL reading order, proper Arabic line height, accessible contrast, 48px touch targets, and clear keyboard focus specifications.
+
+Product: three existing roles (system administrator, branch manager, employee), Supabase authentication, branches, employee directory, shift calendar with first/second shifts, reviews, complaints/safety notes, monthly score breakdown, leaderboard, profile and password change, Windsor import status. Keep these existing capabilities; do not invent analytics, fake production data, recovery endpoints, social login, subscriptions, or new roles.
+
+Visual direction: confident royal blue #2459E0, deep navy #142B54, cool canvas #F4F7FC, white surfaces, muted text #65738B, positive green #18765C. Distinctive small star brand mark and a single static orbital motif on login. Quiet typography, generous purposeful spacing, thin borders, restrained elevation. No glassmorphism, rainbow gradients, animated background, excessive card grids, photographic heroes, or decorative charts. Desktop right sidebar, white top bar, structured data panels. Mobile one column and safe-area bottom navigation. Radius scale 12/20/28px. Spacing 4/8/12/16/24/32/48px.
+
+Create these reference screens together:
+1. Desktop login 1440×960: right blue identity panel containing brand, «كل تجربة تصنع سمعتنا.», description «مساحة واحدة لمتابعة التقييمات، وتنظيم الشفتات، والاحتفاء بأثر الفريق.», static orbit/star motif, three text benefits «نتائج أوضح»، «فريق أقرب»، «إدارة أسهل». Left form «مرحباً بعودتك»، «سجّلي الدخول لمتابعة يومك.»; visible username/email and password labels; password visibility control; full-width «تسجيل الدخول» action; administrator contact guidance. No reset-password action without an existing flow.
+2. Mobile login 390×844: compact brand and the same form, no oversized hero, no horizontal overflow, sufficient breathing room above the keyboard.
+3. System admin desktop 1440×960: right sidebar with brand and navigation «الشفتات»، «الفروع»، «الموظفات»، «الملاحظات»، «الإحصائيات»، «المزامنة». Top heading and branch filter. Calendar/content table with first and second shift and clear next action. Use anonymous placeholders only.
+4. Branch manager mobile 390×844: header, branch/context, calendar, selected-day first and second shift cards, save action, bottom navigation.
+5. Employee mobile 390×844: greeting, branch, monthly result as one navy feature panel; score breakdown and four metric tiles; reviews and shifts accordions; bottom «نتائجي» / «حسابي» navigation.
+6. Leaderboard desktop 1440×960: hierarchy for ranking, active branch, praise and partnership; keep existing swipe/cards behavior and explicit manual navigation; no automatic motion under prefers-reduced-motion.
+7. Profile mobile: avatar/initial, name and role, account details and existing password action.
+8. States: loading, empty, error, disabled, focused field, active navigation, confirmation. Provide meaningful Arabic text and non-color state cues.
+
+Implementation handoff: tokens, adaptive sizes, layout hierarchy, exact Arabic copy, component/state naming, no rasterized screenshots of the UI. CSS + current Lucide icons; existing user imagery remains dynamic and is not embedded as sample data. Keep JS light, animations under 160ms and user initiated, no new runtime dependency. Do not read or publish real staff data. Return frame IDs and one composition screenshot to permit implementation from the finished design.

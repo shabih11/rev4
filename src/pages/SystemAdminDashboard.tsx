@@ -1,3 +1,4 @@
+import { Brand } from '../components/Brand';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -228,7 +229,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const employeesForBranch = (branch: string) => users.filter(u => u.branch === branch && u.role === 'employee');
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-alexandria" dir="rtl">
+    <div className="workspace min-h-screen flex flex-col md:flex-row font-alexandria" dir="rtl">
       {/* Hidden File Input */}
       <input type="file" ref={fileInputRef} className="hidden" accept="image/png,image/jpeg,image/webp,image/*" onChange={handleFileUpload} />
 
@@ -241,18 +242,11 @@ export const SystemAdminDashboard: React.FC = () => {
       )}
 
       {/* Desktop Sidebar (visible on md:flex, hidden on mobile) */}
-      <aside className="hidden md:flex flex-col w-64 lg:w-72 bg-white border-l border-slate-200 h-screen sticky top-0 shrink-0 z-40 shadow-sm">
+      <aside className="workspace-sidebar hidden md:flex flex-col w-64 lg:w-72 bg-white border-l border-slate-200 h-screen sticky top-0 shrink-0 z-40 shadow-sm">
         {/* Brand / Logo */}
         <div className="p-5 border-b border-slate-100">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-md shadow-blue-500/20">
-              S
-            </div>
-            <div>
-              <h1 className="text-base font-black text-slate-900 leading-tight">أي آم سبيشل</h1>
-              <p className="text-[11px] text-blue-600 font-bold">لوحة الإدارة العامة</p>
-            </div>
-          </div>
+          <Brand />
+          <p className="mt-3 text-xs text-slate-500">لوحة الإدارة العامة</p>
         </div>
 
         {/* Global Branch Filter in Sidebar */}
@@ -276,11 +270,11 @@ export const SystemAdminDashboard: React.FC = () => {
             onChange={(e) => handleGlobalBranchChange(e.target.value)}
             className="w-full bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all"
           >
-            <option value="all">🌐 جميع الفروع</option>
+            <option value="all">جميع الفروع</option>
             {branches.map(b => (
-              <option key={b} value={b}>🏢 فرع {b}</option>
+              <option key={b} value={b}>فرع {b}</option>
             ))}
-            <option value="موظفة خارجية">💼 موظفات خارجيات</option>
+            <option value="موظفة خارجية">موظفات خارجيات</option>
           </select>
           {globalBranch !== 'all' ? (
             <p className="text-[11px] text-blue-700 font-medium mt-2 bg-blue-50/80 border border-blue-100 rounded-lg p-1.5 text-center leading-relaxed">
@@ -294,13 +288,14 @@ export const SystemAdminDashboard: React.FC = () => {
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav aria-label="التنقل الرئيسي" className="workspace-nav flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => setActiveTab(item.id as any)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group text-right cursor-pointer ${
                   isActive
@@ -372,17 +367,17 @@ export const SystemAdminDashboard: React.FC = () => {
               onChange={(e) => handleGlobalBranchChange(e.target.value)}
               className="flex-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-lg p-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
             >
-              <option value="all">🌐 جميع الفروع</option>
+              <option value="all">جميع الفروع</option>
               {branches.map(b => (
-                <option key={b} value={b}>🏢 فرع {b}</option>
+                <option key={b} value={b}>فرع {b}</option>
               ))}
-              <option value="موظفة خارجية">💼 موظفات خارجيات</option>
+              <option value="موظفة خارجية">موظفات خارجيات</option>
             </select>
           </div>
         </header>
 
         {/* Desktop Top Bar (hidden on mobile) */}
-        <header className="hidden md:flex bg-white/95 border-b border-slate-200 px-8 py-4 justify-between items-center sticky top-0 z-20 backdrop-blur-md">
+        <header className="workspace-topbar hidden md:flex bg-white/95 border-b border-slate-200 px-8 py-4 justify-between items-center sticky top-0 z-20 backdrop-blur-md">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-black text-slate-800">
               {navItems.find(i => i.id === activeTab)?.label}
@@ -404,18 +399,19 @@ export const SystemAdminDashboard: React.FC = () => {
               onChange={(e) => handleGlobalBranchChange(e.target.value)}
               className="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
             >
-              <option value="all">🌐 جميع الفروع</option>
+              <option value="all">جميع الفروع</option>
               {branches.map(b => (
-                <option key={b} value={b}>🏢 فرع {b}</option>
+                <option key={b} value={b}>فرع {b}</option>
               ))}
-              <option value="موظفة خارجية">💼 موظفات خارجيات</option>
+              <option value="موظفة خارجية">موظفات خارجيات</option>
             </select>
           </div>
         </header>
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-          <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-200/80 overflow-x-auto min-h-[75vh]">
+          <div className="workspace-heading"><h2>{navItems.find(i => i.id === activeTab)?.label}</h2><p>مساحة واحدة لتنظيم الفريق ومتابعة أثره.</p></div>
+          <div className="workspace-panel bg-white p-5 md:p-8 overflow-x-auto min-h-[75vh]">
           
 
 
@@ -1064,13 +1060,14 @@ export const SystemAdminDashboard: React.FC = () => {
       </div>
 
       {/* Mobile Bottom Navigation (visible only on mobile: md:hidden) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] z-50 px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex overflow-x-auto gap-1 items-center custom-scrollbar">
+      <nav aria-label="التنقل الرئيسي" className="bottom-nav md:hidden fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)] z-50 px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex overflow-x-auto gap-1 items-center custom-scrollbar">
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
+              aria-current={isActive ? 'page' : undefined}
               onClick={() => setActiveTab(item.id as any)}
               className={`shrink-0 min-w-[65px] flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl transition-all duration-200 ${
                 isActive

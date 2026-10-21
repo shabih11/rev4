@@ -324,7 +324,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-24" dir="rtl">
+    <div className="workspace min-h-screen flex flex-col font-sans pb-24" dir="rtl">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-fade-in font-bold text-sm">
@@ -334,7 +334,7 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
+      <header className="bg-slate-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg md:text-xl font-black">لوحة إدارة فرع {user?.branch}</h1>
@@ -359,8 +359,7 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Main Container */}
       <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
-        <div className="p-3 text-center">
-        </div>
+        <div className="workspace-heading"><h2>{activeTab === 'shifts' ? 'شفتات الفرع' : 'حسابي'}</h2><p>{activeTab === 'shifts' ? 'نظّمي يوم الفريق وتابعي تغطية الشفتات.' : 'بياناتك وإعدادات حسابك.'}</p></div>
         {activeTab === 'shifts' && (
           <div className="space-y-6">
             {/* Calendar Controls & Month Header */}
@@ -1015,8 +1014,9 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Bottom Navigation: 2 tabs (Shifts Calendar & Profile) */}
-      <nav className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+      <nav aria-label="تنقل مديرة الفرع" className="bottom-nav fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
         <button
+          aria-current={activeTab === 'shifts' ? 'page' : undefined}
           onClick={() => setActiveTab('shifts')}
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
             activeTab === 'shifts'
@@ -1029,6 +1029,7 @@ export const AdminDashboard: React.FC = () => {
         </button>
 
         <button
+          aria-current={activeTab === 'profile' ? 'page' : undefined}
           onClick={() => setActiveTab('profile')}
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
             activeTab === 'profile'
