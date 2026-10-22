@@ -4,7 +4,7 @@ import { invalidateRows, readNamespace } from '../lib/browserReadCache';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { UserAccount } from '../lib/mockData';
 import employeeImg from '../assets/employee.png';
-import { toEnglishNumerals } from '../lib/formatDate';
+import { timeMinutes, toEnglishNumerals } from '../lib/formatDate';
 import { stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
 import { combineRecordScopes, type RecordDemand } from '../lib/cloudReadPlan';
@@ -36,6 +36,9 @@ export interface TimelineEvent {
   endDate?: string;
   comment?: string;
   employees?: { id: string, name: string }[];
+  requestStatus?: 'pending' | 'accepted' | 'rejected';
+  requestedShift?: 'first' | 'second';
+  rejectedAt?: number;
   reviewId?: string;
   batchId?: string;
 }
@@ -47,7 +50,7 @@ interface DataContextType {
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
   removeUser: (id: string) => void;
   convertToMobile: (id: string) => void;
-  mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => Promise<boolean>;
+  mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
   updateBranchSettings: (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => void;
   timeline: TimelineEvent[];
@@ -55,6 +58,7 @@ interface DataContextType {
   addTimelineEvent: (event: Omit<TimelineEvent, 'id'>) => void;
   updateTimelineEvent: (id: string, updates: Partial<TimelineEvent>) => void;
   deleteTimelineEvent: (id: string) => void;
+  acceptShiftRequest: (id: string, time: string, endTime: string) => void;
   reviews: CustomerReview[];
   parseReviewsText: (branch: string, text: string, batchId?: string) => { reviews: CustomerReview[], timelineEvents: TimelineEvent[] };
   commitReviews: (newReviews: CustomerReview[], newTimelineEvents: TimelineEvent[]) => void;
@@ -155,9 +159,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateTimelineEvent = (id: string, updates: Partial<TimelineEvent>) => {
-    const newTimeline = timeline.map(t => t.id === id ? { ...t, ...updates } : t);
-    setTimeline(newTimeline);
+    setTimeline(previous => previous.map(t => t.id === id ? { ...t, ...updates } : t));
     // Storage now handled by useEffect
+  };
+
+  const acceptShiftRequest = (id: string, time: string, endTime: string) => {
+    const request = timeline.find(event => event.id === id && event.requestStatus === 'pending');
+    if (!request?.date || !request.employees?.length || !timelineCloud.ready) return;
+    const first = request.requestedShift === 'first';
+    const existing = timeline.find(event => event.type === 'shift' && event.branch === request.branch && event.date === request.date && ((timeMinutes(event.time) ?? 0) < 960) === first);
+    const employees = [...(existing?.employees || [])];
+    for (const employee of request.employees) if (!employees.some(item => item.id === employee.id)) employees.push(employee);
+    const shift: TimelineEvent = existing ? { ...existing, employees } : { id: crypto.randomUUID(), branch: request.branch, type: 'shift', title: first ? 'الشفت الأول' : 'الشفت الثاني', date: request.date, time, endTime, employees };
+    // write_rows and the existing relinking trigger save the decision, shift and review links atomically.
+    setTimeline(previous => [shift, ...previous.filter(event => event.id !== shift.id).map(event => event.id === id ? { ...event, requestStatus: 'accepted' as const } : event)]);
   };
 
   const deleteTimelineEvent = (id: string) => {
@@ -202,11 +217,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const mergeEmployees = async (primaryId: string, duplicateId: string, newName?: string, newBranch?: string) => {
+  const mergeEmployees = async (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => {
     const primary = users.find(u => u.id === primaryId);
     if (!primary || !summaryReadyForMerge()) return false;
-    const { error } = await supabase.rpc('merge_employees', { primary_id: primaryId, duplicate_id: duplicateId,
-      requested_name: newName?.trim() || primary.name, requested_branch: newBranch || primary.branch });
+    const { error } = await supabase.rpc('merge_employees_with_coverage', { primary_id: primaryId, duplicate_id: duplicateId,
+      requested_name: newName?.trim() || primary.name, requested_branch: newBranch || primary.branch, requested_coverage: coverage ?? (primary.isCoverage ?? primary.assignedBranches?.some(branch => branch !== primary.branch) ?? false) });
     if (error) { window.alert('تعذر دمج الموظفات؛ لم تُحفظ أي تغييرات جزئية'); return false; }
     await invalidateRows(readNamespace(session));
     return true;
@@ -416,7 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <DataContext.Provider value={{ 
       requestRecords,
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
-      timeline, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
+      timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,

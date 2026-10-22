@@ -1,3 +1,6 @@
+import { MergeAccountPicker } from '../components/MergeAccountPicker';
+import { BranchEmployees } from '../components/BranchEmployees';
+import { AdministrationPhone } from '../components/MissingShiftRequest';
 import { Brand } from '../components/Brand';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useRef } from 'react';
@@ -50,6 +53,9 @@ export const SystemAdminDashboard: React.FC = () => {
   });
   const [primaryEmpId, setPrimaryEmpId] = useState('');
   const [duplicateEmpId, setDuplicateEmpId] = useState('');
+  const [primaryMergeBranch, setPrimaryMergeBranch] = useState('');
+  const [duplicateMergeBranch, setDuplicateMergeBranch] = useState('');
+  const [mergedCoverage, setMergedCoverage] = useState(false);
   const [mergedName, setMergedName] = useState('');
   const [mergedBranch, setMergedBranch] = useState(branches[0]);
   
@@ -418,6 +424,7 @@ export const SystemAdminDashboard: React.FC = () => {
           {activeTab === 'branches' && (
             <div>
               <h2 className="text-xl font-bold mb-6 border-b pb-2">إدارة الفروع</h2>
+              <AdministrationPhone />
               
               <div className="space-y-6">
                 {(globalBranch === 'all' ? branches : (globalBranch === 'موظفة خارجية' ? [] : [globalBranch])).map(branch => {
@@ -500,6 +507,7 @@ export const SystemAdminDashboard: React.FC = () => {
 
           {activeTab === 'employees' && (
             <div>
+              <BranchEmployees onReview={request => { setPrimaryEmpId(request.primaryId); setDuplicateEmpId(request.duplicateId); setPrimaryMergeBranch(users.find(item => item.id === request.primaryId)?.branch || ''); setDuplicateMergeBranch(users.find(item => item.id === request.duplicateId)?.branch || ''); setMergedCoverage(request.isCoverage); setMergedName(request.name); setMergedBranch(request.targetBranch); setShowMergeModal(true); }} />
               <div className="flex justify-between items-center mb-4 border-b pb-2 flex-wrap gap-2">
                 <h2 className="text-xl font-bold">إدارة الموظفات</h2>
                 <div className="flex gap-2 items-center flex-wrap">
@@ -529,41 +537,13 @@ export const SystemAdminDashboard: React.FC = () => {
                     </p>
 
                     <div className="space-y-4 text-xs font-bold text-slate-700">
-                      <div>
-                        <label className="block mb-1">1. الموظفة الأساسية (الملف المعتمد المستمر):</label>
-                        <select 
-                          value={primaryEmpId} 
-                          onChange={e => {
-                            const id = e.target.value;
-                            setPrimaryEmpId(id);
-                            const p = users.find(u => u.id === id);
-                            if (p) {
-                              setMergedName(p.name);
-                              setMergedBranch(p.branch);
-                            }
-                          }}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
-                        >
-                          <option value="">اختر الموظفة الأساسية...</option>
-                          {users.filter(u => u.role === 'employee').map(u => (
-                            <option key={u.id} value={u.id}>{u.name} ({u.branch})</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block mb-1">2. الموظفة المراد دمجها وإزالتها (المكررة):</label>
-                        <select 
-                          value={duplicateEmpId} 
-                          onChange={e => setDuplicateEmpId(e.target.value)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
-                        >
-                          <option value="">اختر الموظفة المراد دمجها...</option>
-                          {users.filter(u => u.role === 'employee' && u.id !== primaryEmpId).map(u => (
-                            <option key={u.id} value={u.id}>{u.name} ({u.branch})</option>
-                          ))}
-                        </select>
-                      </div>
+                      <MergeAccountPicker label="الحساب الأساسي" branch={primaryMergeBranch} onBranchChange={value => { setPrimaryMergeBranch(value); setPrimaryEmpId(''); setMergedName(''); }} value={primaryEmpId} onChange={id => {
+                        setPrimaryEmpId(id); if (duplicateEmpId === id) setDuplicateEmpId('');
+                        const employee = users.find(item => item.id === id);
+                        if (employee) { setMergedName(employee.name); setMergedBranch(employee.branch); setMergedCoverage(employee.isCoverage ?? employee.assignedBranches?.some(name => name !== employee.branch) ?? false); }
+                      }} users={users} ready={summaryReady} />
+                      <MergeAccountPicker label="الحساب المكرر" branch={duplicateMergeBranch} onBranchChange={value => { setDuplicateMergeBranch(value); setDuplicateEmpId(''); }} value={duplicateEmpId} onChange={setDuplicateEmpId} excludedId={primaryEmpId} users={users} ready={summaryReady} />
+                      <label className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm"><input type="checkbox" checked={mergedCoverage} onChange={event => setMergedCoverage(event.target.checked)} className="h-5 w-5 accent-blue-700" />وسم تغطية بعد الدمج</label>
 
                       <div>
                         <label className="block mb-1">3. الاسم الموحد المعتمد:</label>
@@ -603,7 +583,7 @@ export const SystemAdminDashboard: React.FC = () => {
                             showToast('لا يمكن دمج الموظفة مع نفسها');
                             return;
                           }
-                          if (!await mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch)) return;
+                          if (!await mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch, mergedCoverage)) return;
                           setShowMergeModal(false);
                           setPrimaryEmpId('');
                           setDuplicateEmpId('');
@@ -784,7 +764,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </select>
                     <select value={complaintEmployee} onChange={e => setComplaintEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {complaintBranch && employeesForBranch(complaintBranch).map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+                      {complaintBranch && employeesForBranch(complaintBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? e.reviewsCount.toLocaleString('ar-SA') : '…'} تقييم</option>)}
                     </select>
                     <textarea placeholder="تفاصيل الشكوى..." value={complaintText} onChange={e => setComplaintText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitComplaint} className="w-full bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700">اعتماد الشكوى وخصم النقاط</button>
@@ -804,7 +784,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </select>
                     <select value={safetyEmployee} onChange={e => setSafetyEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {safetyBranch && employeesForBranch(safetyBranch).map(e => <option key={e.id} value={e.name}>{e.name}</option>)}
+                      {safetyBranch && employeesForBranch(safetyBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? e.reviewsCount.toLocaleString('ar-SA') : '…'} تقييم</option>)}
                     </select>
                     <textarea placeholder="وصف المخالفة..." value={safetyText} onChange={e => setSafetyText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitSafety} className="w-full bg-orange-600 text-white py-2 rounded-lg font-bold hover:bg-orange-700">اعتماد المخالفة</button>

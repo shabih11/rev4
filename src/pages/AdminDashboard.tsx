@@ -1,6 +1,8 @@
+import { BranchEmployees } from '../components/BranchEmployees';
+import { ShiftCalendar } from '../components/ShiftCalendar';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useCallback, useMemo } from 'react';
-import { CalendarClock, LogOut, Search, CheckCircle2, ChevronRight, ChevronLeft, Calendar as CalendarIcon, User, Clock, Check, Lock, ChevronDown } from 'lucide-react';
+import { CalendarClock, LogOut, Search, CheckCircle2, Calendar as CalendarIcon, User, Clock, Check, Lock, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
@@ -77,14 +79,14 @@ const MONTH_NAMES_AR = [
   'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
 ];
 
-const WEEK_DAYS_AR = ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { recordsReady, users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
+  const { recordsReady, users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, acceptShiftRequest } = useData();
 
-  const [activeTab, setActiveTab] = useState<'shifts' | 'profile'>('shifts');
-  useRecordScope(activeTab === 'shifts' ? { reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } } : {});
+  const [activeTab, setActiveTab] = useState<'shifts' | 'employees' | 'profile'>('shifts');
+  useRecordScope(activeTab !== 'profile' ? { users: true, reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } } : {});
 
   // Month state for heatmap
   const today = useMemo(() => new Date(), []);
@@ -115,8 +117,8 @@ export const AdminDashboard: React.FC = () => {
   }, [users, user?.branch]);
 
   const outsourcedEmployees = useMemo(() => {
-    return users.filter(u => u.branch === 'موظفة خارجية' && u.role === 'employee');
-  }, [users]);
+    return users.filter(u => u.branch !== user?.branch && u.role === 'employee');
+  }, [users, user?.branch]);
 
   const coverageList1 = useMemo(() => {
     const map = new Map<string, { id: string; name: string; imageUrl?: string }>();
@@ -166,34 +168,6 @@ export const AdminDashboard: React.FC = () => {
     return `${day}-${month}-${year}`;
   }, []);
 
-  // Compute calendar days for currentMonth / currentYear
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startWeekday = firstDay.getDay(); // 0 = Sunday
-
-    const days: { date: Date; dayNum: number; dateKey: string; isCurrentMonth: boolean }[] = [];
-
-    // Empty slots before 1st of month
-    for (let i = 0; i < startWeekday; i++) {
-      days.push({ date: new Date(currentYear, currentMonth, -startWeekday + i + 1), dayNum: 0, dateKey: '', isCurrentMonth: false });
-    }
-
-    // Actual days of month
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dObj = new Date(currentYear, currentMonth, d);
-      days.push({
-        date: dObj,
-        dayNum: d,
-        dateKey: formatDayKey(dObj),
-        isCurrentMonth: true,
-      });
-    }
-
-    return days;
-  }, [currentYear, currentMonth, formatDayKey]);
-
   // Find shifts for a given date key in this branch
   const getShiftsForDate = useCallback((dateKey: string) => {
     if (!user?.branch || !dateKey) return { shift1: null, shift2: null };
@@ -212,17 +186,6 @@ export const AdminDashboard: React.FC = () => {
 
     return { shift1, shift2 };
   }, [timeline, user?.branch]);
-
-  // Status for each day: 'both' | 'single' | 'none'
-  const getDayShiftStatus = useCallback((dateKey: string): 'both' | 'single' | 'none' => {
-    const { shift1, shift2 } = getShiftsForDate(dateKey);
-    const hasS1 = Boolean(shift1 && shift1.employees && shift1.employees.length > 0);
-    const hasS2 = Boolean(shift2 && shift2.employees && shift2.employees.length > 0);
-
-    if (hasS1 && hasS2) return 'both';
-    if (hasS1 || hasS2) return 'single';
-    return 'none';
-  }, [getShiftsForDate]);
 
   // Open edit modal for a day
   const handleDayClick = (date: Date) => {
@@ -300,31 +263,8 @@ export const AdminDashboard: React.FC = () => {
     showToast(`تم حفظ شفتات يوم ${selectedDayDate.getDate()} ${MONTH_NAMES_AR[selectedDayDate.getMonth()]} بنجاح`);
   };
 
-  const handlePrevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(y => y - 1);
-    } else {
-      setCurrentMonth(m => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(y => y + 1);
-    } else {
-      setCurrentMonth(m => m + 1);
-    }
-  };
-
-  const handleGoToToday = () => {
-    setCurrentMonth(today.getMonth());
-    setCurrentYear(today.getFullYear());
-  };
-
   return (
-    <div className="workspace min-h-screen flex flex-col font-sans pb-24" dir="rtl">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-24" dir="rtl">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] bg-emerald-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-2 animate-fade-in font-bold text-sm">
@@ -334,13 +274,13 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Header */}
-      <header className="bg-slate-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
+      <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg md:text-xl font-black">لوحة إدارة فرع {user?.branch}</h1>
           </div>
           <p className="text-xs text-blue-100 font-medium mt-0.5">
-            ساعات العمل الثابتة: {branchHours.label}
+            بدء العمل في الفرع : {formatTime(branchHours.open)}
           </p>
         </div>
 
@@ -359,173 +299,32 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Main Container */}
       <main className="flex-1 p-4 md:p-8 max-w-5xl mx-auto w-full">
-        <div className="workspace-heading"><h2>{activeTab === 'shifts' ? 'شفتات الفرع' : 'حسابي'}</h2><p>{activeTab === 'shifts' ? 'نظّمي يوم الفريق وتابعي تغطية الشفتات.' : 'بياناتك وإعدادات حسابك.'}</p></div>
+        <div className="p-3 text-center">
+        </div>
         {activeTab === 'shifts' && (
           <div className="space-y-6">
-            {/* Calendar Controls & Month Header */}
-            <div className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-5">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
-                    <CalendarClock size={26} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl sm:text-2xl font-black text-slate-800">
-                      تقويم شفتات الفرع
-                    </h2>
-                    <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                      انقري على أي يوم لتسجيل أو تعديل موظفات الشفتين الأول والثاني
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  {/* Month Editability Status Badge */}
-                  {monthEditStatus.type === 'current' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
-                      <CheckCircle2 size={13} className="text-emerald-600" />
-                      الشهر الحالي (متاح للتعديل)
-                    </span>
-                  )}
-                  {monthEditStatus.type === 'previous_grace' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
-                      <Clock size={13} className="text-amber-600" />
-                      الشهر السابق (متاح للتعديل - مهلة يومين)
-                    </span>
-                  )}
-                  {monthEditStatus.type === 'locked' && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black bg-slate-100 text-slate-600 border border-slate-200 shadow-sm">
-                      <Lock size={13} className="text-slate-500" />
-                      مغلق للتعديل (للعرض فقط)
-                    </span>
-                  )}
-
-                  {/* Month Navigator */}
-                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1.5 shadow-inner">
-                    <button
-                      onClick={handleNextMonth}
-                      className="p-2 hover:bg-white rounded-xl text-slate-700 transition shadow-sm cursor-pointer"
-                      title="الشهر التالي"
-                    >
-                      <ChevronRight size={18} />
-                    </button>
-
-                    <div className="px-3 min-w-[130px] text-center font-extrabold text-sm text-slate-800">
-                      {MONTH_NAMES_AR[currentMonth]} {currentYear}
-                    </div>
-
-                    <button
-                      onClick={handlePrevMonth}
-                      className="p-2 hover:bg-white rounded-xl text-slate-700 transition shadow-sm cursor-pointer"
-                      title="الشهر السابق"
-                    >
-                      <ChevronLeft size={18} />
-                    </button>
-
-                    <button
-                      onClick={handleGoToToday}
-                      className="text-xs bg-white text-indigo-700 font-bold px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-indigo-50 transition shadow-sm ml-1 cursor-pointer"
-                    >
-                      اليوم
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Branch Shift Timing Guide */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs bg-indigo-50/70 border border-indigo-100 p-4 rounded-2xl">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0"></span>
-                  <span className="font-bold text-indigo-950">الشفت الأول:</span>
-                  <span className="text-indigo-800 font-medium">
-                    من فتح الفرع ({formatTime(branchHours.open)}) حتى ٤:٠٠ مساءً
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600 shrink-0"></span>
-                  <span className="font-bold text-purple-950">الشفت الثاني:</span>
-                  <span className="text-purple-800 font-medium">
-                    من ٤:٠٠ مساءً حتى فتح الفرع اليوم التالي ({formatTime(branchHours.nextDay)})
-                  </span>
-                </div>
-              </div>
-
-              {/* Heatmap Legend */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-bold pt-1">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-lg bg-emerald-500 shadow-sm border border-emerald-600"></span>
-                  <span className="text-slate-700">شفتان مسجلان (الأول والثاني معاً)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-lg bg-emerald-100 border border-emerald-300"></span>
-                  <span className="text-slate-700">شفت واحد فقط مسجل</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-lg bg-slate-100 border border-slate-200"></span>
-                  <span className="text-slate-500">لا توجد شفتات مسجلة</span>
-                </div>
-              </div>
-
-              {/* Heatmap Calendar Grid */}
-              <div className="space-y-2 pt-2">
-                {/* Weekday Names Header (Sunday to Saturday) */}
-                <div className="grid grid-cols-7 gap-2 text-center text-xs font-extrabold text-slate-500 py-1">
-                  {WEEK_DAYS_AR.map(w => (
-                    <div key={w} className="py-1">
-                      {w}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Day Cells Grid */}
-                <div className="grid grid-cols-7 gap-2 sm:gap-3">
-                  {calendarDays.map((item, idx) => {
-                    if (!item.isCurrentMonth) {
-                      return <div key={`empty-${idx}`} className="w-full aspect-square opacity-0"></div>;
-                    }
-
-                    const status = getDayShiftStatus(item.dateKey);
-                    const isToday = item.date.toDateString() === today.toDateString();
-
-                    let colorClasses = 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200/80';
-                    let statusLabel = 'لا يوجد';
-
-                    if (status === 'both') {
-                      colorClasses = 'bg-emerald-500 text-white font-black shadow-md hover:bg-emerald-600 border border-emerald-600 scale-[1.01]';
-                      statusLabel = 'شفتين';
-                    } else if (status === 'single') {
-                      colorClasses = 'bg-emerald-100 text-emerald-900 font-extrabold border border-emerald-300 hover:bg-emerald-200';
-                      statusLabel = 'شفت واحد';
-                    }
-
-                    return (
-                      <button
-                        key={item.dateKey}
-                        onClick={() => handleDayClick(item.date)}
-                        className={`w-full aspect-square sm:h-20 flex flex-col items-center justify-center rounded-2xl sm:rounded-3xl transition-all duration-200 relative group cursor-pointer ${colorClasses} ${
-                          isToday ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                        }`}
-                        title={`${item.dayNum} ${MONTH_NAMES_AR[currentMonth]} - ${statusLabel}`}
-                      >
-                        <span className="text-base sm:text-2xl font-black leading-none">
-                          {item.dayNum}
-                        </span>
-
-                        <span className={`text-[9px] sm:text-[10px] mt-1 font-bold ${status === 'both' ? 'text-emerald-100' : status === 'single' ? 'text-emerald-700' : 'text-slate-400'}`}>
-                          {status === 'both' ? 'شفتين ✓' : status === 'single' ? 'شفت ١' : '—'}
-                        </span>
-
-                        {isToday && (
-                          <span className="absolute top-1.5 left-1.5 w-2 h-2 rounded-full bg-blue-500"></span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            <ShiftCalendar shifts={timeline.filter(t => t.type === 'shift' && t.branch === user?.branch)} onSelect={key => {
+              const [day, month, year] = key.split('-').map(Number);
+              setCurrentYear(year); setCurrentMonth(month - 1);
+              handleDayClick(new Date(year, month - 1, day));
+            }} />
           </div>
         )}
+
+        {activeTab === 'employees' && <div className="space-y-6"><BranchEmployees branch={user?.branch} />
+            <section className="bg-white p-5 rounded-3xl border space-y-3">
+              <h2 className="font-bold text-xl">طلبات تسجيل شفت مفقود</h2>
+              {timeline.filter(r => r.branch === user?.branch && r.requestStatus).map(r => <div key={r.id} className="border rounded-xl p-4">
+                <strong>{r.employees?.map(e => e.name).join('، ')} — {r.date} — الشفت {r.requestedShift === 'first' ? 'الأول' : 'الثاني'}</strong>
+                {r.requestStatus === 'pending' ? <div className="flex gap-3 mt-3">
+                  <button disabled={!recordsReady} className="bg-emerald-600 text-white rounded-xl p-2" onClick={() => {
+                    acceptShiftRequest(r.id, r.requestedShift === 'first' ? branchHours.open : '16:00', r.requestedShift === 'first' ? '16:00' : branchHours.nextDay);
+                  }}>شفت مفقود — قبول وإضافة</button>
+                  <button disabled={!recordsReady} className="bg-red-50 text-red-700 rounded-xl p-2" onClick={() => updateTimelineEvent(r.id, { requestStatus: 'rejected', rejectedAt: Date.now() })}>الطلب غير صحيح — رفض</button>
+                </div> : <p>{r.requestStatus === 'accepted' ? 'تم قبول الطلب' : 'تم رفض الطلب'}</p>}
+              </div>)}
+            </section>
+        </div>}
 
         {/* Profile Tab */}
         {activeTab === 'profile' && <UserProfileTab />}
@@ -1014,32 +813,10 @@ export const AdminDashboard: React.FC = () => {
       )}
 
       {/* Bottom Navigation: 2 tabs (Shifts Calendar & Profile) */}
-      <nav aria-label="تنقل مديرة الفرع" className="bottom-nav fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
-        <button
-          aria-current={activeTab === 'shifts' ? 'page' : undefined}
-          onClick={() => setActiveTab('shifts')}
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
-            activeTab === 'shifts'
-              ? 'text-emerald-700 bg-emerald-50 font-black scale-105'
-              : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <CalendarClock size={22} className={activeTab === 'shifts' ? 'stroke-[2.5px]' : ''} />
-          <span className="text-[11px] font-bold">الشفتات (التقويم)</span>
-        </button>
-
-        <button
-          aria-current={activeTab === 'profile' ? 'page' : undefined}
-          onClick={() => setActiveTab('profile')}
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
-            activeTab === 'profile'
-              ? 'text-blue-700 bg-blue-50 font-black scale-105'
-              : 'text-slate-400 hover:text-slate-600'
-          }`}
-        >
-          <User size={22} className={activeTab === 'profile' ? 'stroke-[2.5px]' : ''} />
-          <span className="text-[11px] font-bold">شخصي</span>
-        </button>
+      <nav aria-label="التبويبات" className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-lg px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-lg gap-2">
+          {([{ id: 'employees', label: 'الموظفات', Icon: User }, { id: 'shifts', label: 'الشفتات', Icon: CalendarClock }, { id: 'profile', label: 'شخصي', Icon: User }] as const).map(({ id, label, Icon }) => <button key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)} className={`tab-button ${activeTab === id ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}><Icon size={22} /><span>{label}</span></button>)}
+        </div>
       </nav>
     </div>
   );

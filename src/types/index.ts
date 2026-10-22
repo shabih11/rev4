@@ -21,6 +21,7 @@ export interface Employee {
     safety?: number;
   };
   assignedBranches?: string[];
+  isCoverage?: boolean;
   code?: string;
   aliases?: string[];
 }

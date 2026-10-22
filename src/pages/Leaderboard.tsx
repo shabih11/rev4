@@ -1,3 +1,4 @@
+import { useRecordScope } from '../hooks/useRecordScope';
 import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -22,6 +23,7 @@ type SlideData =
   | { type: 'praised_employee'; employee: UserAccount; count: number; texts: string[] };
 
 export const Leaderboard: React.FC = () => {
+  useRecordScope({ reviews: { all: true } });
   const reduceMotion = useReducedMotion();
   const { users, reviews: privateReviews, reviewSummaries, summaryReady, syncError } = useData();
   const reviews = useMemo(() => {

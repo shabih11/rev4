@@ -1,11 +1,12 @@
 import { Brand } from '../components/Brand';
+import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
 import { ShiftReviewCounts } from '../components/ShiftReviewCounts';
 import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
-import { formatDateTime, formatDate, formatTime, shiftName, riyadhDateKey, toEnglishNumerals } from '../lib/formatDate';
+import { formatDateTime, formatDate, formatTime, shiftName, toEnglishNumerals } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { LogOut, Star, Award, AlertTriangle, CalendarClock, ChevronDown, ChevronUp, User } from 'lucide-react';
@@ -13,7 +14,7 @@ import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { addTimelineEvent, reviews, reviewSummaries, recordsReady, summaryReady, summaryGeneratedAt, syncError, users, timeline } = useData();
+  const { reviews, reviewSummaries, recordsReady, summaryReady, summaryGeneratedAt, syncError, users, timeline } = useData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
@@ -25,10 +26,10 @@ export const EmployeeDashboard: React.FC = () => {
   const employeeReviews = reviews.filter(review => review.linkedEmployeeIds.includes(user.id)).sort(newestFirst);
   const employeeShifts = timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).sort(newestFirst);
   const detailsReady = recordsReady && !syncError;
-  const todayShifts = timeline.filter(event => event.type === 'shift' && event.date === riyadhDateKey() && event.employees?.some(employee => employee.id === user.id));
+
 
   return (
-    <div className="workspace employee-space w-full min-h-screen font-sans pb-24" dir="rtl">
+    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
@@ -36,10 +37,10 @@ export const EmployeeDashboard: React.FC = () => {
       ) : (
         <>
           {/* Header */}
-          <div className="employee-header px-6 mb-6 relative overflow-hidden flex flex-col items-center">
-        <Brand />
+          <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
+            <Brand compact />
             <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
             <p className="text-blue-600 font-bold">{user.branch}</p>
           </div>
@@ -74,7 +75,7 @@ export const EmployeeDashboard: React.FC = () => {
           aria-expanded={showReviews}
           aria-controls="employee-reviews"
           onClick={() => setShowReviews(!showReviews)}
-          className="workspace-panel w-full bg-white p-5 flex justify-between items-center"
+          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
         >
           <div className="flex items-center gap-3">
             <Star className="text-yellow-400" size={22} />
@@ -153,7 +154,7 @@ export const EmployeeDashboard: React.FC = () => {
           aria-expanded={showShifts}
           aria-controls="employee-shifts"
           onClick={() => setShowShifts(!showShifts)}
-          className="workspace-panel w-full bg-white p-5 flex justify-between items-center"
+          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
         >
           <div className="flex items-center gap-3">
             <CalendarClock className="text-blue-500" size={22} />
@@ -182,37 +183,10 @@ export const EmployeeDashboard: React.FC = () => {
       {/* Shift Information & Objection */}
       <div className="px-6 mb-8">
         <div className="bg-white rounded-3xl p-6 shadow-lg border border-blue-50">
-          <h3 className="font-bold text-xl mb-4 text-gray-800">شفت اليوم</h3>
-          
-          <div className="bg-blue-50 p-4 rounded-xl flex justify-between items-center mb-4">
-            <div>
-              <p className="text-blue-800 font-bold text-lg">{syncError ? 'تعذر التحقق من الشفت' : !recordsReady ? 'جارٍ التحقق…' : todayShifts.length ? `${shiftName(todayShifts[0].time)}: ${formatTime(todayShifts[0].time)} إلى ${formatTime(todayShifts[0].endTime) || 'غير محدد'}` : 'لا يوجد شفت مسجل اليوم'}</p>
-              <p className="text-blue-600 text-sm">{!detailsReady ? 'تتم مزامنة بيانات الشفت تلقائيًا' : todayShifts.length ? 'الشفت مسجل في النظام.' : 'يمكنك تقديم اعتراض إذا كان هناك شفت مفقود.'}</p>
-            </div>
-            <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold text-sm">
-              {!detailsReady ? 'غير متحقق' : todayShifts.length ? 'مسجل' : 'غير مسجل'}
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
+          <div className="pt-4">
             <p className="text-gray-500 text-sm mb-3">هل نسيت مديرة الفرع تسجيل الشفت الخاص بك؟</p>
-            <button
-              disabled={!detailsReady}
-              onClick={() => {
-                if (!detailsReady) return;
-                addTimelineEvent({
-                  branch: user.branch,
-                  type: 'gap',
-                  title: `اعتراض شفت مفقود - ${user.name}`,
-                  time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
-                  comment: 'الموظفة تطالب بتسجيل الشفت الخاص بها ولم تقم المديرة بذلك.'
-                });
-                alert('تم إرسال الاعتراض إلى الإدارة.');
-              }}
-              className="w-full bg-white border-2 border-red-100 text-red-500 hover:bg-red-50 hover:border-red-200 py-3 rounded-xl font-bold transition-all"
-            >
-              تقديم اعتراض على شفت مفقود
-            </button>
+            <h3 className="font-bold mb-4">طلب تسجيل شفت مفقود</h3>
+            <MissingShiftRequest />
           </div>
         </div>
       </div>
@@ -220,13 +194,13 @@ export const EmployeeDashboard: React.FC = () => {
       )}
 
       {/* Bottom Navigation */}
-      <nav aria-label="تنقل الموظفة" className="bottom-nav fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
+      <nav aria-label="تنقل الموظفة" className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
         <button
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
           onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+          className={`tab-button ${
             activeTab === 'dashboard'
-              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              ? 'text-blue-700 bg-blue-50 font-black'
               : 'text-slate-400 hover:text-slate-600'
           }`}
         >
@@ -237,9 +211,9 @@ export const EmployeeDashboard: React.FC = () => {
         <button
           aria-current={activeTab === 'profile' ? 'page' : undefined}
           onClick={() => setActiveTab('profile')}
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-2xl transition-all duration-200 cursor-pointer ${
+          className={`tab-button ${
             activeTab === 'profile'
-              ? 'text-blue-700 bg-blue-50 font-black scale-105'
+              ? 'text-blue-700 bg-blue-50 font-black'
               : 'text-slate-400 hover:text-slate-600'
           }`}
         >

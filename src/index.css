@@ -10,7 +10,7 @@
   }
   body {
     @apply bg-gray-50 text-gray-900;
-    font-family: 'Alexandria', 'SF Arabic', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Cairo', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
   }
 }
 
@@ -36,4 +36,10 @@
   }
   input:user-invalid, textarea:user-invalid { border-color: #b42318; }
   h1, h2, h3 { text-wrap: balance; }
+}
+
+@layer components {
+  .action-button { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2; }
+  .action-primary { @apply action-button bg-blue-700 text-white hover:bg-blue-800; }
+  .tab-button { @apply flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500; }
 }

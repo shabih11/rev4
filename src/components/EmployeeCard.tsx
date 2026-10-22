@@ -48,12 +48,12 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
-  useRecordScope({ reviews: activeTab === 'reviews' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
-  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, summaryGeneratedAt, employeeHours, syncError } = useData();
+  useRecordScope({ reviews: activeTab !== 'points' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
+  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError } = useData();
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
-  const employeeReviews = (activeTab === 'reviews' ? reviews : reviewSummaries)
+  const employeeReviews = (activeTab !== 'points' ? reviews : reviewSummaries)
     .filter(review => review.linkedEmployeeIds.includes(employee.id))
     .map(review => ({
       ...review,
@@ -75,7 +75,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
     if (duration < 0) duration += 1440;
     return total + (Number.isFinite(duration) ? duration / 60 : 0);
   }, 0));
-  const tabReady = activeTab === 'activity' || activeTab === 'points' ? summaryReady : recordsReady;
+  const tabReady = activeTab === 'activity' || activeTab === 'points' ? (activeTab === 'activity' ? recordsReady : summaryReady) : recordsReady;
 
   return (
     <>
@@ -108,7 +108,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               <img src={employee.imageUrl} alt={employee.name} className="w-16 h-16 rounded-full object-cover object-top border-2 border-white/50 shadow-md shrink-0 bg-blue-200" />
               <div>
                 <h3 className="text-xl sm:text-2xl font-bold">{employee.name}</h3>
-                <p className="text-blue-100 text-sm mb-1">{employee.branch}</p>
+                <p className="text-blue-100 text-sm mb-1">{employee.branch}{(employee.isCoverage ?? employee.assignedBranches?.some(branch => branch !== employee.branch) ?? false) ? ' (تغطية)' : ''}</p>
                 <div className="flex gap-2 mt-1 flex-wrap">
                   <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
                   <p className="text-[10px] sm:text-xs bg-blue-500/50 px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
@@ -130,24 +130,24 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           </div>
 
           {/* Tabs */}
-          <div className="flex border-b">
+          <div className="flex gap-1 border-b p-2 bg-slate-50">
             <button 
               onClick={() => setActiveTab('reviews')}
-              className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'reviews' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+              className={`flex-1 min-h-11 rounded-xl px-2 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'reviews' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'}`}
             >
               <Star size={18} />
               تقييماتي
             </button>
             <button 
               onClick={() => setActiveTab('shifts')}
-              className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'shifts' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+              className={`flex-1 min-h-11 rounded-xl px-2 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'shifts' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'}`}
             >
               <CalendarClock size={18} />
               شفتاتي
             </button>
             <button 
               onClick={() => setActiveTab('activity')}
-              className={`flex-1 p-3 font-bold flex items-center justify-center gap-2 transition-colors ${activeTab === 'activity' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+              className={`flex-1 min-h-11 rounded-xl px-2 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'activity' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'}`}
             >
               <Award size={18} />
               نشاطي
@@ -157,7 +157,6 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           {/* Body */}
           <div className="p-4 sm:p-6 bg-gray-50 h-[50vh] overflow-y-auto">
             {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !tabReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
-            {summaryGeneratedAt && <p className="text-xs text-gray-400 mb-3">ملخص يومي: {formatDateTime(summaryGeneratedAt.slice(0, 10), '')}</p>}
             {activeTab === 'reviews' ? (
               <div className="space-y-4 pt-2 pb-2">
                 {(recordsReady ? employeeReviews : []).map(r => {
@@ -215,7 +214,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                 )}
               </div>
             ) : activeTab === 'activity' ? (
-              <ActivityChart reviews={employeeReviews} />
+              recordsReady && !syncError ? <ActivityChart reviews={employeeReviews} /> : null
             ) : activeTab === 'points' ? (
               <div className="space-y-4">
                 <div className="bg-blue-600 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg">

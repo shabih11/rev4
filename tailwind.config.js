@@ -12,9 +12,9 @@ export default {
       },
       boxShadow: { sm: '0 2px 8px #142b5405', md: '0 4px 16px #142b5408', lg: '0 6px 24px #142b540a', xl: '0 8px 32px #142b540d', '2xl': '0 12px 40px #142b5412' },
       fontFamily: {
-        alexandria: ['Alexandria', '"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
-        sf: ['Alexandria', '"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
-        sans: ['Alexandria', '"SF Arabic"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        alexandria: ['Cairo', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sf: ['Cairo', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
+        sans: ['Cairo', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'system-ui', 'sans-serif'],
       },
     },
   },
