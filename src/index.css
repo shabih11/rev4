@@ -49,10 +49,10 @@
 .employee-experience[data-tier="gold"] { background: linear-gradient(135deg,#fffcf1,#f5e8bf 55%,#fffdf7); color:#362709; }
 .employee-experience[data-tier="silver"] .bg-white { background:#fff; border-color:#cbd5e1; box-shadow:0 8px 28px -18px #47556966; }
 .employee-experience[data-tier="gold"] .bg-white { background:#fff; border-color:#d6b45f; box-shadow:0 8px 28px -18px #926c2366; }
-.tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline:2px; }
-.faceted-gem { display:block; width:30px; height:38px; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
+.tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline-end:0.2em; line-height:1; }
+.faceted-gem { display:block; width:0.7em; height:1em; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
 .gem-gold { filter:drop-shadow(0 2px 4px #c49a3b33); }
-.gem-gold-image { width:22px; height:41px; clip-path:polygon(49.7% 8.4%,99% 54.3%,49.7% 98.2%,0% 54.3%); }
+.gem-gold-image { width:0.55em; height:1.05em; clip-path:polygon(49.7% 8.4%,99% 54.3%,49.7% 98.2%,0% 54.3%); }
 .gem-glint { transform-origin:30px 12px; animation:gem-twinkle 5s ease-in-out infinite; }
 @keyframes gem-twinkle { 0%,70%,100% {opacity:.7} 80% {opacity:1;transform:scale(1.08)} }
 .balance-growth { display:inline-block; color:#04743e; font-size:0.8rem; font-weight:800; vertical-align:middle; }
