@@ -1,3 +1,4 @@
+import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { BrandName, PageLoading } from '../components/Brand';
@@ -186,7 +187,8 @@ export const Leaderboard: React.FC = () => {
       onKeyDownCapture={handleTouchStart}
     >
       
-      <header className="recognition-header"><BrandName /><Link to="/dashboard" className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link></header>
+      <LeaderboardScenery />
+      <header className="recognition-header relative z-30"><BrandName /><Link to="/dashboard" className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link></header>
       <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
         <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
@@ -241,8 +243,8 @@ export const Leaderboard: React.FC = () => {
                   <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
                     <Users size={48} className="text-blue-500 opacity-20 absolute top-6 right-6" />
                     <div className="flex items-center justify-center -space-x-6 sm:-space-x-8 rtl:space-x-reverse mt-2">
-                      <img src={slide.emp1.imageUrl} alt={slide.emp1.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-10" />
-                      <img src={slide.emp2.imageUrl} alt={slide.emp2.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-0 -ml-6 sm:-ml-8" />
+                      <EmployeeAvatar employee={slide.emp1} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl bg-white z-10" />
+                      <EmployeeAvatar employee={slide.emp2} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl bg-white z-0 -ml-6 sm:-ml-8" />
                     </div>
                     <div className="z-10 mt-2 sm:mt-4 bg-white/60 backdrop-blur-sm p-3 sm:p-4 rounded-2xl sm:rounded-3xl w-full shadow-sm">
                       <h4 className="text-base sm:text-xl font-black text-gray-800 leading-tight">{slide.emp1.name}</h4>
@@ -267,7 +269,7 @@ export const Leaderboard: React.FC = () => {
                 {slide.type === 'active_employee' && (
                   <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white mb-3 sm:mb-6 z-10" />
+                    <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
                     <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
                     <p className="text-orange-700 font-bold bg-orange-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
                   </div>
@@ -276,7 +278,7 @@ export const Leaderboard: React.FC = () => {
                 {slide.type === 'praised_employee' && (
                   <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <MessageSquareHeart size={48} className="text-pink-500 opacity-10 absolute bottom-6 left-6" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg object-cover object-top bg-white mb-2 sm:mb-4 z-10 shrink-0" />
+                    <EmployeeAvatar employee={slide.employee} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg bg-white mb-2 sm:mb-4 z-10 shrink-0" />
                     <h3 className="text-lg sm:text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
                     
                     <div className="mt-2 sm:mt-4 flex flex-col gap-2 w-full z-10 overflow-y-auto flex-1">
@@ -300,25 +302,25 @@ export const Leaderboard: React.FC = () => {
         </Swiper>
       </div>
 
-      {/* Bottom Blue Curved Card */}
+      {/* White results panel */}
       <div className="w-full shrink-0 z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
+        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-white fill-current block -mb-px">
           <path d="M0,20 Q50,0 100,20 Z" />
         </svg>
-        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
+        <div className="recognition-panel bg-white w-full flex flex-col items-center justify-center text-slate-900 pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
           
           {/* Left/Right Action Buttons */}
           <button 
             aria-label="جميع الموظفات" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
-            className="absolute left-4 sm:left-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute left-4 sm:left-6 top-6 bg-slate-100 text-slate-700 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
-             <Users size={22} className="text-white" />
+             <Users size={22} className="text-slate-700" />
           </button>
           <button 
             aria-label="الفروع" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
-            className="absolute right-4 sm:right-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
+            className="absolute right-4 sm:right-6 top-6 bg-slate-100 text-slate-700 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
           >
-             <Building2 size={22} className="text-white" />
+             <Building2 size={22} className="text-slate-700" />
           </button>
 
           <AnimatePresence mode="wait">
@@ -342,7 +344,7 @@ export const Leaderboard: React.FC = () => {
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">النقاط</p>
                       <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(1)}</p>
                     </div>
-                    <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
+                    <div className="w-px h-8 sm:h-10 bg-slate-200"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
                       <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span> <BalanceGrowth employee={activeSlide.data} /></p>
@@ -532,7 +534,7 @@ export const Leaderboard: React.FC = () => {
                         <div className="grid grid-cols-2 gap-2 relative z-10">
                           {top2.map(emp => (
                             <div key={emp.id} className="w-full flex items-center gap-2 text-right">
-                              <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
+                              <EmployeeAvatar employee={emp} className="w-8 h-8 rounded-full border shrink-0" />
                               <div className="overflow-hidden flex-1">
                                 <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
                                 <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>

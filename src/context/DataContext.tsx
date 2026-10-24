@@ -1,3 +1,4 @@
+import { comparisonFromRecords } from '../lib/employeeFeatures';
 import type { FeatureState } from '../lib/employeeFeatures';
 import { useDailyReadModel } from '../lib/dailyReadModel';
 import { supabase } from '../lib/supabase';
@@ -381,6 +382,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady]);
 
+  const featureState = React.useMemo(() => comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee'), reviewSignals.rows), [daily.data, enrichedUsers, reviewSignals.rows]);
+
   const clearData = (branch?: string, startDate?: string, endDate?: string) => {
     if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
       window.alert('انتظري اكتمال تحميل جميع السجلات قبل المسح');
@@ -431,7 +434,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
-      features: daily.data?.features || null,
+      features: featureState,
       requestRecords,
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,

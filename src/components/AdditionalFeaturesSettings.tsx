@@ -1,3 +1,4 @@
+import { AvatarStoreAdmin } from './AvatarStoreAdmin';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
@@ -8,14 +9,14 @@ const switches = [
   ['competition', 'المنافسة اليومية', 'إظهار أسماء الموظفات اللاتي تجاوزتهن الموظفة منذ نهاية أمس.'],
   ['balanceGrowth', 'زيادة رصيد التقييمات', 'عرض الزيادة اليومية باللون الأخضر بجانب الرصيد.'],
   ['tiers', 'الفئات والمظهر', 'برونز بالمظهر المعتاد، فضي هادئ، وذهبي لامع مع جوهرة بجانب الاسم.'],
-  ['avatars', 'إكسسوارات الأفتار', 'فتح الشال والدبوس في الفضي، والبرقع في الذهبي؛ تبقى الصورة الأصلية ثابتة.'],
+  ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
   if (!features) return <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">إعدادات الميزات غير متاحة. تحققي من الاتصال وتطبيق تحديث قاعدة البيانات.</p>;
-  return <SettingsForm key={JSON.stringify(features.settings)} initial={features.settings} baselineDay={features.baselineDay} />;
+  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><AvatarStoreAdmin/></div>;
 }
-function SettingsForm({ initial, baselineDay }: { initial: FeatureSettings; baselineDay: string | null }) {
+function SettingsForm({ initial }: { initial: FeatureSettings }) {
   const [settings, setSettings] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -40,9 +41,8 @@ function SettingsForm({ initial, baselineDay }: { initial: FeatureSettings; base
         <label className="font-bold">بداية الفئة الذهبية<input required type="number" step="0.1" min="0.2" max="11" value={settings.goldAt} onChange={event => setSettings({ ...settings, goldAt: event.target.valueAsNumber })} className="block border rounded-xl p-3 mt-2 w-full" /></label>
       </div>
       <div className="grid sm:grid-cols-3 gap-3 text-sm"><p className="rounded-xl bg-orange-50 text-orange-950 p-4">Bronze · أقل من {settings.silverAt}</p><p className="rounded-xl bg-slate-100 text-slate-900 p-4">Silver · من {settings.silverAt} إلى أقل من {settings.goldAt}</p><p className="rounded-xl bg-amber-50 text-amber-950 p-4">Gold · {settings.goldAt} فأكثر</p></div>
-      {!settings.tiers && settings.avatars && <p className="text-amber-900">فعّلي الفئات لإتاحة إكسسوارات الأفتار.</p>}
     </fieldset>
-    <p className="text-sm text-slate-600">المقارنة مع نهاية اليوم السابق بتوقيت الرياض. {baselineDay ? `خط الأساس ليوم ${baselineDay} متاح.` : 'ستبدأ المقارنة بعد أول حفظ يومي عند منتصف الليل؛ لا تُفترض نتائج سابقة.'}</p>
+    <p className="text-sm text-slate-600">المقارنة مع نهاية أمس بتوقيت الرياض، وتُحسب مباشرة من التقييمات الحالية دون انتظار لقطة يومية.</p>
     {message && <p role="status" className="text-sm font-bold text-indigo-900">{message}</p>}
     <button disabled={busy} className="action-primary">{busy ? 'جارٍ الحفظ…' : 'حفظ الميزات'}</button>
   </form>;

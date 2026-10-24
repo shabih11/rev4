@@ -14,7 +14,7 @@ export function useDailyReadModel(session: CloudSession) {
     const timer = window.setInterval(() => setDay(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })), 30000);
     return () => window.clearInterval(timer);
   }, []);
-  const namespace = readNamespace(session) + '|features-v1|' + day + '|', uid = session.account ? session.uid : null;
+  const namespace = readNamespace(session) + '|avatar-store-v2|' + day + '|', uid = session.account ? session.uid : null;
   const [value, setValue] = useState<{ namespace: string; revision: string; data: DailyReadModel } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {

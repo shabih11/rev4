@@ -113,10 +113,8 @@ do $$ begin
  begin insert into public.employee_accessories(profile_id,items) values('verify-outside',array['veil']); raise exception 'Direct accessory write accepted'; exception when insufficient_privilege then null; end;
  if public.get_employee_features()::text like '%example.invalid%' then raise exception 'Features exposed account emails'; end if;
 end $$;
-select public.save_my_accessories(array['shawl','brooch']);
 do $$ begin
- if (select items from public.employee_accessories where profile_id='verify-employee')<>array['shawl','brooch'] then raise exception 'Own accessories did not save'; end if;
- begin perform public.save_my_accessories(array['shawl','shawl']); raise exception 'Duplicate accessories accepted'; exception when insufficient_privilege then null; end;
+ begin perform public.save_my_accessories(array['shawl','brooch']); raise exception 'Retired accessory API is writable'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_employee_features((select data||'{"avatars":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));

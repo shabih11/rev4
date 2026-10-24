@@ -47,19 +47,30 @@
 /* Optional employee tiers keep the original bronze presentation. */
 .employee-experience[data-tier="silver"] { background: linear-gradient(145deg,#f8fafc,#e2e8f0 55%,#f8fafc); color:#172033; }
 .employee-experience[data-tier="gold"] { background: linear-gradient(135deg,#fffcf1,#f5e8bf 55%,#fffdf7); color:#362709; }
-.employee-experience[data-tier="silver"] .bg-white { background:linear-gradient(145deg,#fff,#f1f5f9); border-color:#cbd5e1; box-shadow:0 8px 28px -18px #47556966; }
-.employee-experience[data-tier="gold"] .bg-white { background:linear-gradient(135deg,#fffefa,#fff8e2); border-color:#d6b45f; box-shadow:0 8px 28px -18px #926c2366; }
-.tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; border-radius:8px; padding:4px; border:1px solid; }
-.tier-badge-silver { color:#334155; background:linear-gradient(135deg,#fff,#cbd5e1,#f8fafc); border-color:#94a3b8; }
-.tier-badge-gold { color:#79540c; background:linear-gradient(135deg,#fff8ce,#e8c454,#fff6cd); border-color:#b88d26; }
+.employee-experience[data-tier="silver"] .bg-white { background:#fff; border-color:#cbd5e1; box-shadow:0 8px 28px -18px #47556966; }
+.employee-experience[data-tier="gold"] .bg-white { background:#fff; border-color:#d6b45f; box-shadow:0 8px 28px -18px #926c2366; }
+.tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline:2px; }
+.faceted-gem { display:block; width:30px; height:38px; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
+.gem-gold { filter:drop-shadow(0 2px 4px #c49a3b33); }
+.gem-glint { transform-origin:30px 12px; animation:gem-twinkle 5s ease-in-out infinite; }
+@keyframes gem-twinkle { 0%,70%,100% {opacity:.7} 80% {opacity:1;transform:scale(1.08)} }
 .balance-growth { display:inline-block; background:#ecfdf5; color:#04743e; border:1px solid #a7e4bf; border-radius:8px; padding:2px 6px; font-size:0.8rem; font-weight:800; vertical-align:middle; }
 .overtaken-note { color:#166534; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:5px 9px; margin-top:8px; font-size:0.75rem; font-weight:700; line-height:1.8; max-width:28rem; overflow-wrap:anywhere; }
 .employee-avatar { position:relative; display:inline-block; }
-.avatar-accessories { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-.avatar-fabric { fill:#cbd5e1; stroke:#64748b; stroke-width:.3; }
-.avatar-jewel { fill:#e2e8f0; stroke:#475569; stroke-width:.3; }
-.accessory-gold .avatar-fabric { fill:#f0d38a; stroke:#9c7428; }
-.accessory-gold .avatar-jewel { fill:#f4d36b; stroke:#8c6417; }
-.avatar-veil { fill:#ceac58; stroke:#785418; stroke-width:.3; }
 .employee-experience[data-tier="silver"] .recognition-page,
 .employee-experience[data-tier="gold"] .recognition-page { background:transparent; }
+
+.rank-progress { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.rank-gain { display:inline-flex; flex-direction:column; align-items:center; gap:2px; color:#087f78; background:#f1fbf8; border:1px solid #b6dfd3; border-radius:14px; padding:6px 12px; font-size:1.1rem; font-weight:800; line-height:1.2; }
+.rank-progress .overtaken-note { margin-top:0; }
+.valley-scenery { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+.valley-scenery svg { width:100%; height:100%; opacity:.8; }
+.recognition-panel { box-shadow:0 -10px 60px -40px #52687966; border-top:1px solid #eef2f3; }
+.recognition-panel .text-blue-100 { color:#526276; }
+.recognition-panel button:hover { background-color:#f1f5f9; }
+.employee-experience[data-tier="gold"] .recognition-panel,
+.employee-experience[data-tier="silver"] .recognition-panel { background:#fff; box-shadow:0 -10px 60px -40px #52687966; }
+.shop-art-stage { position:relative; border-radius:14px; background:linear-gradient(145deg,#f8fbfb,#eef4f2); overflow:hidden; }
+.shop-art-plinth { position:absolute; bottom:2px; inset-inline:12%; height:20px; border-radius:50%; background:#dce7e2; box-shadow:0 6px 0 #cbdcd4; }
+.purchase-dialog::backdrop { background:#172b3d88; backdrop-filter:blur(4px); }
+@media (prefers-reduced-motion:reduce) { .gem-glint { animation:none;opacity:1; } }
