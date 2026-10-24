@@ -44,11 +44,11 @@
   .tab-button { @apply flex min-h-16 min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500; }
 }
 
-/* Optional employee tiers keep the original bronze presentation. */
-.employee-experience[data-tier="silver"] { background: linear-gradient(145deg,#f8fafc,#e2e8f0 55%,#f8fafc); color:#172033; }
-.employee-experience[data-tier="gold"] { background: linear-gradient(135deg,#fffcf1,#f5e8bf 55%,#fffdf7); color:#362709; }
-.employee-experience[data-tier="silver"] .bg-white { background:#fff; border-color:#cbd5e1; box-shadow:0 8px 28px -18px #47556966; }
-.employee-experience[data-tier="gold"] .bg-white { background:#fff; border-color:#d6b45f; box-shadow:0 8px 28px -18px #926c2366; }
+/* Tier emphasis belongs to the employee name and active leaderboard slide. */
+.employee-tier-name { display:inline-flex; align-items:center; gap:0.2em; padding:0.1em 0.3em; border:1px solid transparent; border-radius:0.4em; }
+.employee-tier-name[data-tier="gold"] { border-color:#c5a14b; }
+.recognition-page[data-tier="gold"] { background:#fff8df; }
+.recognition-page[data-tier="gold"] .valley-scenery { opacity:.35; }
 .tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline-end:0.2em; line-height:1; }
 .faceted-gem { display:block; width:0.7em; height:1em; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
 .gem-gold { filter:drop-shadow(0 2px 4px #c49a3b33); }
@@ -58,9 +58,6 @@
 .balance-growth { display:inline-block; color:#04743e; font-size:0.8rem; font-weight:800; vertical-align:middle; }
 .overtaken-note { color:#166534; margin-top:8px; font-size:0.75rem; font-weight:700; line-height:1.8; max-width:28rem; overflow-wrap:anywhere; }
 .employee-avatar { position:relative; display:inline-block; }
-.employee-experience[data-tier="silver"] .recognition-page,
-.employee-experience[data-tier="gold"] .recognition-page { background:transparent; }
-
 .rank-progress { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; }
 .rank-gain { display:inline-flex; align-items:center; gap:5px; color:#087f78; font-size:1.1rem; font-weight:800; line-height:1.2; }
 .rank-progress .overtaken-note { margin-top:0; }
@@ -69,8 +66,6 @@
 .recognition-panel { background:transparent; }
 .recognition-panel .text-blue-100 { color:#526276; }
 .recognition-panel button:hover { background-color:#f1f5f9; }
-.employee-experience[data-tier="gold"] .recognition-panel,
-.employee-experience[data-tier="silver"] .recognition-panel { background:transparent; box-shadow:none; }
 .shop-art-stage { position:relative; border-radius:14px; background:linear-gradient(145deg,#f8fbfb,#eef4f2); overflow:hidden; }
 .shop-art-plinth { position:absolute; bottom:2px; inset-inline:12%; height:20px; border-radius:50%; background:#dce7e2; box-shadow:0 6px 0 #cbdcd4; }
 .purchase-dialog::backdrop { background:#172b3d88; backdrop-filter:blur(4px); }

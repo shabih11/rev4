@@ -1,3 +1,4 @@
+import { employeeTier } from '../lib/employeeFeatures';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
@@ -27,7 +28,7 @@ type SlideData =
 export const Leaderboard: React.FC = () => {
   useRecordScope({ reviews: { all: true } });
   const reduceMotion = useReducedMotion();
-  const { users, reviews: privateReviews, reviewSummaries, summaryReady, syncError } = useData();
+  const { users, reviews: privateReviews, reviewSummaries, summaryReady, syncError, features } = useData();
   const reviews = useMemo(() => {
     const details = new Map(privateReviews.map(review => [review.id, review]));
     return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
@@ -180,6 +181,7 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div 
+      data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className="recognition-page w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
       dir="rtl"
       onPointerDownCapture={handleTouchStart}
@@ -331,7 +333,7 @@ export const Leaderboard: React.FC = () => {
                 <>
                   <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
                     <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}><TierBadge employee={activeSlide.data} /> {activeSlide.data.name}</button>
+                      <button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}><TierBadge employee={activeSlide.data} /> {activeSlide.data.name}</button>
                     </EmployeeCard>
                     <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
                   </div>

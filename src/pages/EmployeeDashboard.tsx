@@ -1,4 +1,4 @@
-import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
+import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { employeeTier } from '../lib/employeeFeatures';
 import { Brand } from '../components/Brand';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
@@ -31,7 +31,7 @@ export const EmployeeDashboard: React.FC = () => {
 
 
   return (
-    <div data-tier={summaryReady && features ? employeeTier(user.points, features.settings) : 'bronze'} className="employee-experience w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
@@ -43,7 +43,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، <TierBadge employee={user} /> {user.name}</h1>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، <span className="employee-tier-name" data-tier={summaryReady && features ? employeeTier(user.points, features.settings) : 'bronze'}>{user.name}</span></h1>
             <p className="text-blue-600 font-bold">{user.branch}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -77,7 +77,7 @@ export const EmployeeDashboard: React.FC = () => {
         >
           <div className="flex items-center gap-3">
             <Star className="text-yellow-400" size={22} />
-            <span className="font-bold text-gray-800 text-lg">سجل التقييمات</span>
+            <span className="font-bold text-gray-800 text-lg">سجل التقييمات</span><span className="font-bold text-gray-700">{summaryReady ? user.reviewsCount : '…'}</span>
           </div>
           {showReviews ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
         </button>
@@ -85,10 +85,7 @@ export const EmployeeDashboard: React.FC = () => {
         {showReviews && (
           <div id="employee-reviews" className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
             {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل السجلات المطلوبة…</p>}
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-gray-500 font-bold">إجمالي التقييمات المرتبطة</p>
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">{summaryReady ? user.reviewsCount : '…'}</span>
-            </div>
+
 
             {detailsReady && employeeReviews.length === 0 && (
               <p className="text-center text-gray-500 text-sm">لا يوجد تقييمات مرتبطة بك بعد.</p>

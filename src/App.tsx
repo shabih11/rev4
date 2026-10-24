@@ -1,4 +1,3 @@
-import { employeeTier } from './lib/employeeFeatures';
 import { lazy, Suspense, useState } from 'react';
 import { PageLoading } from './components/Brand';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -25,11 +24,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { syncError, currentAccount, features, users, summaryReady } = useData();
-  const employee = users.find(item => item.id === currentAccount?.id);
-  const tier = summaryReady && currentAccount?.role === 'employee' && employee && features ? employeeTier(employee.points, features.settings) : 'bronze';
+  const { syncError, currentAccount } = useData();
   return (
-    <div className="employee-experience" data-tier={tier}>
+    <div>
     {currentAccount && syncError && <div role="alert" dir="rtl" className={`px-4 py-2 text-sm text-center ${syncError ? "bg-red-100 text-red-900" : "bg-emerald-50 text-emerald-900"}`}>{syncError}</div>}
     <HashRouter>
       <Suspense fallback={<PageLoading />}><Routes>
