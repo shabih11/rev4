@@ -1,3 +1,4 @@
+import type { FeatureState } from '../lib/employeeFeatures';
 import { useDailyReadModel } from '../lib/dailyReadModel';
 import { supabase } from '../lib/supabase';
 import { invalidateRows, readNamespace } from '../lib/browserReadCache';
@@ -44,6 +45,7 @@ export interface TimelineEvent {
 }
 
 interface DataContextType {
+  features: FeatureState | null;
   requestRecords: (id: string, demand: RecordDemand | null) => void;
   users: UserAccount[];
   updateUser: (id: string, updates: Partial<UserAccount>) => void;
@@ -429,6 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
+      features: daily.data?.features || null,
       requestRecords,
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
       timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,

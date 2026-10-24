@@ -1,3 +1,5 @@
+import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
+import { employeeTier } from '../lib/employeeFeatures';
 import { Brand } from '../components/Brand';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
@@ -14,7 +16,7 @@ import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { reviews, reviewSummaries, recordsReady, summaryReady, summaryGeneratedAt, syncError, users, timeline } = useData();
+  const { reviews, reviewSummaries, recordsReady, summaryReady, summaryGeneratedAt, syncError, users, timeline, features } = useData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
   const [showReviews, setShowReviews] = useState(false);
   const [showShifts, setShowShifts] = useState(false);
@@ -29,7 +31,7 @@ export const EmployeeDashboard: React.FC = () => {
 
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+    <div data-tier={summaryReady && features ? employeeTier(user.points, features.settings) : 'bronze'} className="employee-experience w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
@@ -41,7 +43,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name}</h1>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name} <TierBadge employee={user} /></h1>
             <p className="text-blue-600 font-bold">{user.branch}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -58,15 +60,11 @@ export const EmployeeDashboard: React.FC = () => {
         
         {/* Employee Image */}
         <div className="relative w-full flex justify-center mt-2 flex-1">
-          <img 
-            src={user.imageUrl} 
-            alt={user.name}
-            className="h-24 sm:h-32 object-contain align-bottom"
-            style={{ display: 'block' }}
-          />
+          <EmployeeAvatar employee={user} className="h-24 sm:h-32 w-24 sm:w-32" />
         </div>
       </div>
 
+      {summaryReady && <div className="px-6 mb-5"><p className="font-bold text-slate-800">رصيد الشهر: {user.monthReviewsCount || 0} <BalanceGrowth employee={user} /></p><Overtaken employee={user} /></div>}
       <EmployeeResults user={user} ready={summaryReady} generatedAt={summaryGeneratedAt} error={syncError} />
 
       {/* Reviews Log Section */}

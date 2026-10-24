@@ -1,3 +1,5 @@
+import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
+import { EmployeeAccountActions } from '../components/EmployeeAccountActions';
 import { MergeAccountPicker } from '../components/MergeAccountPicker';
 import { BranchEmployees } from '../components/BranchEmployees';
 import { AdministrationPhone } from '../components/MissingShiftRequest';
@@ -15,7 +17,7 @@ import { newestFirst } from '../lib/employeeActivity';
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
-  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'windsor'>('shifts');
+  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features'>('shifts');
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
   const [globalBranch, setGlobalBranch] = useState<string>('all');
@@ -70,7 +72,7 @@ export const SystemAdminDashboard: React.FC = () => {
     { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'stats', label: 'التقييمات', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'notes', label: 'الملاحظات', icon: MessageSquareWarning, color: 'text-amber-600', activeBg: 'bg-amber-50 text-amber-700 border-r-4 border-amber-600' },
-    { id: 'windsor', label: 'Windsor.ai', icon: Zap, color: 'text-purple-600', activeBg: 'bg-purple-50 text-purple-700 border-r-4 border-purple-600' },
+    { id: 'features', label: 'الميزات الإضافية', icon: Zap, color: 'text-purple-600', activeBg: 'bg-purple-50 text-purple-700 border-r-4 border-purple-600' },
   ] as const;
 
   // Toast notification
@@ -676,6 +678,7 @@ export const SystemAdminDashboard: React.FC = () => {
                         <td className="p-3 border">
                           <input type="text" defaultValue={emp.name} onBlur={(e) => { updateUser(emp.id, { name: e.target.value }); showToast('تم تحديث الاسم'); }}
                             className="w-full p-1 border rounded bg-transparent focus:bg-white font-bold" />
+                          <EmployeeAccountActions employee={emp} />
                         </td>
                         <td className="p-3 border">
                           <select value={emp.branch} onChange={(e) => handleTransfer(emp.id, e.target.value)}
@@ -879,11 +882,11 @@ export const SystemAdminDashboard: React.FC = () => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setActiveTab('windsor')}
+                  onClick={() => setActiveTab('features')}
                   className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-2 text-sm shrink-0 cursor-pointer"
                 >
                   <Zap size={16} />
-                  إدارة تكامل Windsor.ai
+                  إدارة الميزات الإضافية
                 </button>
               </div>
 
@@ -1025,13 +1028,15 @@ export const SystemAdminDashboard: React.FC = () => {
 
 
           {/* Windsor.ai Integration Tab */}
-          {activeTab === 'windsor' && (
+          {activeTab === 'features' && (
             <section className="bg-white rounded-3xl border p-6 space-y-4" dir="rtl">
+              <AdditionalFeaturesSettings />
+              <details className="border-t pt-5"><summary className="cursor-pointer font-bold">حالة تكامل Windsor.ai</summary>
               <h2 className="text-2xl font-black">المزامنة اليومية من Windsor.ai</h2>
               <p>تجلب مهمة GitHub تقييمات الفروع يوميًا عند العاشرة مساءً بتوقيت الرياض، وقد يتأخر تشغيلها حسب توفر خوادم GitHub.</p>
               <p>تُحفظ البيانات في Supabase وتُربط بالشفتات المسجلة. يحتفظ المتصفح بالنتائج ويستقبل إصدار البيانات الجديد تلقائيًا.</p>
               <p>تُدار بيانات الاتصال في الخادم. لا يحتاج هذا المتصفح إلى مفتاح Windsor.</p>
-              <a href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer" className="text-blue-700 underline">حالة المزامنة</a>
+              <a href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer" className="text-blue-700 underline">حالة المزامنة</a></details>
             </section>
           )}
 

@@ -1,5 +1,6 @@
+import { EmployeeAvatar, TierBadge } from './EmployeeFeatures';
+import { EmployeeAccountActions } from './EmployeeAccountActions';
 import { MergeAccountPicker } from './MergeAccountPicker';
-import employeeImg from '../assets/employee.png';
 import { EmployeeCard } from './EmployeeCard';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
@@ -61,13 +62,13 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
       <section className="bg-white border rounded-3xl p-5 space-y-3">
         <h2 className="text-xl font-bold">الموظفات — {branch}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
-          {employees.filter(item => item.branch === branch || item.assignedBranches?.includes(branch || '')).map(item => <EmployeeCard key={item.id} employee={item}>
+          {employees.filter(item => item.branch === branch || item.assignedBranches?.includes(branch || '')).map(item => <div key={item.id}><EmployeeCard employee={item}>
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
-              <img src={item.imageUrl || employeeImg} alt="" className="h-16 w-16 rounded-full object-contain border-2 border-slate-100 bg-slate-50" />
-              <span className="font-bold text-slate-800">{item.name}</span><span className="text-xs text-slate-500">{item.branch}{(item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) ? ' · تغطية' : ''}</span>
+              <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
+              <span className="font-bold text-slate-800">{item.name} <TierBadge employee={item} /></span><span className="text-xs text-slate-500">{item.branch}{(item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) ? ' · تغطية' : ''}</span>
               <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA') : '…'}</span>
             </button>
-          </EmployeeCard>)}
+          </EmployeeCard><EmployeeAccountActions employee={item} /></div>)}
         </div>
         <p className="text-sm text-slate-600">تعديل بيانات الموظفات متاح للإدارة العامة.</p>
         <form className="flex flex-col sm:flex-row sm:items-end gap-3 border-t border-slate-100 pt-4" onSubmit={event => {
