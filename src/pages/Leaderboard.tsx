@@ -1,3 +1,4 @@
+import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
@@ -199,7 +200,7 @@ export const Leaderboard: React.FC = () => {
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
             {activeSlide.type === 'employee' && <>
-              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p>
+              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p><Overtaken employee={activeSlide.data} />
 
             </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
@@ -233,7 +234,7 @@ export const Leaderboard: React.FC = () => {
               <div className="h-full flex justify-center items-center relative w-full px-4">
                 
                 {slide.type === 'employee' && (
-                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[clamp(180px,38svh,420px)] sm:h-[55vh] max-w-full object-contain drop-shadow-xl" />
+                  <EmployeeAvatar employee={slide.data} className="h-[clamp(180px,38svh,420px)] sm:h-[55vh] w-full max-w-full drop-shadow-xl" />
                 )}
 
                 {slide.type === 'partnership' && (
@@ -331,7 +332,7 @@ export const Leaderboard: React.FC = () => {
                 <>
                   <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
                     <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
+                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name} <TierBadge employee={activeSlide.data} /></button>
                     </EmployeeCard>
                     <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
                   </div>
@@ -344,7 +345,7 @@ export const Leaderboard: React.FC = () => {
                     <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span> <BalanceGrowth employee={activeSlide.data} /></p>
                     </div>
                   </div>
                   <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
@@ -448,14 +449,14 @@ export const Leaderboard: React.FC = () => {
                   <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
-                      <img src={emp.imageUrl} alt={emp.name} className="w-12 h-12 rounded-full object-cover object-top border-2 border-gray-100 shrink-0" />
+                      <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-800">{emp.name}</h4>
+                        <h4 className="font-bold text-gray-800">{emp.name} <TierBadge employee={emp} /></h4><Overtaken employee={emp} />
                         <p className="text-xs text-gray-500">{emp.branch}</p>
                       </div>
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
-                        <p className="text-[10px] text-gray-400">رصيد الشهر</p>
+                        <p className="text-[10px] text-gray-400">رصيد الشهر</p><BalanceGrowth employee={emp} />
                       </div>
                     </button>
                   </EmployeeCard>

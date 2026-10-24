@@ -1,3 +1,4 @@
+import { AvatarWardrobe } from './AvatarWardrobe';
 import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
 import { User, Lock, Mail, Building2, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
@@ -87,6 +88,7 @@ export const UserProfileTab: React.FC = () => {
         </div>
       </div>
 
+      <AvatarWardrobe employee={user} />
       {/* Edit Name Card */}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex items-center gap-2.5 border-b pb-3">
