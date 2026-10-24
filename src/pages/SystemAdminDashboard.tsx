@@ -648,83 +648,110 @@ export const SystemAdminDashboard: React.FC = () => {
                 </p>
               )}
               
-              <div className="overflow-x-auto">
-                <table className="w-full text-right border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="bg-gray-100 text-xs">
-                      <th className="p-2 border">الصورة</th>
-                      <th className="p-2 border">الموظفة</th>
-                      <th className="p-2 border">الفرع (نقل)</th>
-                      <th className="p-2 border" title="إجمالي التقييمات">كلي</th>
-                      <th className="p-2 border" title="تقييمات الشهر">الشهر</th>
-                      <th className="p-2 border" title="نقاط إيجابية">إيجابي</th>
-                      <th className="p-2 border" title="نقاط سلبية">سلبي</th>
-                      <th className="p-2 border" title="الشكاوى">شكاوى</th>
-                      <th className="p-2 border" title="السلامة">سلامة</th>
-                      <th className="p-2 border text-center">إجراءات / تحويل</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {branchEmployees.map(emp => (
-                      <tr key={emp.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 border text-center w-20 relative group cursor-pointer" onClick={() => triggerUpload(emp.id)}>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {branchEmployees.map(emp => (
+                  <details key={emp.id} className="group min-w-0 self-start rounded-2xl border border-slate-200 bg-white shadow-sm open:border-blue-200">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                      <img src={emp.imageUrl || employeeImg} alt="" className="h-14 w-14 shrink-0 rounded-full border border-slate-200 object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="break-words font-bold text-slate-900">{emp.name}</h4>
+                        <p className="mt-1 text-sm text-slate-500">{emp.branch === 'موظفة خارجية' ? 'موظفة متنقلة' : `فرع ${emp.branch}`}</p>
+                        <p className="mt-2 text-xs text-blue-700">إجمالي التقييمات: {emp.reviewsCount || 0} · الشهر: {emp.monthReviewsCount || 0}</p>
+                      </div>
+                      <span className="shrink-0 text-xs font-bold text-blue-700">
+                        <span className="group-open:hidden">عرض التفاصيل +</span>
+                        <span className="hidden group-open:inline">إغلاق −</span>
+                      </span>
+                    </summary>
+                    <div className="grid grid-cols-1 gap-4 border-t border-slate-100 p-4 sm:grid-cols-2">
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">صورة الموظفة</p>
+<button type="button" onClick={() => triggerUpload(emp.id)} className="group relative rounded-xl border border-slate-200 p-3 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600" aria-label={`تغيير صورة ${emp.name}`}>
                           <div className="w-12 h-12 mx-auto rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center relative">
                             <img src={emp.imageUrl || employeeImg} alt={emp.name} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
                               <Upload className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
                             </div>
                           </div>
-                        </td>
-                        <td className="p-3 border">
-                          <input type="text" defaultValue={emp.name} onBlur={(e) => { updateUser(emp.id, { name: e.target.value }); showToast('تم تحديث الاسم'); }}
+
+<span className="mt-2 block text-sm text-blue-700">تغيير الصورة</span></button>
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">الاسم وإعدادات الحساب</p>
+
+                          <input aria-label="الاسم وإعدادات الحساب" type="text" defaultValue={emp.name} onBlur={(e) => { updateUser(emp.id, { name: e.target.value }); showToast('تم تحديث الاسم'); }}
                             className="w-full p-1 border rounded bg-transparent focus:bg-white font-bold" />
                           <EmployeeAccountActions employee={emp} />
-                        </td>
-                        <td className="p-3 border">
-                          <select value={emp.branch} onChange={(e) => handleTransfer(emp.id, e.target.value)}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">الفرع (نقل)</p>
+
+                          <select aria-label="الفرع (نقل)" value={emp.branch} onChange={(e) => handleTransfer(emp.id, e.target.value)}
                             className="w-full p-1 border rounded bg-transparent focus:bg-white text-sm">
                             {branches.map(b => <option key={b} value={b}>{b}</option>)}
                             <option value="موظفة خارجية">خارجية</option>
                           </select>
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" defaultValue={emp.reviewsCount || 0}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">إجمالي التقييمات</p>
+
+                          <input aria-label="إجمالي التقييمات" type="number" defaultValue={emp.reviewsCount || 0}
                             onBlur={(e) => handleUpdateStats(emp.id, 'totalReviews', parseInt(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-blue-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" defaultValue={emp.monthReviewsCount || 0}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">تقييمات الشهر</p>
+
+                          <input aria-label="تقييمات الشهر" type="number" defaultValue={emp.monthReviewsCount || 0}
                             onBlur={(e) => handleUpdateStats(emp.id, 'monthReviews', parseInt(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-blue-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" step="0.25" defaultValue={emp.stats.positive}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">نقاط إيجابية</p>
+
+                          <input aria-label="نقاط إيجابية" type="number" step="0.25" defaultValue={emp.stats.positive}
                             onBlur={(e) => handleUpdateStats(emp.id, 'positive', parseFloat(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-green-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" step="0.5" defaultValue={emp.stats.negative}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">نقاط سلبية</p>
+
+                          <input aria-label="نقاط سلبية" type="number" step="0.5" defaultValue={emp.stats.negative}
                             onBlur={(e) => handleUpdateStats(emp.id, 'negative', parseFloat(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-red-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" defaultValue={emp.stats.complaints}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">الشكاوى</p>
+
+                          <input aria-label="الشكاوى" type="number" defaultValue={emp.stats.complaints}
                             onBlur={(e) => handleUpdateStats(emp.id, 'complaints', parseInt(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-orange-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border w-16">
-                          <input type="number" defaultValue={emp.stats.safety}
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">السلامة</p>
+
+                          <input aria-label="السلامة" type="number" defaultValue={emp.stats.safety}
                             onBlur={(e) => handleUpdateStats(emp.id, 'safety', parseInt(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-orange-600 font-bold text-xs" />
-                        </td>
-                        <td className="p-2 border text-center w-28">
+
+                          </div>
+                          <div className="min-w-0 space-y-2">
+                            <p className="text-sm font-bold text-slate-600">إجراءات الموظفة</p>
+
                           <div className="flex flex-col gap-1.5 items-center justify-center">
                             {emp.branch !== 'موظفة خارجية' ? (
-                              <button 
+                              <button
                                 onClick={() => {
                                   convertToMobile(emp.id);
                                   showToast(`تم تحويل ${emp.name} إلى موظفة متنقلة بنجاح`);
-                                }} 
+                                }}
                                 className="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md font-bold transition whitespace-nowrap border border-indigo-200"
                                 title="تحويل لموظفة متنقلة خارجية"
                               >
@@ -737,12 +764,15 @@ export const SystemAdminDashboard: React.FC = () => {
                             )}
                             <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">إزالة</button>
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+                          </div>
+                    </div>
+                  </details>
+                ))}
               </div>
+              {branchEmployees.length === 0 && (
+                <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-slate-500">لا توجد موظفات في هذا الفرع.</p>
+              )}
             </div>
           )}
 
