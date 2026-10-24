@@ -9,7 +9,18 @@ insert into auth.users(id,email) values
 insert into public.user_access(uid,profile_id,role,branch) values
  ('10000000-0000-4000-8000-000000000001','shop-test-admin','admin',null),('10000000-0000-4000-8000-000000000002','shop-test-manager','manager','shop-test-branch'),
  ('10000000-0000-4000-8000-000000000003','shop-test-a','employee','shop-test-branch'),('10000000-0000-4000-8000-000000000004','shop-test-b','employee','shop-test-branch'),('10000000-0000-4000-8000-000000000005','shop-test-duplicate','employee','shop-test-branch');
-insert into public.reviews(id,data) select 'shop-test-review-'||n,jsonb_build_object('id','shop-test-review-'||n,'branch','shop-test-branch','rating','5','date',to_char((now() at time zone 'Asia/Riyadh')::date-1,'DD-MM-YYYY'),'time','12:00','linkedEmployeeIds',jsonb_build_array('shop-test-a')) from generate_series(1,5) n;
+insert into public.reviews(id,data) select 'shop-test-review-'||n,jsonb_build_object('id','shop-test-review-'||n,'branch','shop-test-branch','rating','5','date',to_char((now() at time zone 'Asia/Riyadh')::date-1,'DD-MM-YYYY'),'time','12:00','linkedEmployeeIds',jsonb_build_array('shop-test-a')) from generate_series(1,1) n;
+-- Check every star rating and full credit for shared reviews before role switching.
+do $$ declare stars integer; expected integer; begin
+ for stars in 1..5 loop
+  update public.reviews set data=jsonb_set(data,'{rating}',to_jsonb(stars::text)) where id='shop-test-review-1';
+  expected:=case when stars>=3 then stars else 0 end;
+  if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>expected then raise exception 'Star currency mismatch'; end if;
+ end loop;
+ update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a","shop-test-b"]') where id='shop-test-review-1';
+ if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>5 or (private.avatar_wallet('shop-test-b')->>'earned')::numeric<>5 then raise exception 'Shared stars incorrectly divided'; end if;
+ update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a"]') where id='shop-test-review-1';
+end $$;
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_employee_features((select data||'{"avatars":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
@@ -46,7 +57,7 @@ select public.purchase_avatar(current_setting('shop.v1')::uuid,2);
 select public.purchase_avatar(current_setting('shop.v2')::uuid,2);
 do $$ begin
  if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>1 then raise exception 'Purchase did not deduct currency'; end if;
- if (select count(*) from public.reviews where id like 'shop-test-review-%')<>5 then raise exception 'Purchase changed ranking data'; end if;
+ if (select count(*) from public.reviews where id like 'shop-test-review-%')<>1 then raise exception 'Purchase changed ranking data'; end if;
  begin perform public.purchase_avatar(current_setting('shop.v3')::uuid,2); raise exception 'Overspending accepted'; exception when invalid_parameter_value then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000004","role":"authenticated"}',true);

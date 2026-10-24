@@ -1,4 +1,4 @@
-import { EmployeeAvatar, TierBadge } from '../components/EmployeeFeatures';
+import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
 import { EmployeeAccountActions } from '../components/EmployeeAccountActions';
 import { MergeAccountPicker } from '../components/MergeAccountPicker';
@@ -655,7 +655,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     <summary className="flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
                       <EmployeeAvatar employee={emp} className="h-14 w-14 shrink-0 rounded-full border border-slate-200" />
                       <div className="min-w-0 flex-1">
-                        <h4 className="break-words font-bold text-slate-900"><TierBadge employee={emp}/> {emp.name}</h4>
+                        <h4 className="break-words font-bold text-slate-900">{emp.name}</h4>
                         <p className="mt-1 text-sm text-slate-500">{emp.branch === 'موظفة خارجية' ? 'موظفة متنقلة' : `فرع ${emp.branch}`}</p>
                         <p className="mt-2 text-xs text-blue-700">إجمالي التقييمات: {emp.reviewsCount || 0} · الشهر: {emp.monthReviewsCount || 0}</p>
                       </div>

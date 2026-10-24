@@ -1,3 +1,6 @@
+import { useData } from '../context/DataContext';
+import { TierBadge } from './EmployeeFeatures';
+import { employeeTier } from '../lib/employeeFeatures';
 import type { UserAccount } from '../lib/mockData';
 import { Award, Star, AlertTriangle, ShieldAlert } from 'lucide-react';
 
@@ -10,6 +13,9 @@ interface EmployeeResultsProps {
 
 // Summary readiness is separate from the optional review and shift detail queries.
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
+  const { features } = useData();
+  const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
+  const wallet = features?.store?.wallet;
   const period = new Intl.DateTimeFormat('ar-SA', {
     calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
   }).format(new Date());
@@ -40,8 +46,8 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
             <p className="text-gray-500 font-bold mb-1">نتيجة الشهر الحالي</p>
             <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
           </div>
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-500">
-            <Award size={40} />
+          <div className={`w-20 h-20 flex items-center justify-center ${tier === 'bronze' ? 'bg-blue-100 rounded-full text-blue-500' : ''}`}>
+            {tier === 'bronze' ? <Award size={40} /> : <span className="text-5xl"><TierBadge employee={user} /></span>}
           </div>
         </div>
       </div>
@@ -51,9 +57,9 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
         <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-yellow-400">
           <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
             <Star className="text-yellow-400" size={20} />
-            إجمالي التقييمات
+            رصيد التقييمات
           </div>
-          <p className="text-3xl font-extrabold">{user.reviewsCount}</p>
+          <p className="text-3xl font-extrabold">{wallet ? wallet.available.toLocaleString('ar-SA', { maximumFractionDigits: 2 }) : '…'}</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-green-500">
