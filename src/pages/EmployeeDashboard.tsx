@@ -43,7 +43,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، {user.name} <TierBadge employee={user} /></h1>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، <TierBadge employee={user} /> {user.name}</h1>
             <p className="text-blue-600 font-bold">{user.branch}</p>
           </div>
           <div className="flex items-center gap-2">
