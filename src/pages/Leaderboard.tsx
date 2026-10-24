@@ -449,9 +449,10 @@ export const Leaderboard: React.FC = () => {
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-800"><TierBadge employee={emp} /> {emp.name}</h4><Overtaken employee={emp} />
-                        <p className="text-xs text-gray-500">{emp.branch}</p>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <h4 className="flex items-center gap-1 font-bold leading-snug text-gray-800"><TierBadge employee={emp} /><span className="break-words">{emp.name}</span></h4>
+                        <p className="text-xs leading-relaxed text-gray-500">{emp.branch}</p>
+                        <Overtaken employee={emp} />
                       </div>
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
