@@ -304,10 +304,7 @@ export const Leaderboard: React.FC = () => {
 
       {/* White results panel */}
       <div className="w-full shrink-0 z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-white fill-current block -mb-px">
-          <path d="M0,20 Q50,0 100,20 Z" />
-        </svg>
-        <div className="recognition-panel bg-white w-full flex flex-col items-center justify-center text-slate-900 pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
+        <div className="recognition-panel w-full flex flex-col items-center justify-center text-slate-900 pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
           
           {/* Left/Right Action Buttons */}
           <button 
@@ -334,7 +331,7 @@ export const Leaderboard: React.FC = () => {
                 <>
                   <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
                     <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name} <TierBadge employee={activeSlide.data} /></button>
+                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}><TierBadge employee={activeSlide.data} /> {activeSlide.data.name}</button>
                     </EmployeeCard>
                     <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
                   </div>
@@ -453,7 +450,7 @@ export const Leaderboard: React.FC = () => {
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-800">{emp.name} <TierBadge employee={emp} /></h4><Overtaken employee={emp} />
+                        <h4 className="font-bold text-gray-800"><TierBadge employee={emp} /> {emp.name}</h4><Overtaken employee={emp} />
                         <p className="text-xs text-gray-500">{emp.branch}</p>
                       </div>
                       <div className="text-center shrink-0">

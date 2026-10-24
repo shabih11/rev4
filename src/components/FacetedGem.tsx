@@ -1,8 +1,10 @@
 import { useId } from 'react';
 import type { Tier } from '../lib/employeeFeatures';
+import goldGem from '../assets/gold-gem.png';
 export function FacetedGem({ tier }: { tier: Exclude<Tier, 'bronze'> }) {
   const id = useId();
   const gold = tier === 'gold';
+  if (gold) return <img src={goldGem} alt="" aria-hidden="true" className="faceted-gem gem-gold gem-gold-image" />;
   return <svg viewBox="0 0 60 76" className={`faceted-gem gem-${tier}`} aria-hidden="true">
     <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop stopColor={gold ? '#fff7c2' : '#fafbfc'} /><stop offset=".45" stopColor={gold ? '#e3bc4e' : '#c6cbd2'} /><stop offset="1" stopColor={gold ? '#805311' : '#505966'} /></linearGradient></defs>
     <path d="M30 12 51 32 52 43 30 67 8 43 9 32Z" fill={`url(#${id})`} stroke={gold ? '#a9781f' : '#737d89'} strokeWidth="1" />

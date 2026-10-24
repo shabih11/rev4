@@ -108,7 +108,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             <div className="flex items-center gap-4">
               <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md shrink-0 bg-blue-200" />
               <div>
-                <h3 className="text-xl sm:text-2xl font-bold">{employee.name} <TierBadge employee={employee} /></h3>
+                <h3 className="text-xl sm:text-2xl font-bold"><TierBadge employee={employee} /> {employee.name}</h3>
                 <p className="text-blue-100 text-sm mb-1">{employee.branch}{(employee.isCoverage ?? employee.assignedBranches?.some(branch => branch !== employee.branch) ?? false) ? ' (تغطية)' : ''}</p>
                 <Overtaken employee={employee} /><p className="text-xs">رصيد الشهر: {employee.monthReviewsCount || 0} <BalanceGrowth employee={employee} /></p>
                 <div className="flex gap-2 mt-1 flex-wrap">
