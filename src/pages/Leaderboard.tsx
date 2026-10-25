@@ -1,6 +1,7 @@
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
+import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
@@ -167,6 +168,12 @@ export const Leaderboard: React.FC = () => {
     : activeSlide?.type === 'active_branch' ? activeSlide.branch 
     : undefined);
   const swiperRef = useRef<any>(null);
+  const sceneryRef = useRef<SceneryHandle>(null);
+  const sceneryDuration = useRef(0);
+  const goldSlides = useMemo(() => slidesData.map(slide => {
+    const employee = slide.type === 'employee' ? slide.data : slide.type === 'active_employee' || slide.type === 'praised_employee' ? slide.employee : null;
+    return Boolean(employee && features && employeeTier(employee.points, features.settings) === 'gold');
+  }), [slidesData, features]);
   const hasInteracted = useRef(false);
   const handleTouchStart = useCallback(() => {
     hasInteracted.current = true;
@@ -192,7 +199,7 @@ export const Leaderboard: React.FC = () => {
       onKeyDownCapture={handleTouchStart}
     >
       
-      <LeaderboardScenery />
+      <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />
       <header className="recognition-header relative z-30"><BrandName /><Link to="/dashboard" className="inline-flex min-h-9 items-center gap-1 rounded-xl bg-blue-50 px-3 py-2 text-xs text-blue-700" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link></header>
       <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
         <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
@@ -232,6 +239,8 @@ export const Leaderboard: React.FC = () => {
           speed={reduceMotion ? 0 : 280}
           onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+          onSetTransition={(_swiper, duration) => { sceneryDuration.current = duration; }}
+          onSetTranslate={swiper => { if (swiper.width) sceneryRef.current?.move(-swiper.translate / swiper.width, sceneryDuration.current); }}
           modules={[Autoplay]}
           className="w-full min-w-0 max-w-xs sm:max-w-sm mx-auto"
           style={{ overflow: 'hidden' }}
