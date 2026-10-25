@@ -2,6 +2,7 @@ import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { Brand } from '../components/Brand';
+import { employeeReviewBranches } from '../lib/employeeBranches';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
@@ -24,6 +25,8 @@ export const EmployeeDashboard: React.FC = () => {
   useRecordScope({ reviews: activeTab === 'dashboard' && showReviews ? { employeeIds: [user?.id || ''] } : undefined, timeline: activeTab === 'dashboard' ? { employeeIds: [user?.id || ''] } : undefined });
 
   if (!user) return null;
+  const displayedEmployee = users.find(employee => employee.id === user.id) || user;
+  const multipleReviewBranches = employeeReviewBranches(reviewSummaries, user.id).length > 1;
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
   const countReviews = reviewSummaries.map(summary => ({ ...summary, linkedShiftId: privateReviews.get(summary.id)?.linkedShiftId }));
   const employeeReviews = reviews.filter(review => review.linkedEmployeeIds.includes(user.id)).sort(newestFirst);
@@ -44,7 +47,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={user}/></h1>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={displayedEmployee}/></h1>
           </div>
           <div className="flex items-center gap-2">
             <LeaderboardLink />
@@ -108,6 +111,7 @@ export const EmployeeDashboard: React.FC = () => {
 
               return (
                 <div key={r.id} className={`${isPositive ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
+                  {multipleReviewBranches && r.branch && <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">فرع {r.branch}</span>}
                   <div className="flex justify-between items-center mb-2">
                     <div className="flex text-yellow-400 text-sm">{stars}</div>
                     <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{formatDateTime(r.date, r.time)}</div>

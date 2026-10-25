@@ -1,4 +1,6 @@
 import { EmployeeIdentity } from './EmployeeIdentity';
+import { EmployeeManagementActions } from './EmployeeManagementActions';
+import { employeeReviewBranches } from '../lib/employeeBranches';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
@@ -51,8 +53,9 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
-  useRecordScope({ reviews: activeTab !== 'points' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
-  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features } = useData();
+  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount } = useData();
+  useRecordScope({ users: currentAccount?.role === 'admin', reviews: activeTab !== 'points' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
+  const multipleReviewBranches = employeeReviewBranches(reviewSummaries, employee.id).length > 1;
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
@@ -133,6 +136,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             </button>
           </div>
 
+          {currentAccount?.role === 'admin' && <div className="border-b bg-white px-4 py-3"><EmployeeManagementActions employee={employee} onComplete={onClose} /></div>}
           {/* Tabs */}
           <div className="flex gap-1 border-b p-2 bg-slate-50">
             <button 
@@ -183,8 +187,8 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                       ) : (
                         <p className="text-gray-400 text-xs italic">تقييم بدون تعليق</p>
                       )}
-                      {employee.branch === 'موظفة خارجية' && (
-                        <p className="text-xs text-blue-600 mt-2 font-bold">الفرع: {r.branch}</p>
+                      {multipleReviewBranches && r.branch && (
+                        <span className="mt-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">فرع {r.branch}</span>
                       )}
                     </div>
                   );

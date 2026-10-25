@@ -1,4 +1,6 @@
 import { comparisonFromRecords } from '../lib/employeeFeatures';
+import { isCoverageEmployee } from '../lib/employeeBranches';
+import { useCoverageBranches } from '../hooks/useCoverageBranches';
 import type { FeatureState } from '../lib/employeeFeatures';
 import { useDailyReadModel } from '../lib/dailyReadModel';
 import { supabase } from '../lib/supabase';
@@ -46,12 +48,13 @@ export interface TimelineEvent {
 }
 
 interface DataContextType {
+  coverageBranchError: string | null;
   features: FeatureState | null;
   requestRecords: (id: string, demand: RecordDemand | null) => void;
   users: UserAccount[];
   updateUser: (id: string, updates: Partial<UserAccount>) => void;
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
-  removeUser: (id: string) => void;
+  removeUser: (id: string) => Promise<boolean>;
   convertToMobile: (id: string) => void;
   mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
@@ -117,6 +120,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
   const branchCloud = useCloudList<BranchRecord>('branches', readSession, daily.ready ? { all: true } : null);
   const users = userCloud.rows.length ? userCloud.rows : (daily.data?.directory || legacyDirectory.rows).map(u => u.id === session.account?.id ? session.account : { ...u, email: '' });
+  const coverageBranches = useCoverageBranches(users, session, daily.revision, daily.ready);
   const setUsers = userCloud.change;
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
   const timeline = timelineCloud.rows, setTimeline = timelineCloud.change;
@@ -203,12 +207,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { console.error(e); }
   };
 
-  const removeUser = (id: string) => {
-    const newUsers = users.filter(u => u.id !== id);
-    setUsers(newUsers);
+  const removeUser = async (id: string) => {
+    const employee = userCloud.rows.find(user => user.id === id && user.role === 'employee');
+    if (session.account?.role !== 'admin' || !userCloud.ready || !employee) return false;
     try {
-      // Storage now handled by useEffect
-    } catch (e) { console.error(e); }
+      const { error } = await supabase.rpc('write_rows', { source: 'users', changes: [{ id, before: employee, after: null }] });
+      if (error) return false;
+      await invalidateRows(readNamespace(session));
+      return true;
+    } catch { return false; }
   };
 
   const convertToMobile = (id: string) => {
@@ -314,7 +321,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!daily.data && !legacyReady) return users.map(user => ({ ...user, imageUrl: employeeImg }));
     return users.map(user => {
       // Force all users to use the unified employee image
-      const unifiedUser = { ...user, imageUrl: employeeImg };
+      const coverage = user.role === 'employee' && isCoverageEmployee(user);
+      const unifiedUser = { ...user, imageUrl: employeeImg, ...(coverage ? { isCoverage: true, branch: coverageBranches.branches[user.id] || user.branch } : {}) };
       if (unifiedUser.role !== 'employee') return unifiedUser;
       
       const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id));
@@ -380,7 +388,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
     });
-  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady]);
+  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady, coverageBranches.branches]);
 
   const featureState = React.useMemo(() => comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee'), reviewSignals.rows), [daily.data, enrichedUsers, reviewSignals.rows]);
 
@@ -434,6 +442,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
+      coverageBranchError: coverageBranches.error,
       features: featureState,
       requestRecords,
       users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 

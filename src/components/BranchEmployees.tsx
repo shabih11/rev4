@@ -1,4 +1,5 @@
 import { EmployeeIdentity } from './EmployeeIdentity';
+import { belongsToBranch } from '../lib/employeeBranches';
 import { EmployeeAvatar } from './EmployeeFeatures';
 import { EmployeeAccountActions } from './EmployeeAccountActions';
 import { MergeAccountPicker } from './MergeAccountPicker';
@@ -16,7 +17,7 @@ const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'ال�
 const field = 'w-full border border-slate-300 rounded-xl p-3 bg-white';
 
 export function BranchEmployees({ branch, onReview }: { branch?: string; onReview?: (request: MergeRequest) => void }) {
-  const { users, currentAccount, summaryReady } = useData();
+  const { users, currentAccount, summaryReady, coverageBranchError } = useData();
   const [requests, setRequests] = useState<MergeRequest[]>([]);
   const [name, setName] = useState('');
   const [primaryId, setPrimaryId] = useState('');
@@ -58,12 +59,13 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
   }
   const employees = users.filter(item => item.role === 'employee');
   return <div className="space-y-5">
+    {coverageBranchError && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{coverageBranchError} تُعرض آخر بيانات متاحة للفروع.</p>}
     {message && <p role="status" className="rounded-xl bg-blue-50 p-3 text-blue-900">{message}</p>}
     {!isAdmin && <>
       <section className="bg-white border rounded-3xl p-5 space-y-3">
         <h2 className="text-xl font-bold">الموظفات — {branch}</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
-          {employees.filter(item => item.branch === branch || item.assignedBranches?.includes(branch || '')).map(item => <div key={item.id}><EmployeeCard employee={item}>
+          {employees.filter(item => belongsToBranch(item, branch || '')).map(item => <div key={item.id}><EmployeeCard employee={item}>
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
               <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
               <EmployeeIdentity employee={item} className="items-center text-slate-800" />{(item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) && <span className="text-xs text-slate-500">تغطية</span>}

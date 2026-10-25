@@ -6,6 +6,8 @@ import { MergeAccountPicker } from '../components/MergeAccountPicker';
 import { BranchEmployees } from '../components/BranchEmployees';
 import { AdministrationPhone } from '../components/MissingShiftRequest';
 import { Brand } from '../components/Brand';
+import { EmployeeManagementActions } from '../components/EmployeeManagementActions';
+import { belongsToBranch } from '../lib/employeeBranches';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -188,10 +190,10 @@ export const SystemAdminDashboard: React.FC = () => {
     showToast('تمت إضافة الموظفة بنجاح');
   };
 
-  const handleRemoveEmployee = (id: string) => {
+  const handleRemoveEmployee = async (id: string) => {
     if (!confirm('هل أنت متأكد من إزالة هذه الموظفة؟')) return;
-    removeUser(id);
-    showToast('تمت إزالة الموظفة');
+    const removed = await removeUser(id);
+    showToast(removed ? 'تمت إزالة الموظفة' : 'تعذر الحذف. استخدمي الدمج إذا كانت الموظفة مرتبطة بسجلات.');
   };
 
   const handleSubmitComplaint = () => {
@@ -518,9 +520,7 @@ export const SystemAdminDashboard: React.FC = () => {
                   <button onClick={() => setShowAddForm(!showAddForm)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-bold flex gap-2 items-center">
                     <PlusCircle size={16} /> إضافة موظفة
                   </button>
-                  <button onClick={() => setShowMergeModal(true)} className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 text-sm font-bold flex gap-2 items-center">
-                    <GitMerge size={16} /> دمج وتوحيد موظفتين
-                  </button>
+                  <EmployeeManagementActions />
                 </div>
               </div>
 
@@ -638,9 +638,9 @@ export const SystemAdminDashboard: React.FC = () => {
 
               {effectiveBranch !== 'موظفة خارجية' && (
                 <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                  <h4 className="font-bold text-blue-900 mb-2">الأسماء المثبتة في المحادثة — {effectiveBranch} ({users.filter(account => account.role === 'employee' && (account.branch === effectiveBranch || account.assignedBranches?.includes(effectiveBranch))).length})</h4>
-                  <p className="text-sm text-blue-800">{users.filter(account => account.role === 'employee' && (account.branch === effectiveBranch || account.assignedBranches?.includes(effectiveBranch))).map(person => person.name + (person.code ? ` (${person.code})` : '')).join('، ')}</p>
-                  <p className="text-xs text-gray-600 mt-2">تشمل موظفات التغطية المسجلات في قسم الموظفات الخارجيات. القائمة تاريخية للفترة من 2 أغسطس إلى 15 أكتوبر، ولا تعني استمرار جميع الموظفات حاليًا.</p>
+                  <h4 className="font-bold text-blue-900 mb-2">الموظفات المرتبطات بالفرع — {effectiveBranch} ({users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).length})</h4>
+                  <p className="text-sm text-blue-800">{users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).map(person => person.name + (person.code ? ` (${person.code})` : '')).join('، ')}</p>
+                  <p className="text-xs text-gray-600 mt-2">تظهر موظفة التغطية في آخر فرع بدأ فيه شفت مسجّل لها. تبقى سجلات الفروع السابقة محفوظة.</p>
                 </div>
               )}
 
