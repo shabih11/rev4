@@ -82,7 +82,7 @@
 [data-gem-theme="rose"] { --gem-bg:#fff0f4; --gem-accent:#983758; }
 [data-gem-theme="amethyst"] { --gem-bg:#f3edfc; --gem-accent:#724398; }
 .recognition-page[data-gem-theme],.gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
-.recognition-page[data-gem-theme] .valley-scenery { opacity:.28; }
+.recognition-page[data-gem-theme] .valley-scenery { opacity:calc(.28 + .72 * var(--scenery-gold, 0)); }
 .gem-employee-page[data-gem-theme] .gem-profile-header { background:var(--gem-accent); }
 @media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }
 
@@ -92,3 +92,4 @@
 .employee-identity-branch { font-size:.75em; font-weight:500; flex-shrink:0; }
 .tier-award { color:#111; }
 .employee-identity-on-dark .tier-award { background:#fff; padding:2px 6px; border-radius:6px; align-self:flex-start; }
+.recognition-page .swiper { --swiper-wrapper-transition-timing-function:cubic-bezier(.333333,1,.666667,1); }

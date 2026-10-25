@@ -1,33 +1,33 @@
-import { useId } from 'react';
-
-// A fixed mesh keeps the same quiet polygon pattern between renders.
-const columns = 9;
-const rows = 7;
-const palette = ['#ffffff', '#fafcfb', '#f3f7f6', '#f7f9fc', '#f9f7f2', '#eef4f3', '#f5f3f8'];
-const points = Array.from({ length: rows + 1 }, (_, row) =>
-  Array.from({ length: columns + 1 }, (_, column) => [
-    column * 150 + (column === 0 || column === columns ? 0 : ((row * 37 + column * 53) % 95) - 47),
-    row * 150 + (row === 0 || row === rows ? 0 : ((row * 61 + column * 29) % 81) - 40),
-  ].join(',')),
-);
-
-export function LeaderboardScenery() {
-  const wash = useId();
-  return <div className="valley-scenery" aria-hidden="true">
-    <svg viewBox="0 0 1350 1050" preserveAspectRatio="none">
-      <defs><linearGradient id={wash} x1="0" y1="0" x2="0" y2="1"><stop stopColor="#fff" stopOpacity=".72"/><stop offset=".55" stopColor="#fff" stopOpacity=".12"/><stop offset="1" stopColor="#fff" stopOpacity=".55"/></linearGradient></defs>
-      <path fill="#fff" d="M0 0h1350v1050H0z"/>
-      {Array.from({ length: rows * columns }, (_, index) => {
-        const row = Math.floor(index / columns);
-        const column = index % columns;
-        const a = points[row][column], b = points[row][column + 1];
-        const c = points[row + 1][column], d = points[row + 1][column + 1];
-        return <g key={index}>
-          <polygon points={`${a} ${b} ${index % 2 ? c : d}`} fill={palette[(index * 3 + row) % palette.length]}/>
-          <polygon points={`${index % 2 ? b : a} ${d} ${c}`} fill={palette[(index * 5 + row + 2) % palette.length]}/>
-        </g>;
-      })}
-      <path fill={`url(#${wash})`} d="M0 0h1350v1050H0z"/>
-    </svg>
-  </div>;
-}
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { goldBetweenSlides, makeSceneryMesh, polygonFill, sceneryOffset } from '../lib/polygonScenery';
+export interface SceneryHandle { move: (position: number, duration: number) => void }
+export const LeaderboardScenery = forwardRef<SceneryHandle, { goldSlides: boolean[]; reduceMotion: boolean }>(function LeaderboardScenery({ goldSlides, reduceMotion }, ref) {
+  const svg = useRef<SVGSVGElement>(null);
+  const polygons = useRef<(SVGPolygonElement | null)[]>([]);
+  const position = useRef(0);
+  const frame = useRef(0);
+  const mesh = useMemo(() => makeSceneryMesh(goldSlides.length), [goldSlides.length]);
+  const paint = useCallback((value: number) => {
+    position.current = value;
+    const offset = sceneryOffset(value), gold = goldBetweenSlides(value, goldSlides);
+    svg.current?.setAttribute('viewBox', `${offset} 0 1350 1050`);
+    svg.current?.parentElement?.style.setProperty('--scenery-gold', String(gold));
+    mesh.forEach((cell, index) => polygons.current[index]?.setAttribute('fill', polygonFill(index, cell.x, cell.y, offset, gold)));
+  }, [mesh, goldSlides]);
+  useImperativeHandle(ref, () => ({ move(target, duration) {
+    cancelAnimationFrame(frame.current);
+    if (reduceMotion || duration <= 0) { paint(target); return; }
+    const start = position.current, began = performance.now();
+    function step(now: number) {
+      const elapsed = Math.min(1, (now - began) / duration);
+      paint(start + (target - start) * (1 - (1 - elapsed) ** 3));
+      if (elapsed < 1) frame.current = requestAnimationFrame(step);
+    }
+    frame.current = requestAnimationFrame(step);
+  }}));
+  useEffect(() => { paint(position.current); return () => cancelAnimationFrame(frame.current); }, [paint, reduceMotion]);
+  return <div className="valley-scenery" aria-hidden="true"><svg ref={svg} viewBox="0 0 1350 1050" preserveAspectRatio="none">
+    <rect x="-100" y="0" width={1450 + goldSlides.length * 420} height="1050" fill="#fff"/>
+    {mesh.map((cell, index) => <polygon key={index} ref={element => { polygons.current[index] = element; }} points={cell.points} fill={polygonFill(index, cell.x, cell.y, 0, Number(goldSlides[0]))}/>)}
+  </svg></div>;
+});
