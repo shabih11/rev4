@@ -90,5 +90,5 @@
 .employee-identity-name { min-width:0; overflow-wrap:anywhere; font-weight:800; }
 .employee-identity-branch { font-size:.75em; font-weight:500; flex-shrink:0; }
 .tier-award { color:#111; }
-.employee-identity-on-dark .tier-award { background:#fff; padding:2px 6px; border-radius:6px; align-self:flex-start; }
+.employee-identity-on-dark .tier-award { align-self:flex-start; }
 .recognition-page .swiper { --swiper-wrapper-transition-timing-function:cubic-bezier(.333333,1,.666667,1); }
