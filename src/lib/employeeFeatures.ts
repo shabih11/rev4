@@ -1,3 +1,4 @@
+import type { MagicState } from './gems';
 export interface FeatureSettings {
   competition: boolean;
   balanceGrowth: boolean;
@@ -31,6 +32,7 @@ export interface AvatarCollection {
   id: string; name: string; price: number; enabled: boolean; variants: AvatarVariant[];
 }
 export interface AvatarStoreState {
+  magic?: MagicState | null;
   collections: AvatarCollection[];
   wallet: { earned: number; spent: number; available: number } | null;
   equipped: Record<string, string>;

@@ -1,3 +1,4 @@
+import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -50,7 +51,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
   useRecordScope({ reviews: activeTab !== 'points' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
-  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError } = useData();
+  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features } = useData();
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
   const privateReviews = new Map(reviews.map(review => [review.id, review]));
@@ -100,11 +101,12 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-2xl min-w-0 bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+          data-gem-theme={gemTheme(features?.store?.magic, employee.id)}
+          className="gem-employee-page relative w-full max-w-2xl min-w-0 bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="bg-blue-600 p-4 sm:p-6 text-white flex justify-between items-center sticky top-0 z-10">
+          <div className="gem-profile-header bg-blue-600 p-4 sm:p-6 text-white flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-4">
               <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md shrink-0 bg-blue-200" />
               <div>

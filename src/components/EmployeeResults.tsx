@@ -47,7 +47,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
             <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
           </div>
           <div className={`w-20 h-20 flex items-center justify-center ${tier === 'bronze' ? 'bg-blue-100 rounded-full text-blue-500' : ''}`}>
-            {tier === 'bronze' ? <Award size={40} /> : <span className="text-5xl"><TierBadge employee={user} /></span>}
+            {tier === 'bronze' ? <Award size={40} /> : <TierBadge employee={user} />}
           </div>
         </div>
       </div>

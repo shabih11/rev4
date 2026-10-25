@@ -47,8 +47,6 @@
 /* Tier emphasis belongs to the employee name and active leaderboard slide. */
 .employee-tier-name { display:inline-flex; align-items:center; gap:0.2em; padding:0.1em 0.3em; border:1px solid transparent; border-radius:0.4em; }
 .employee-tier-name[data-tier="gold"] { border-color:#c5a14b; }
-.recognition-page[data-tier="gold"] { background:#fff8df; }
-.recognition-page[data-tier="gold"] .valley-scenery { opacity:.35; }
 .tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline-end:0.2em; line-height:1; }
 .faceted-gem { display:block; width:0.7em; height:1em; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
 .gem-gold { filter:drop-shadow(0 2px 4px #c49a3b33); }
@@ -70,3 +68,20 @@
 .shop-art-plinth { position:absolute; bottom:2px; inset-inline:12%; height:20px; border-radius:50%; background:#dce7e2; box-shadow:0 6px 0 #cbdcd4; }
 .purchase-dialog::backdrop { background:#172b3d88; backdrop-filter:blur(4px); }
 @media (prefers-reduced-motion:reduce) { .gem-glint { animation:none;opacity:1; } }
+
+/* Tier awards are independent of purchased jewel themes. */
+.tier-award { display:inline-flex; align-items:center; gap:4px; vertical-align:middle; font-family:'Cairo',sans-serif; font-size:14px; font-weight:800; line-height:1.5; white-space:nowrap; }
+.tier-award svg { width:29px; height:29px; flex-shrink:0; }
+.tier-award-gold { color:#8b6517; }
+.tier-award-silver { color:#576477; }
+.store-gem { width:52px; height:65px; display:block; margin-inline:auto; }
+[data-gem-theme="amber"] { --gem-bg:#fff6dc; --gem-accent:#805e17; }
+[data-gem-theme="pearl"] { --gem-bg:#eef2f7; --gem-accent:#44546b; }
+[data-gem-theme="emerald"] { --gem-bg:#e6f5ed; --gem-accent:#146b51; }
+[data-gem-theme="sapphire"] { --gem-bg:#eaf1ff; --gem-accent:#27569e; }
+[data-gem-theme="rose"] { --gem-bg:#fff0f4; --gem-accent:#983758; }
+[data-gem-theme="amethyst"] { --gem-bg:#f3edfc; --gem-accent:#724398; }
+.recognition-page[data-gem-theme],.gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
+.recognition-page[data-gem-theme] .valley-scenery { opacity:.28; }
+.gem-employee-page[data-gem-theme] .gem-profile-header { background:var(--gem-accent); }
+@media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }

@@ -1,3 +1,4 @@
+import { MagicStoreAdmin } from './MagicStoreAdmin';
 import { AvatarStoreAdmin } from './AvatarStoreAdmin';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
@@ -8,13 +9,13 @@ import type { FeatureSettings } from '../lib/employeeFeatures';
 const switches = [
   ['competition', 'المنافسة اليومية', 'إظهار أسماء الموظفات اللاتي تجاوزتهن الموظفة منذ نهاية أمس.'],
   ['balanceGrowth', 'زيادة رصيد التقييمات', 'عرض الزيادة اليومية باللون الأخضر بجانب الرصيد.'],
-  ['tiers', 'الفئات والمظهر', 'برونز بالمظهر المعتاد، فضي هادئ، وذهبي لامع مع جوهرة بجانب الاسم.'],
+  ['tiers', 'شارات الفئات', 'متمكنة للفئة الفضية ومتميزة للفئة الذهبية.'],
   ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
   if (!features) return <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">إعدادات الميزات غير متاحة. تحققي من الاتصال وتطبيق تحديث قاعدة البيانات.</p>;
-  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><AvatarStoreAdmin/></div>;
+  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><MagicStoreAdmin/><AvatarStoreAdmin/></div>;
 }
 function SettingsForm({ initial }: { initial: FeatureSettings }) {
   const [settings, setSettings] = useState(initial);
