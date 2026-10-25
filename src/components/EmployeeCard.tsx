@@ -168,7 +168,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             {activeTab === 'reviews' ? (
               <div className="space-y-4 pt-2 pb-2">
                 {(recordsReady ? employeeReviews : []).map(r => {
-                  const linkedNames = r.linkedEmployeeIds.map((id: string) => users.find((u: any) => u.id === id)?.name || id).join('، ');
+                  const linkedNames = r.linkedEmployeeIds.map((id: string) => users.find((u: any) => u.id === id)?.name).filter(Boolean).join('، ');
                   return (
                     <div key={r.id} className="bg-white p-4 rounded-xl border shadow-sm relative">
                       {linkedNames && (
@@ -212,7 +212,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     <div key={shift.id || idx} onClick={() => setSelectedShift(shift)} className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between gap-3 cursor-pointer hover:bg-gray-50 transition-colors">
                       <div className="min-w-0">
                         <p className="font-bold text-gray-800">{formatDate(shift.date)} <span className="text-xs font-medium text-gray-500">({shiftName(shift.time)})</span></p>
-                        <p className="text-xs text-gray-400 mt-1">{shift.employees?.filter(e => !isEmpMatch(e.id, e.name)).length ? `مع ${shift.employees.filter(e => !isEmpMatch(e.id, e.name)).map(e => e.name).join(' و')}` : 'بدون شريكة'}</p>
+                        <p className="text-xs text-gray-400 mt-1">{shift.employees?.filter(e => users.some(user => user.id === e.id) && !isEmpMatch(e.id, e.name)).length ? `مع ${shift.employees.filter(e => users.some(user => user.id === e.id) && !isEmpMatch(e.id, e.name)).map(e => e.name).join(' و')}` : 'بدون شريكة'}</p>
                       </div>
                       <ShiftReviewCounts shift={shift} employeeId={employee.id} reviews={employeeReviews} ready={recordsReady} />
                     </div>
@@ -294,7 +294,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
             <div className="p-4 bg-white mt-1 shadow-sm shrink-0">
                <p className="text-sm font-bold text-gray-800 mb-2">فريق الشفت:</p>
                <div className="flex flex-wrap gap-2">
-                  {shift.employees?.map((e, i) => <span key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100">{e.name}</span>)}
+                  {shift.employees?.filter(e => users.some(user => user.id === e.id)).map((e, i) => <span key={i} className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold border border-blue-100">{e.name}</span>)}
                </div>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -319,7 +319,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
                        <p className="text-gray-700 text-sm mt-3 leading-relaxed">{r.comment || 'لا يوجد تعليق'}</p>
                        <div className="mt-3 pt-3 border-t border-gray-50">
                           <p className="text-[10px] text-gray-400 font-bold">اكتسب بواسطة:</p>
-                          <p className="text-xs text-blue-600 font-medium">{r.linkedEmployeeIds?.map((id: string) => users.find((u: any) => u.id===id)?.name || id).join('، ') || 'غير محدد'}</p>
+                          <p className="text-xs text-blue-600 font-medium">{r.linkedEmployeeIds?.map((id: string) => users.find((u: any) => u.id===id)?.name).filter(Boolean).join('، ') || 'غير محدد'}</p>
                        </div>
                      </div>
                   ))

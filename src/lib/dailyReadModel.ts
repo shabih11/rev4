@@ -6,7 +6,7 @@ import type { CloudSession } from './cloudSync';
 import type { UserAccount } from './mockData';
 import type { ReviewSummary, TimelineEvent } from '../context/DataContext';
 export interface DailyReadModel {
-  features: FeatureState | null; generatedAt: string; directory: UserAccount[]; reviews: ReviewSummary[]; notes: TimelineEvent[]; hours: Record<string, number>;
+  disabledEmployeeIds?: string[]; features: FeatureState | null; generatedAt: string; directory: UserAccount[]; reviews: ReviewSummary[]; notes: TimelineEvent[]; hours: Record<string, number>;
 }
 export function useDailyReadModel(session: CloudSession) {
   const [day, setDay] = useState(() => new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' }));
@@ -14,7 +14,7 @@ export function useDailyReadModel(session: CloudSession) {
     const timer = window.setInterval(() => setDay(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })), 30000);
     return () => window.clearInterval(timer);
   }, []);
-  const namespace = readNamespace(session) + '|avatar-store-v2|' + day + '|', uid = session.account ? session.uid : null;
+  const namespace = readNamespace(session) + '|employee-deactivation-v1|' + day + '|', uid = session.account ? session.uid : null;
   const [value, setValue] = useState<{ namespace: string; revision: string; data: DailyReadModel } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {

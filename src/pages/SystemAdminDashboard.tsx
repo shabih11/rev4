@@ -6,6 +6,7 @@ import { MergeAccountPicker } from '../components/MergeAccountPicker';
 import { BranchEmployees } from '../components/BranchEmployees';
 import { AdministrationPhone } from '../components/MissingShiftRequest';
 import { Brand } from '../components/Brand';
+import { DisabledEmployees } from '../components/DisabledEmployees';
 import { EmployeeManagementActions } from '../components/EmployeeManagementActions';
 import { belongsToBranch } from '../lib/employeeBranches';
 import { LeaderboardLink } from '../components/LeaderboardLink';
@@ -20,7 +21,7 @@ import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { recordsReady, summaryReady, users, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
+  const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features'>('shifts');
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
@@ -191,9 +192,9 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   const handleRemoveEmployee = async (id: string) => {
-    if (!confirm('هل أنت متأكد من إزالة هذه الموظفة؟')) return;
-    const removed = await removeUser(id);
-    showToast(removed ? 'تمت إزالة الموظفة' : 'تعذر الحذف. استخدمي الدمج إذا كانت الموظفة مرتبطة بسجلات.');
+    if (!confirm('هل تريدين تعطيل الموظفة مع الاحتفاظ بسجلاتها؟')) return;
+    const removed = await setEmployeeDisabled(id, true);
+    showToast(removed ? 'تم تعطيل الموظفة' : 'تعذر التعطيل. تحققي من الاتصال وتحديث قاعدة البيانات.');
   };
 
   const handleSubmitComplaint = () => {
@@ -524,6 +525,8 @@ export const SystemAdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              <DisabledEmployees />
+
               {/* Merge Employees Modal */}
               {showMergeModal && (
                 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
@@ -763,7 +766,7 @@ export const SystemAdminDashboard: React.FC = () => {
                                 متنقلة
                               </span>
                             )}
-                            <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">إزالة</button>
+                            <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">تعطيل</button>
                           </div>
 
                           </div>
@@ -1035,7 +1038,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           <p className="text-xs text-gray-500">{formatTime(s.time)} – {s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'}</p>
                         </div>
                         <div className="text-sm text-gray-500 mt-2 flex flex-wrap gap-1">
-                          {s.employees?.map(e => (
+                          {s.employees?.filter(e => users.some(user => user.id === e.id)).map(e => (
                             <span key={e.id} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold">{e.name}</span>
                           ))}
                         </div>

@@ -169,7 +169,7 @@ export const EmployeeDashboard: React.FC = () => {
               <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                 <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
-                <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id).length ? `مع ${event.employees.filter(employee => employee.id !== user.id).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
+                <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id && users.some(active => active.id === employee.id)).length ? `مع ${event.employees.filter(employee => employee.id !== user.id && users.some(active => active.id === employee.id)).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
                 </div>
                 <ShiftReviewCounts shift={event} employeeId={user.id} reviews={countReviews} ready={recordsReady} />
               </div>

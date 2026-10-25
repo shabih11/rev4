@@ -54,7 +54,8 @@ interface DataContextType {
   users: UserAccount[];
   updateUser: (id: string, updates: Partial<UserAccount>) => void;
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
-  removeUser: (id: string) => Promise<boolean>;
+  disabledEmployees: UserAccount[];
+  setEmployeeDisabled: (id: string, disabled: boolean) => Promise<boolean>;
   convertToMobile: (id: string) => void;
   mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
@@ -207,11 +208,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) { console.error(e); }
   };
 
-  const removeUser = async (id: string) => {
-    const employee = userCloud.rows.find(user => user.id === id && user.role === 'employee');
-    if (session.account?.role !== 'admin' || !userCloud.ready || !employee) return false;
+  const setEmployeeDisabled = async (id: string, disabled: boolean) => {
+    if (session.account?.role !== 'admin' || !daily.ready || !users.some(user => user.id === id && user.role === 'employee')) return false;
     try {
-      const { error } = await supabase.rpc('write_rows', { source: 'users', changes: [{ id, before: employee, after: null }] });
+      const { error } = await supabase.rpc('set_employee_disabled', { employee_id: id, disabled });
       if (error) return false;
       await invalidateRows(readNamespace(session));
       return true;
@@ -390,7 +390,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady, coverageBranches.branches]);
 
-  const featureState = React.useMemo(() => comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee'), reviewSignals.rows), [daily.data, enrichedUsers, reviewSignals.rows]);
+  const disabledIds = new Set(daily.data?.disabledEmployeeIds || []);
+  const activeUsers = enrichedUsers.filter(user => !disabledIds.has(user.id));
+  const disabledEmployees = session.account?.role === 'admin' ? enrichedUsers.filter(user => disabledIds.has(user.id)) : [];
+  const featureState = React.useMemo(() => {
+    const disabled = new Set(daily.data?.disabledEmployeeIds || []);
+    const state = comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee' && !disabled.has(user.id)), reviewSignals.rows);
+    if (!state?.store) return state;
+    return { ...state, store: { ...state.store, collections: state.store.collections.map(collection => ({
+      ...collection, variants: collection.variants.map(variant => variant.ownerId && disabled.has(variant.ownerId) ? { ...variant, ownerName: null } : variant),
+    })) } };
+  }, [daily.data, enrichedUsers, reviewSignals.rows]);
 
   const clearData = (branch?: string, startDate?: string, endDate?: string) => {
     if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
@@ -445,7 +455,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       coverageBranchError: coverageBranches.error,
       features: featureState,
       requestRecords,
-      users: enrichedUsers, updateUser, addUser, removeUser, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, 
+      users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings,
       timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       resetUsersToRoster,

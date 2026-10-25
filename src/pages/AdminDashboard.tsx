@@ -315,7 +315,7 @@ export const AdminDashboard: React.FC = () => {
             <section className="bg-white p-5 rounded-3xl border space-y-3">
               <h2 className="font-bold text-xl">طلبات تسجيل شفت مفقود</h2>
               {timeline.filter(r => r.branch === user?.branch && r.requestStatus).map(r => <div key={r.id} className="border rounded-xl p-4">
-                <strong>{r.employees?.map(e => e.name).join('، ')} — {r.date} — الشفت {r.requestedShift === 'first' ? 'الأول' : 'الثاني'}</strong>
+                <strong>{r.employees?.filter(e => users.some(user => user.id === e.id)).map(e => e.name).join('، ')} — {r.date} — الشفت {r.requestedShift === 'first' ? 'الأول' : 'الثاني'}</strong>
                 {r.requestStatus === 'pending' ? <div className="flex gap-3 mt-3">
                   <button disabled={!recordsReady} className="bg-emerald-600 text-white rounded-xl p-2" onClick={() => {
                     acceptShiftRequest(r.id, r.requestedShift === 'first' ? branchHours.open : '16:00', r.requestedShift === 'first' ? '16:00' : branchHours.nextDay);
@@ -544,7 +544,7 @@ export const AdminDashboard: React.FC = () => {
                     </label>
                     {shift1Emps.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
-                        {shift1Emps.map(emp => {
+                        {shift1Emps.filter(emp => users.some(user => user.id === emp.id)).map(emp => {
                           const u = users.find(user => user.id === emp.id);
                           return (
                             <div
@@ -749,7 +749,7 @@ export const AdminDashboard: React.FC = () => {
                     </label>
                     {shift2Emps.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5">
-                        {shift2Emps.map(emp => {
+                        {shift2Emps.filter(emp => users.some(user => user.id === emp.id)).map(emp => {
                           const u = users.find(user => user.id === emp.id);
                           return (
                             <div
