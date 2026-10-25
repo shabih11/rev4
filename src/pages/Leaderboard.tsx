@@ -1,17 +1,17 @@
+import { praiseCycle, nextPraiseCycle, praisedEmployee } from '../lib/praisedEmployee';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
 import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
-import { useRecordScope } from '../hooks/useRecordScope';
 import { BrandName, PageLoading } from '../components/Brand';
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Building2, Users, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -26,16 +26,12 @@ type SlideData =
   | { type: 'partnership'; branch: string; emp1: UserAccount; emp2: UserAccount; count: number }
   | { type: 'active_branch'; branch: string; count: number }
   | { type: 'active_employee'; employee: UserAccount; count: number }
-  | { type: 'praised_employee'; employee: UserAccount; count: number; texts: string[] };
+  | { type: 'praised_employee'; employee: UserAccount; count: number };
 
 export const Leaderboard: React.FC = () => {
-  useRecordScope({ reviews: { all: true } });
   const reduceMotion = useReducedMotion();
-  const { users, reviews: privateReviews, reviewSummaries, summaryReady, syncError, features } = useData();
-  const reviews = useMemo(() => {
-    const details = new Map(privateReviews.map(review => [review.id, review]));
-    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
-  }, [privateReviews, reviewSummaries]);
+  const { users, reviewSummaries, summaryReady, syncError, features } = useData();
+  const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
@@ -44,6 +40,12 @@ export const Leaderboard: React.FC = () => {
   const allEmployeesSorted = useMemo(() => {
     return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
   }, [users]);
+
+  const [praisePeriod, setPraisePeriod] = useState(() => praiseCycle());
+  useEffect(() => {
+    const timer = window.setTimeout(() => setPraisePeriod(praiseCycle()), Math.max(0, nextPraiseCycle(praisePeriod) - Date.now()) + 50);
+    return () => window.clearTimeout(timer);
+  }, [praisePeriod]);
 
   const slidesData = useMemo(() => {
     // 1. Top 10 Employees
@@ -126,39 +128,15 @@ export const Leaderboard: React.FC = () => {
       sData.push({ type: 'active_employee', employee: mostActiveEmployee, count: maxEmpCount });
     }
 
-    // 4. Most Praised Employee (Most reviews this week)
-    const weekReviews = reviews.filter(r => isWithinLastDays(r.date, 7));
-    let mostPraisedEmpId = '';
-    let maxPraiseCount = 0;
-    const praiseCounts: Record<string, { count: number, texts: string[] }> = {};
-
-    weekReviews.forEach(r => {
-      r.linkedEmployeeIds.forEach(id => {
-        if (!praiseCounts[id]) praiseCounts[id] = { count: 0, texts: [] };
-        praiseCounts[id].count++;
-        if (r.comment && r.comment.length > 3) {
-          praiseCounts[id].texts.push(r.comment);
-        }
-        if (praiseCounts[id].count > maxPraiseCount) {
-          maxPraiseCount = praiseCounts[id].count;
-          mostPraisedEmpId = id;
-        }
-      });
-    });
-
-    const mostPraisedEmployee = users.find(u => u.id === mostPraisedEmpId);
-    if (mostPraisedEmployee && maxPraiseCount > 0) {
-      sData.push({ 
-        type: 'praised_employee', 
-        employee: mostPraisedEmployee, 
-        count: maxPraiseCount, 
-        texts: praiseCounts[mostPraisedEmpId].texts.slice(0, 3) 
-      });
+    const praise = praisedEmployee(reviews, allEmployeesSorted, praisePeriod);
+    const mostPraisedEmployee = users.find(employee => employee.id === praise.id);
+    if (mostPraisedEmployee && praise.count > 0) {
+      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: praise.count });
     }
 
     const order = { praised_employee: 0, active_employee: 1, active_branch: 2, employee: 3, partnership: 4 };
     return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
-  }, [allEmployeesSorted, users, reviews]);
+  }, [allEmployeesSorted, users, reviews, praisePeriod]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slidesData[activeIndex] || slidesData[0];
@@ -281,32 +259,20 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'active_employee' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-green-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <TrendingUp size={48} className="text-emerald-600 opacity-70 absolute top-6 right-6" />
                     <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
-                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
-                    <p className="text-orange-700 font-bold bg-orange-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
+                    <h3 className="text-xl sm:text-3xl font-black text-emerald-950 leading-tight z-10">{slide.employee.name}</h3>
+                    <p className="text-emerald-900 font-bold bg-emerald-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
                   </div>
                 )}
 
                 {slide.type === 'praised_employee' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <MessageSquareHeart size={48} className="text-pink-500 opacity-10 absolute bottom-6 left-6" />
-                    <EmployeeAvatar employee={slide.employee} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg bg-white mb-2 sm:mb-4 z-10 shrink-0" />
-                    <h3 className="text-lg sm:text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
-                    
-                    <div className="mt-2 sm:mt-4 flex flex-col gap-2 w-full z-10 overflow-y-auto flex-1">
-                      {slide.texts.length > 0 ? slide.texts.map((t, idx) => (
-                        <div key={idx} className="bg-white/90 backdrop-blur-sm p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm text-[11px] sm:text-xs text-gray-800 text-right line-clamp-2 italic border border-pink-50 relative">
-                          <span className="text-pink-300 text-lg sm:text-2xl absolute -top-1 -right-1 font-serif">"</span>
-                          {t}
-                        </div>
-                      )) : (
-                        <div className="bg-white/70 p-3 rounded-xl text-center">
-                          <p className="text-pink-600 font-bold text-sm">⭐ {slide.count} تقييم هذا الأسبوع</p>
-                        </div>
-                      )}
-                    </div>
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <MessageSquareHeart size={48} className="text-rose-500 opacity-30 absolute top-6 right-6" />
+                    <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
+                    <h3 className="text-xl sm:text-3xl font-black text-rose-950 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
+                    <p className="text-rose-900 font-bold bg-rose-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm">نجمة الثناء</p>
                   </div>
                 )}
 
@@ -390,25 +356,21 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'active_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2">الموظفة الأنشط مؤخراً</h2>
-                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-emerald-950">الموظفة الأنشط مؤخراً</h2>
+                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2 text-emerald-950" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
                   <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
+                    <p className="text-emerald-800 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
+                    <p className="text-2xl sm:text-4xl font-extrabold text-emerald-950">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
                   </div>
                 </>
               )}
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-pink-100">نجمة الثناء</h2>
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-rose-950">نجمة الثناء</h2>
                   <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
-                  <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">تقييمات هذا الأسبوع</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold text-pink-100">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
-                  </div>
                 </>
               )}
 
