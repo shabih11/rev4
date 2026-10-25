@@ -1,3 +1,4 @@
+import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
 import { EmployeeAccountActions } from '../components/EmployeeAccountActions';
@@ -488,7 +489,7 @@ export const SystemAdminDashboard: React.FC = () => {
                               <div key={emp.id} className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
                                 <img src={emp.imageUrl || employeeImg} alt={emp.name} className="w-10 h-10 rounded-full object-cover border" />
                                 <div>
-                                  <p className="font-bold text-sm text-gray-800">{emp.name}</p>
+                                  <EmployeeIdentity employee={emp} className="text-sm text-gray-800"/>
                                   <p className="text-xs text-gray-500 mt-1">
                                     <span className="text-green-600 font-bold">{emp.stats.positive.toFixed(1)}</span> إيجابي | <span className="text-red-600 font-bold">{emp.stats.negative.toFixed(1)}</span> سلبي
                                   </p>
@@ -655,8 +656,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     <summary className="flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
                       <EmployeeAvatar employee={emp} className="h-14 w-14 shrink-0 rounded-full border border-slate-200" />
                       <div className="min-w-0 flex-1">
-                        <h4 className="break-words font-bold text-slate-900">{emp.name}</h4>
-                        <p className="mt-1 text-sm text-slate-500">{emp.branch === 'موظفة خارجية' ? 'موظفة متنقلة' : `فرع ${emp.branch}`}</p>
+                        <EmployeeIdentity employee={emp} className="text-slate-900"/>
                         <p className="mt-2 text-xs text-blue-700">إجمالي التقييمات: {emp.reviewsCount || 0} · الشهر: {emp.monthReviewsCount || 0}</p>
                       </div>
                       <span className="shrink-0 text-xs font-bold text-blue-700">

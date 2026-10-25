@@ -72,8 +72,8 @@
 /* Tier awards are independent of purchased jewel themes. */
 .tier-award { display:inline-flex; align-items:center; gap:4px; vertical-align:middle; font-family:'Cairo',sans-serif; font-size:14px; font-weight:800; line-height:1.5; white-space:nowrap; }
 .tier-award svg { width:29px; height:29px; flex-shrink:0; }
-.tier-award-gold { color:#8b6517; }
-.tier-award-silver { color:#576477; }
+.tier-award-gold svg { filter:drop-shadow(0 1px 1px #bd851633); }
+.tier-award-silver svg { filter:drop-shadow(0 1px 1px #64748b33); }
 .store-gem { width:52px; height:65px; display:block; margin-inline:auto; }
 [data-gem-theme="amber"] { --gem-bg:#fff6dc; --gem-accent:#805e17; }
 [data-gem-theme="pearl"] { --gem-bg:#eef2f7; --gem-accent:#44546b; }
@@ -85,3 +85,10 @@
 .recognition-page[data-gem-theme] .valley-scenery { opacity:.28; }
 .gem-employee-page[data-gem-theme] .gem-profile-header { background:var(--gem-accent); }
 @media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }
+
+.employee-identity { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.employee-identity-line { display:flex; align-items:baseline; gap:8px; min-width:0; max-width:100%; }
+.employee-identity-name { min-width:0; overflow-wrap:anywhere; font-weight:800; }
+.employee-identity-branch { font-size:.75em; font-weight:500; flex-shrink:0; }
+.tier-award { color:#111; }
+.employee-identity-on-dark .tier-award { background:#fff; padding:2px 6px; border-radius:6px; align-self:flex-start; }

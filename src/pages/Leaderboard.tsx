@@ -1,7 +1,8 @@
+import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
-import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
+import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo } from 'react';
@@ -333,12 +334,7 @@ export const Leaderboard: React.FC = () => {
               
               {activeSlide.type === 'employee' && (
                 <>
-                  <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
-                    <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                      <button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}><TierBadge employee={activeSlide.data} /> {activeSlide.data.name}</button>
-                    </EmployeeCard>
-                    <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
-                  </div>
+                  <EmployeeIdentity employee={activeSlide.data} className="items-center mb-3" nameContent={<EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>}/>
 
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
@@ -386,14 +382,8 @@ export const Leaderboard: React.FC = () => {
               {activeSlide.type === 'active_employee' && (
                 <>
                   <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2">الموظفة الأنشط مؤخراً</h2>
-                  <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
-                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
-                    </button>
-                  </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
-                    {activeSlide.employee.branch}
-                  </button>
+                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+
                   <div className="flex flex-col items-center">
                     <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
                     <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
@@ -404,14 +394,8 @@ export const Leaderboard: React.FC = () => {
               {activeSlide.type === 'praised_employee' && (
                 <>
                   <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-pink-100">نجمة الثناء</h2>
-                  <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
-                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
-                    </button>
-                  </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
-                    {activeSlide.employee.branch}
-                  </button>
+                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+
                   <div className="flex flex-col items-center">
                     <p className="text-blue-100 text-[10px] sm:text-xs font-bold">تقييمات هذا الأسبوع</p>
                     <p className="text-2xl sm:text-4xl font-extrabold text-pink-100">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
@@ -454,8 +438,7 @@ export const Leaderboard: React.FC = () => {
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1 min-w-0 space-y-1">
-                        <h4 className="flex items-center gap-1 font-bold leading-snug text-gray-800"><TierBadge employee={emp} /><span className="break-words">{emp.name}</span></h4>
-                        <p className="text-xs leading-relaxed text-gray-500">{emp.branch}</p>
+                        <EmployeeIdentity employee={emp} className="text-gray-800"/>
                         <Overtaken employee={emp} />
                       </div>
                       <div className="text-center shrink-0">

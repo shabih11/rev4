@@ -1,6 +1,6 @@
+import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
-import { employeeTier } from '../lib/employeeFeatures';
 import { Brand } from '../components/Brand';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
@@ -44,8 +44,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800">أهلاً، <span className="employee-tier-name" data-tier={summaryReady && features ? employeeTier(user.points, features.settings) : 'bronze'}>{user.name}</span></h1>
-            <p className="text-blue-600 font-bold">{user.branch}</p>
+            <h1 className="text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={user}/></h1>
           </div>
           <div className="flex items-center gap-2">
             <LeaderboardLink />
