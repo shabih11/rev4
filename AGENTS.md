@@ -5,6 +5,7 @@
 - Vite 8 SPA، React 19، TypeScript 6، Tailwind 3؛ Supabase Auth وPostgreSQL مع RLS.
 - مشروع Supabase: `zcnfzrkegodvrtzimlnn`. الأدوار: admin / manager / employee.
 - RTL أولًا. المستودع الرسمي: https://github.com/shabih11/rev4.
+- تفضيل المستخدم: ارفع التحديثات دائمًا إلى `main`، ما لم يطلب المستخدم صراحةً فرعًا آخر. حدّثه من المستودع البعيد قبل الرفع، ولا تستخدم force push.
 - حافظ على الوظائف القائمة؛ الميزات الإضافية والتغييرات المعمارية الكبيرة تحتاج نطاقًا واضحًا.
 
 ## الحماية
