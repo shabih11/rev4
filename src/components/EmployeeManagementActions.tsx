@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { GitMerge, Trash2 } from 'lucide-react';
+import { MergeAccountPicker } from './MergeAccountPicker';
 import { useData } from '../context/DataContext';
 import { isCoverageEmployee } from '../lib/employeeBranches';
 import type { UserAccount } from '../lib/mockData';
@@ -11,12 +12,14 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
   const [action, setAction] = useState<'delete' | 'merge' | null>(null);
   const [primaryId, setPrimaryId] = useState('');
   const [duplicateId, setDuplicateId] = useState('');
+  const [primaryBranch, setPrimaryBranch] = useState('');
+  const [duplicateBranch, setDuplicateBranch] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const employees = users.filter(user => user.role === 'employee');
-  const primary = employees.find(user => user.id === primaryId);
-  const duplicate = employees.find(user => user.id === duplicateId);
+  const primary = employees.find(user => user.id === primaryId && user.branch === primaryBranch);
+  const duplicate = employees.find(user => user.id === duplicateId && user.branch === duplicateBranch);
   const authorized = currentAccount?.role === 'admin';
   useEffect(() => {
     if (action && authorized) dialog.current?.showModal();
@@ -24,9 +27,9 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
   }, [action, authorized]);
   if (!authorized || (employee && employee.role !== 'employee')) return null;
   function open(next: 'delete' | 'merge') {
+    setPrimaryBranch(employee?.branch || ''); setDuplicateBranch('');
     setPrimaryId(employee?.id || ''); setDuplicateId(''); setError(''); setMessage(''); setAction(next);
   }
-  const selectClass = 'mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm';
   return <div className="space-y-2" onClick={event => event.stopPropagation()}>
     <div className="flex flex-wrap gap-2">
       <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-sm font-bold text-purple-800" onClick={() => open('merge')}><GitMerge size={16} aria-hidden="true" />{employee ? 'دمج الموظفة' : 'دمج موظفتين'}</button>
@@ -49,16 +52,15 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
       }}>
         <h2 id={heading} className="text-xl font-bold">{action === 'delete' ? 'حذف سجل موظفة' : 'دمج حسابي موظفتين'}</h2>
         <p className="text-sm text-slate-600">{action === 'delete' ? 'الحذف متاح للسجلات غير المرتبطة بتقييمات أو شفتات. إذا كانت الموظفة مكررة، استخدمي الدمج للاحتفاظ بسجلاتها.' : 'اختاري الحساب الأساسي الذي سيبقى، ثم الحساب المكرر. ستُنقل التقييمات والشفتات والأرصدة إلى الحساب الأساسي.'}</p>
-        <label className="block text-sm font-bold">{action === 'delete' ? 'الموظفة المراد حذفها' : 'الحساب الأساسي الذي سيبقى'}
-          <select required disabled={busy || !summaryReady} value={primaryId} onChange={event => { setPrimaryId(event.target.value); if (duplicateId === event.target.value) setDuplicateId(''); }} className={selectClass}>
-            <option value="">اختاري موظفة</option>{employees.map(user => <option key={user.id} value={user.id}>{user.name} — {user.branch}</option>)}
-          </select>
-        </label>
-        {action === 'merge' && <label className="block text-sm font-bold">الحساب المكرر الذي سيُدمج
-          <select required disabled={busy || !summaryReady} value={duplicateId} onChange={event => setDuplicateId(event.target.value)} className={selectClass}>
-            <option value="">اختاري الحساب المكرر</option>{employees.filter(user => user.id !== primaryId).map(user => <option key={user.id} value={user.id}>{user.name} — {user.branch}</option>)}
-          </select>
-        </label>}
+        <fieldset disabled={busy || !summaryReady} className="space-y-4">
+          <legend className="sr-only">اختيار الفرع ثم الموظفة</legend>
+          <MergeAccountPicker label={action === 'delete' ? 'الموظفة المراد حذفها' : 'الحساب الأساسي الذي سيبقى'}
+            branch={primaryBranch} onBranchChange={branch => { setPrimaryBranch(branch); setPrimaryId(''); setError(''); }}
+            value={primaryId} onChange={id => { setPrimaryId(id); if (duplicateId === id) setDuplicateId(''); setError(''); }} users={users} ready={summaryReady} />
+          {action === 'merge' && <MergeAccountPicker label="الحساب المكرر الذي سيُدمج"
+            branch={duplicateBranch} onBranchChange={branch => { setDuplicateBranch(branch); setDuplicateId(''); setError(''); }}
+            value={duplicateId} onChange={id => { setDuplicateId(id); setError(''); }} excludedId={primaryId} users={users} ready={summaryReady} />}
+        </fieldset>
         {error && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
         <div className="flex flex-wrap gap-3">
           <button disabled={busy || !summaryReady || !primary || (action === 'merge' && !duplicate)} className="min-h-12 rounded-xl bg-blue-700 px-5 py-3 font-bold text-white disabled:opacity-50">{busy ? 'جارٍ التنفيذ…' : action === 'delete' ? 'تأكيد الحذف' : 'تأكيد الدمج'}</button>
