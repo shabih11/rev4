@@ -11,7 +11,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, Building2, Users, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Building2, Users, Star, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -268,11 +268,11 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'praised_employee' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <MessageSquareHeart size={48} className="text-rose-500 opacity-30 absolute top-6 right-6" />
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-yellow-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <Star size={48} className="text-amber-500 opacity-50 absolute top-6 right-6" />
                     <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
-                    <h3 className="text-xl sm:text-3xl font-black text-rose-950 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
-                    <p className="text-rose-900 font-bold bg-rose-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm">نجمة الثناء</p>
+                    <h3 className="text-xl sm:text-3xl font-black text-amber-950 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
+                    <p className="text-amber-900 font-bold bg-amber-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm">نجمة الثناء</p>
                   </div>
                 )}
 
@@ -368,7 +368,7 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-rose-950">نجمة الثناء</h2>
+                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-amber-950">نجمة الثناء</h2>
                   <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
                 </>
