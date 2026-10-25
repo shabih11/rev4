@@ -1,8 +1,9 @@
+import { EmployeeIdentity } from './EmployeeIdentity';
 import { MysteryStore } from './MysteryStore';
 import { AvatarStore } from './AvatarStore';
 import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
-import { User, Lock, Mail, Building2, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
+import { User, Lock, Mail, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const UserProfileTab: React.FC = () => {
@@ -74,11 +75,8 @@ export const UserProfileTab: React.FC = () => {
               <Shield size={13} />
               {roleTitle}
             </div>
-            <h2 className="text-2xl font-black">{user.name}</h2>
+            <h2 className="text-2xl font-black"><EmployeeIdentity employee={user} className="employee-identity-on-dark" /></h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
-              <span className="flex items-center gap-1">
-                <Building2 size={14} /> فرع {user.branch}
-              </span>
               {user.email && (
                 <span className="flex items-center gap-1 dir-ltr" dir="ltr">
                   <Mail size={14} /> {user.email}

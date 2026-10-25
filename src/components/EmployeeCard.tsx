@@ -1,3 +1,4 @@
+import { EmployeeIdentity } from './EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
@@ -33,9 +34,9 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
   return (
     <>
-      <div onClick={event => { event.stopPropagation(); setShowModal(true); }}>
+      <span className="block" onClick={event => { event.stopPropagation(); setShowModal(true); }}>
         {children}
-      </div>
+      </span>
 
       {showModal && typeof document !== 'undefined' && createPortal(
         <EmployeeModalContent 
@@ -110,8 +111,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             <div className="flex items-center gap-4">
               <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md shrink-0 bg-blue-200" />
               <div>
-                <h3 className="text-xl sm:text-2xl font-bold">{employee.name}</h3>
-                <p className="text-blue-100 text-sm mb-1">{employee.branch}{(employee.isCoverage ?? employee.assignedBranches?.some(branch => branch !== employee.branch) ?? false) ? ' (تغطية)' : ''}</p>
+                <EmployeeIdentity employee={employee} className="employee-identity-on-dark text-xl sm:text-2xl" />
                 <Overtaken employee={employee} /><p className="text-xs">رصيد الشهر: {employee.monthReviewsCount || 0} <BalanceGrowth employee={employee} /></p>
                 <div className="flex gap-2 mt-1 flex-wrap">
                   <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
