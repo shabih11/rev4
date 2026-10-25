@@ -45,8 +45,7 @@
 }
 
 /* Tier emphasis belongs to the employee name and active leaderboard slide. */
-.employee-tier-name { display:inline-flex; align-items:center; gap:0.2em; padding:0.1em 0.3em; border:1px solid transparent; border-radius:0.4em; }
-.employee-tier-name[data-tier="gold"] { border-color:#c5a14b; }
+.employee-tier-name { display:inline-flex; align-items:center; gap:0.2em; padding:0.1em 0.3em; border:0; }
 .tier-badge { display:inline-flex; vertical-align:middle; align-items:center; justify-content:center; margin-inline-end:0.2em; line-height:1; }
 .faceted-gem { display:block; width:0.7em; height:1em; overflow:visible; filter:drop-shadow(0 2px 3px #64748b22); }
 .gem-gold { filter:drop-shadow(0 2px 4px #c49a3b33); }
