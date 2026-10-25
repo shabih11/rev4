@@ -1,3 +1,4 @@
+import { MysteryStore } from './MysteryStore';
 import { AvatarStore } from './AvatarStore';
 import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
@@ -88,6 +89,7 @@ export const UserProfileTab: React.FC = () => {
         </div>
       </div>
 
+      <MysteryStore employee={user} />
       <AvatarStore employee={user} />
       {/* Edit Name Card */}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">

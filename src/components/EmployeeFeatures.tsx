@@ -2,14 +2,13 @@ import { TrendingUp } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { dailyProgress, employeeTier } from '../lib/employeeFeatures';
 import type { UserAccount } from '../lib/mockData';
-import { FacetedGem } from './FacetedGem';
+import { TierAward } from './TierAward';
 import { AvatarImage } from './AvatarImage';
 export function TierBadge({ employee }: { employee: UserAccount }) {
   const { features } = useData();
   const tier = features ? employeeTier(employee.points, features.settings) : 'bronze';
   if (tier === 'bronze' || employee.role !== 'employee') return null;
-  const label = tier === 'gold' ? 'الفئة الذهبية' : 'الفئة الفضية';
-  return <span className="tier-badge" title={label}><FacetedGem tier={tier} /><span className="sr-only">{label}</span></span>;
+  return <TierAward gold={tier === 'gold'} />;
 }
 export function BalanceGrowth({ employee }: { employee: UserAccount }) {
   const { features, users } = useData();

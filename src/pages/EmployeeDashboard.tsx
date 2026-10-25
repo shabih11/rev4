@@ -1,3 +1,4 @@
+import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { employeeTier } from '../lib/employeeFeatures';
 import { Brand } from '../components/Brand';
@@ -31,7 +32,7 @@ export const EmployeeDashboard: React.FC = () => {
 
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+    <div data-gem-theme={gemTheme(features?.store?.magic, user.id)} className="gem-employee-page w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />

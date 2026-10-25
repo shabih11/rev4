@@ -1,3 +1,4 @@
+import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, TierBadge, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
@@ -181,6 +182,7 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div 
+      data-gem-theme={activeSlide.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
       data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className="recognition-page w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
       dir="rtl"
