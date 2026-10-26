@@ -14,9 +14,11 @@ export function polygonFill(index: number, centerX: number, centerY: number, off
   return `rgb(${channels.join(',')})`;
 }
 export function makeSceneryMesh(slideCount: number) {
-  const columns = Math.ceil((1350 + Math.max(0, slideCount - 1) * 420) / 150) + 1;
-  const points = Array.from({ length: 8 }, (_, row) => Array.from({ length: columns + 1 }, (_, column) => [column * 150 + ((row * 37 + column * 53) % 95) - 47, row * 150 + (row === 0 || row === 7 ? 0 : ((row * 61 + column * 29) % 81) - 40)]));
-  return Array.from({ length: 7 * columns }, (_, index) => {
+  const cellSize = 100;
+  const rows = Math.ceil(1050 / cellSize);
+  const columns = Math.ceil((1350 + Math.max(0, slideCount - 1) * 420) / cellSize) + 1;
+  const points = Array.from({ length: rows + 1 }, (_, row) => Array.from({ length: columns + 1 }, (_, column) => [column * cellSize + ((row * 37 + column * 53) % 63) - 31, row * cellSize + (row === 0 || row === rows ? 0 : ((row * 61 + column * 29) % 53) - 26)]));
+  return Array.from({ length: rows * columns }, (_, index) => {
     const row = Math.floor(index / columns), column = index % columns;
     const a = points[row][column], b = points[row][column + 1], c = points[row + 1][column], d = points[row + 1][column + 1];
     return (index % 2 ? [[a, b, c], [b, d, c]] : [[a, b, d], [a, d, c]]).map(triangle => ({ points: triangle.map(point => point.join(',')).join(' '), x: triangle.reduce((sum, point) => sum + point[0], 0) / 3, y: triangle.reduce((sum, point) => sum + point[1], 0) / 3 }));
