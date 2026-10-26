@@ -65,12 +65,12 @@ export const UserProfileTab: React.FC = () => {
   return (
     <div className="profile-panel max-w-2xl mx-auto space-y-6 font-sans" dir="rtl">
       {/* Account Info Header Card */}
-      <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-6 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
+      <div className="profile-summary text-white p-6 sm:p-8 rounded-3xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 text-center sm:text-right">
           <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow-inner">
             <User size={40} />
           </div>
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 min-w-0 space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-1">
               <Shield size={13} />
               {roleTitle}
@@ -78,8 +78,8 @@ export const UserProfileTab: React.FC = () => {
             <h2 className="text-2xl font-black"><EmployeeIdentity employee={user} className="employee-identity-on-dark" /></h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
               {user.email && (
-                <span className="flex items-center gap-1 dir-ltr" dir="ltr">
-                  <Mail size={14} /> {user.email}
+                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" dir="ltr">
+                  <Mail size={14} className="shrink-0" /> <span className="break-all">{user.email}</span>
                 </span>
               )}
             </div>

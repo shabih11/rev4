@@ -82,7 +82,27 @@
 .result-metric dt svg { flex-shrink: 0; }
 .result-metric dd { font-size: 1.75rem; margin-block-start: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .result-state { margin-inline: 1.5rem; background: white; border: 1px solid var(--line); padding: 1.75rem; border-radius: var(--radius-panel); font-size: .85rem; }
-.profile-panel > div:first-child { background: var(--navy); box-shadow: none; }
+.profile-panel > .profile-summary {
+  background: radial-gradient(ellipse at top left, #355580 0, transparent 65%), var(--navy);
+  border: 1px solid #ffffff18;
+  box-shadow: 0 12px 28px #142b5414;
+}
+.profile-summary .employee-identity { gap: .75rem; }
+.profile-summary .employee-identity-line { flex-wrap: wrap; gap: .25rem .6rem; }
+.profile-summary .employee-identity-branch { color: #dce7ff; }
+.profile-summary .tier-award {
+  padding: .25rem .65rem;
+  border: 1px solid #ffffff30;
+  border-radius: 999px;
+  background: #ffffff0d;
+  color: #e5edf7;
+  font-size: .8rem;
+}
+.profile-summary .tier-award-gold { color: #ffe39a; border-color: #e7ae1c55; background: #e7ae1c12; }
+@media (max-width: 639px) {
+  .profile-summary .employee-identity-line { justify-content: center; }
+  .profile-summary .employee-identity-on-dark .tier-award { align-self: center; }
+}
 .recognition-page { background: var(--canvas); touch-action: pan-y pinch-zoom; }
 .recognition-header { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .5rem clamp(1rem, 3vw, 3rem); background: white; border-block-end: 1px solid var(--line); }
 .recognition-caption { width: 100%; padding: 1.5rem clamp(1rem, 3vw, 3rem) 0; }
