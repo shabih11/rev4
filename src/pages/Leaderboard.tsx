@@ -214,13 +214,13 @@ export const Leaderboard: React.FC = () => {
           centeredSlides={true}
           slidesPerView={1}
           autoplay={reduceMotion ? false : { delay: 5000, disableOnInteraction: true }}
-          speed={reduceMotion ? 0 : 280}
+          speed={reduceMotion ? 0 : 560}
           onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           onSetTransition={(_swiper, duration) => { sceneryDuration.current = duration; }}
           onSetTranslate={swiper => { if (swiper.width) sceneryRef.current?.move(-swiper.translate / swiper.width, sceneryDuration.current); }}
           modules={[Autoplay]}
-          className="w-full min-w-0 max-w-xs sm:max-w-sm mx-auto"
+          className="w-full min-w-0 mx-auto"
           style={{ overflow: 'hidden' }}
         >
           {slidesData.map((slide, i) => (
@@ -228,7 +228,7 @@ export const Leaderboard: React.FC = () => {
               <div className="h-full flex justify-center items-center relative w-full px-4">
                 
                 {slide.type === 'employee' && (
-                  <EmployeeAvatar employee={slide.data} className="h-[clamp(180px,38svh,420px)] sm:h-[55vh] w-full max-w-full drop-shadow-xl" />
+                  <EmployeeAvatar employee={slide.data} className="h-[clamp(180px,38svh,420px)] sm:h-[55vh] w-full max-w-xs sm:max-w-sm drop-shadow-xl" />
                 )}
 
                 {slide.type === 'partnership' && (
