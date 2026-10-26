@@ -15,7 +15,6 @@ interface EmployeeResultsProps {
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
   const { features } = useData();
   const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
-  const wallet = features?.store?.wallet;
   const period = new Intl.DateTimeFormat('ar-SA', {
     calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
   }).format(new Date());
@@ -59,7 +58,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
             <Star className="text-yellow-400" size={20} />
             رصيد التقييمات
           </div>
-          <p className="text-3xl font-extrabold">{wallet ? wallet.available.toLocaleString('ar-SA', { maximumFractionDigits: 2 }) : '…'}</p>
+          <p className="text-3xl font-extrabold">{user.monthReviewsCount != null ? (user.monthReviewsCount % 1 === 0 ? user.monthReviewsCount : user.monthReviewsCount.toFixed(1)) : 0}</p>
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-green-500">
