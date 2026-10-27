@@ -12,23 +12,23 @@ import employeeImg from '../assets/employee.png';
 
 // Fixed branch opening hours per specifications
 const BRANCH_HOURS: Record<string, { open: string; nextDay: string; label: string }> = {
-  'جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (٢ مساءً)' },
-  'الرياض جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (٢ مساءً)' },
-  'القصر': { open: '14:00', nextDay: '14:00', label: 'القصر مول (٢ مساءً)' },
-  'القصر مول': { open: '14:00', nextDay: '14:00', label: 'القصر مول (٢ مساءً)' },
-  'المملكة': { open: '10:00', nextDay: '10:00', label: 'المملكة (١٠ صباحاً)' },
-  'شرق': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (٧ صباحاً)' },
-  'شرق بلازا': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (٧ صباحاً)' },
-  'ذافيو': { open: '12:00', nextDay: '12:00', label: 'ذافيو (١٢ مساءً)' },
-  'سلام': { open: '10:00', nextDay: '10:00', label: 'سلام (١٠ صباحاً)' },
+  'جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (2 مساءً)' },
+  'الرياض جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (2 مساءً)' },
+  'القصر': { open: '14:00', nextDay: '14:00', label: 'القصر مول (2 مساءً)' },
+  'القصر مول': { open: '14:00', nextDay: '14:00', label: 'القصر مول (2 مساءً)' },
+  'المملكة': { open: '10:00', nextDay: '10:00', label: 'المملكة (10 صباحاً)' },
+  'شرق': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (7 صباحاً)' },
+  'شرق بلازا': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (7 صباحاً)' },
+  'ذافيو': { open: '12:00', nextDay: '12:00', label: 'ذافيو (12 مساءً)' },
+  'سلام': { open: '10:00', nextDay: '10:00', label: 'سلام (10 صباحاً)' },
 };
 
 function getBranchHours(branchName?: string) {
-  if (!branchName) return { open: '14:00', nextDay: '14:00', label: '٢ مساءً' };
+  if (!branchName) return { open: '14:00', nextDay: '14:00', label: '2 مساءً' };
   for (const [key, val] of Object.entries(BRANCH_HOURS)) {
     if (branchName.includes(key) || key.includes(branchName)) return val;
   }
-  return { open: '14:00', nextDay: '14:00', label: '٢ مساءً' };
+  return { open: '14:00', nextDay: '14:00', label: '2 مساءً' };
 }
 
 // Rules for editable months: current month anytime; previous month only within 2 days from the end of that month
@@ -374,7 +374,7 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                   <span className="text-xs bg-indigo-100 text-indigo-800 font-bold px-3 py-1 rounded-full flex items-center gap-1 w-fit">
                     <Clock size={12} />
-                    {formatTime(branchHours.open)} إلى ٠٤:٠٠ م (ثابت)
+                    {formatTime(branchHours.open)} إلى 04:00 م (ثابت)
                   </span>
                 </div>
 
@@ -579,7 +579,7 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                   <span className="text-xs bg-purple-100 text-purple-800 font-bold px-3 py-1 rounded-full flex items-center gap-1 w-fit">
                     <Clock size={12} />
-                    ٠٤:٠٠ م إلى {formatTime(branchHours.nextDay)} اليوم التالي (ثابت)
+                    04:00 م إلى {formatTime(branchHours.nextDay)} اليوم التالي (ثابت)
                   </span>
                 </div>
 

@@ -91,7 +91,7 @@ export const EmployeeDashboard: React.FC = () => {
 
 
             {detailsReady && employeeReviews.length === 0 && (
-              <p className="text-center text-gray-500 text-sm">لا يوجد تقييمات مرتبطة بك بعد.</p>
+              <p className="text-center text-gray-500 text-sm">لا توجد تقييمات مرتبطة بك بعد.</p>
             )}
 
             {detailsReady && employeeReviews.map(r => {

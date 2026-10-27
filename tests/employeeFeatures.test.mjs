@@ -61,3 +61,38 @@ test('new employees ahead of the current employee count toward the current rank'
   assert.equal(progress.rankGain, 0);
   assert.deepEqual(progress.overtaken, ['B']);
 });
+
+test('daily progress survives midnight, quiet days and reloads until new review activity', () => {
+  const employees = [{ id: 'a', name: 'A', monthReviewsCount: 3 }, { id: 'b', name: 'B', monthReviewsCount: 2 }];
+  const reviews = [
+    { date: '25-10-2026', rating: '5', linkedEmployeeIds: ['a'] },
+    { date: '25-10-2026', rating: '5', linkedEmployeeIds: ['b'] },
+    { date: '25-10-2026', rating: '5', linkedEmployeeIds: ['b'] },
+    { date: '26-10-2026', rating: '5', linkedEmployeeIds: ['a'] },
+    { date: '26-10-2026', rating: '5', linkedEmployeeIds: ['a'] },
+    { date: '27-10-2026', rating: '5', linkedEmployeeIds: [] },
+    { date: '30-10-2026', rating: '5', linkedEmployeeIds: ['a'] },
+  ];
+  // A newly captured midnight baseline must not erase the previous update's gains.
+  const snapshot = { settings: enabled, comparisonSource: 'snapshot', baselineDay: '2026-10-27', baseline: { a: 3, b: 2 } };
+  for (const time of ['2026-10-26T21:01:00Z', '2026-10-27T18:00:00Z', '2026-10-28T12:00:00Z']) {
+    const state = comparisonFromRecords(snapshot, employees, reviews, new Date(time));
+    assert.equal(state.baselineDay, '2026-10-26');
+    assert.deepEqual(dailyProgress(employees[0], employees, state), { growth: 2, rankGain: 1, overtaken: ['B'] });
+  }
+  const updated = comparisonFromRecords(snapshot, [{ ...employees[0], monthReviewsCount: 4 }, employees[1]], [...reviews, { date: '27-10-2026', rating: '5', linkedEmployeeIds: ['a'] }], new Date('2026-10-27T18:00:00Z'));
+  assert.equal(updated.baselineDay, '2026-10-27');
+  assert.equal(dailyProgress({ ...employees[0], monthReviewsCount: 4 }, employees, updated).growth, 1);
+});
+
+test('new month resets prior-month progress and negative review activity advances the day', () => {
+  const employees = [{ id: 'a', name: 'A', monthReviewsCount: 1 }];
+  const state = { settings: enabled, baselineDay: null, baseline: {} };
+  const reviews = [{ date: '26-10-2026', rating: '5', linkedEmployeeIds: ['a'] }, { date: '27-10-2026', rating: '1', linkedEmployeeIds: ['a'] }];
+  const today = comparisonFromRecords(state, employees, reviews, new Date('2026-10-27T12:00:00Z'));
+  assert.equal(today.baselineDay, '2026-10-27');
+  assert.equal(dailyProgress(employees[0], employees, today).growth, 0);
+  const nextMonth = comparisonFromRecords(today, [{ ...employees[0], monthReviewsCount: 0 }], reviews, new Date('2026-10-31T21:01:00Z'));
+  assert.equal(nextMonth.baselineDay, '2026-11-01');
+  assert.deepEqual(nextMonth.baseline, { a: 0 });
+});

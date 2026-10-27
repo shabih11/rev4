@@ -1,3 +1,4 @@
+import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
@@ -211,7 +212,7 @@ export const SystemAdminDashboard: React.FC = () => {
       branch: complaintBranch,
       type: 'gap',
       title: `شكوى عميل - ${complaintEmployee}`,
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('ar-SA-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
       comment: complaintText,
     });
     setComplaintBranch(''); setComplaintEmployee(''); setComplaintText('');
@@ -232,7 +233,7 @@ export const SystemAdminDashboard: React.FC = () => {
       branch: safetyBranch,
       type: 'gap',
       title: `مخالفة سلامة - ${safetyEmployee}`,
-      time: new Date().toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date().toLocaleTimeString('ar-SA-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
       comment: safetyText,
     });
     setSafetyBranch(''); setSafetyEmployee(''); setSafetyText('');
@@ -801,7 +802,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </select>
                     <select value={complaintEmployee} onChange={e => setComplaintEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {complaintBranch && employeesForBranch(complaintBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? e.reviewsCount.toLocaleString('ar-SA') : '…'} تقييم</option>)}
+                      {complaintBranch && employeesForBranch(complaintBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
                     </select>
                     <textarea placeholder="تفاصيل الشكوى..." value={complaintText} onChange={e => setComplaintText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitComplaint} className="w-full bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700">اعتماد الشكوى وخصم النقاط</button>
@@ -821,7 +822,7 @@ export const SystemAdminDashboard: React.FC = () => {
                     </select>
                     <select value={safetyEmployee} onChange={e => setSafetyEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {safetyBranch && employeesForBranch(safetyBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? e.reviewsCount.toLocaleString('ar-SA') : '…'} تقييم</option>)}
+                      {safetyBranch && employeesForBranch(safetyBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
                     </select>
                     <textarea placeholder="وصف المخالفة..." value={safetyText} onChange={e => setSafetyText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitSafety} className="w-full bg-orange-600 text-white py-2 rounded-lg font-bold hover:bg-orange-700">اعتماد المخالفة</button>

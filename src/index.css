@@ -59,7 +59,8 @@
 .rank-gain { display:inline-flex; align-items:center; gap:5px; color:#087f78; font-size:1.1rem; font-weight:800; line-height:1.2; }
 .rank-progress .overtaken-note { margin-top:0; }
 .valley-scenery { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
-.valley-scenery svg { width:100%; height:100%; opacity:.8; }
+.valley-scenery svg { width:100%; height:100%; opacity:1; }
+.valley-scenery::after { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 15% 8%,#f0fffdbb,transparent 45%),linear-gradient(118deg,transparent 18%,#ffffff45 27%,transparent 38%,transparent 65%,#ffffff30 74%,transparent 83%),linear-gradient(0deg,#f8fcfbbf,transparent 38%); }
 .recognition-panel { background:transparent; }
 .recognition-panel .text-blue-100 { color:#526276; }
 .recognition-panel button:hover { background-color:#f1f5f9; }
@@ -80,8 +81,9 @@
 [data-gem-theme="sapphire"] { --gem-bg:#eaf1ff; --gem-accent:#27569e; }
 [data-gem-theme="rose"] { --gem-bg:#fff0f4; --gem-accent:#983758; }
 [data-gem-theme="amethyst"] { --gem-bg:#f3edfc; --gem-accent:#724398; }
-.recognition-page[data-gem-theme],.gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
-.recognition-page[data-gem-theme] .valley-scenery { opacity:calc(.28 + .72 * var(--scenery-gold, 0)); }
+.gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
+.recognition-page,.recognition-page[data-gem-theme] { background:#f7fafc; }
+.recognition-page[data-gem-theme] .valley-scenery { opacity:1; }
 .gem-employee-page[data-gem-theme] .gem-profile-header { background:var(--gem-accent); }
 @media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }
 
@@ -92,3 +94,75 @@
 .tier-award { color:#111; }
 .employee-identity-on-dark .tier-award { align-self:flex-start; }
 .recognition-page .swiper { --swiper-wrapper-transition-timing-function:cubic-bezier(.333333,1,.666667,1); }
+
+/* A single intact pane: continuous face, rounded bevel and reflected light. */
+.smash-glass { background:linear-gradient(180deg,#40aeb8,#a5dfda 65%,#e8f7f2); }
+.smash-glass::after { display:none; }
+.smash-glass-pane { position:absolute; inset:10px; overflow:hidden; border-radius:clamp(28px,5vw,72px); border:1px solid #ddfff6b3; background:radial-gradient(ellipse at var(--glass-light,28%) 12%,#e3fff5c9,transparent 48%),linear-gradient(125deg,#9ee8e2 0%,#48c2ce 32%,#16aabe 60%,#91deda 100%); box-shadow:inset 12px 0 14px -7px #eefff4e6,inset -15px 0 14px -7px #087e93cc,inset 0 13px 12px -8px #e5fff4,inset 0 -18px 12px -9px #087d8eaa,0 10px 28px #127f8a29; }
+.smash-glass-pane::before { content:''; position:absolute; inset:16px; border-radius:inherit; border:1px solid #ddfff752; background:linear-gradient(140deg,#ffffff38,transparent 35%,#007f9320 75%,#d6fff52e); box-shadow:0 0 0 6px #dcfff317,inset 0 0 35px #effff52e; }
+.smash-glass-pane::after { content:''; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(0deg,#f0faf8e6,transparent 40%); }
+.smash-glass-reflection { position:absolute; inset:0; border-radius:inherit; background:radial-gradient(ellipse at var(--glass-light,28%) 0%,#f2fff8b3,transparent 42%),linear-gradient(118deg,transparent 8%,#e2fff82e 17%,#f5fffa5c 22%,transparent 30%,transparent 67%,#dffff329 74%,transparent 82%); }
+@media (max-width:639px) { .smash-glass-pane { inset:5px; } .smash-glass-pane::before { inset:10px; } }
+
+/* Upper glass results board and centered employee stage. */
+.recognition-composition { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; background:radial-gradient(ellipse at 80% 80%,#e3f1f6,transparent 55%),#f5f8fa !important; }
+.recognition-composition[data-tier="gold"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
+.recognition-composition[data-tier="silver"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
+.recognition-composition[data-tier="bronze"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
+.recognition-glass-data { position:relative; isolation:isolate; flex:none; width:min(78%,720px); align-self:flex-end; margin:12px 0 0 3%; padding:12px 24px 22px; border-radius:36px; transform:none; min-height:calc(44svh - 60px); display:flex; flex-direction:column; justify-content:center; }
+.recognition-glass-data > .valley-scenery { border-radius:inherit; }
+.recognition-glass-data .smash-glass { background:transparent; }
+.recognition-glass-data .smash-glass-pane { inset:0; border-radius:inherit; backdrop-filter:blur(22px) saturate(145%); -webkit-backdrop-filter:blur(22px) saturate(145%); background:radial-gradient(ellipse at var(--glass-light,var(--panel-light,28%)) 5%,color-mix(in srgb,var(--panel-glow) 35%,transparent),transparent 60%),linear-gradient(135deg,#ffffffa6,#d7e5ed80 45%,#a9c1d06b 80%,#eff7fba6); box-shadow:inset 7px 0 9px -4px #fff,inset -9px 0 9px -5px #36556666,inset 0 7px 8px -4px #fff,inset 0 -9px 9px -4px #45657366,0 14px 35px #2949561c; }
+.recognition-glass-data .recognition-panel { background:transparent; min-height:0; padding:8px 0 0; }
+.recognition-glass-data .recognition-rank { padding-top:0; }
+.recognition-glass-data .recognition-rank > div { font-size:clamp(24px,3.5svh,40px); text-align:center; }
+.recognition-glass-data .recognition-panel .employee-tier-name { font-size:clamp(20px,3svh,32px); }
+.recognition-glass-data .recognition-panel h2 { font-size:clamp(18px,2.6svh,28px); }
+.recognition-glass-data .recognition-panel .employee-identity { margin-bottom:6px; }
+.recognition-glass-data .recognition-panel > button { top:0; padding:9px; }
+.recognition-composition .recognition-scene { --platform-height:clamp(110px,20svh,180px); flex:none; width:100%; align-self:center; min-height:50svh; height:50svh; margin-top:10px; padding:0 0 max(12px,env(safe-area-inset-bottom)); }
+.recognition-composition .crystal-standing-avatar,.recognition-composition .crystal-reflected-avatar { height:38svh; max-width:320px; }
+.recognition-composition .crystal-standing-avatar img,.recognition-composition .crystal-reflected-avatar img { object-position:center bottom; }
+.recognition-composition .crystal-stage-fixed { height:calc(38svh + 56px); }
+.recognition-composition .crystal-employee-slide { padding-bottom:56px; }
+.recognition-composition .crystal-platform { height:105px; }
+.recognition-composition .crystal-platform-anchor { padding:0 16px max(12px,env(safe-area-inset-bottom)); }
+.recognition-composition .crystal-avatar-reflection { top:calc(100% - 56px); }
+@media (min-width:640px) { .recognition-glass-data { width:min(68%,760px); margin-left:6%; } }
+@media (max-width:420px) { .recognition-glass-data { width:91%; margin-left:3%; padding:12px 8px 16px; } .recognition-glass-data .recognition-panel > button { padding:7px; left:5px; } .recognition-glass-data .recognition-panel > button + button { right:5px; left:auto; } }
+@property --panel-glass { syntax:'<color>'; inherits:true; initial-value:#9cdae0; }
+@property --panel-deep { syntax:'<color>'; inherits:true; initial-value:#4aa9ba; }
+@property --panel-glow { syntax:'<color>'; inherits:true; initial-value:#ffffff; }
+.recognition-composition { transition:--panel-glass .65s ease,--panel-deep .65s ease,--panel-glow .65s ease; }
+.recognition-composition .recognition-scene { transform:none; }
+@media (prefers-reduced-motion:reduce) { .recognition-composition { transition:none; } }
+
+.recognition-glass-data .smash-glass-pane { border:1px solid #ffffffd9; box-shadow:inset 1px 2px 2px #fff,inset -1px -2px 3px #6b8b9d52,0 12px 32px #38576a17,0 1px 2px #ffffffa6; }
+.recognition-glass-data .smash-glass-pane::before { inset:3px; border:1px solid #ffffff73; background:linear-gradient(125deg,#ffffff4d,transparent 38%,#ffffff0d 65%,#ffffff52); box-shadow:inset 0 0 16px #ffffff40; }
+.recognition-glass-data .smash-glass-pane::after { background:linear-gradient(0deg,#edf4f973,transparent 45%); }
+.recognition-glass-data .smash-glass-reflection { background:radial-gradient(ellipse at var(--glass-light,var(--panel-light,28%)) 0%,color-mix(in srgb,var(--panel-glow) 40%,transparent),transparent 55%),linear-gradient(var(--glass-angle,118deg),transparent 12%,#ffffff66 24%,transparent 38%,transparent 70%,#ffffff33 80%,transparent 90%); }
+.employee-backlight { position:absolute; inset:-8% 4% 6%; pointer-events:none; background:radial-gradient(ellipse at var(--glass-light,50%) 35%,#ffffffe6 0%,#f6fcffc4 18%,#c6e6f378 40%,transparent 68%); filter:blur(14px); }
+.employee-backlight::after { content:''; position:absolute; inset:-12% 12% 10%; background:conic-gradient(from var(--glass-angle,155deg) at var(--glass-light,50%) 0%,transparent 0deg,#fff9 12deg,#e9f8ff59 25deg,transparent 48deg); filter:blur(8px); }
+.recognition-header-actions { display:flex; align-items:center; flex-wrap:wrap; color:#1d4ed8; }
+.recognition-header-actions > a,.recognition-header-actions > button { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-height:44px; padding:8px 12px; font-size:12px; white-space:nowrap; background:transparent; color:inherit; }
+.recognition-header-actions > * + * { border-inline-start:1px solid #cbd5e1; }
+.recognition-header-actions > a:hover,.recognition-header-actions > button:hover { background:#eff6ff; }
+@media (max-width:480px) { .recognition-header { flex-wrap:wrap; justify-content:center; gap:4px; } .recognition-header-actions { justify-content:center; } }
+
+
+.employee-backlight { opacity:var(--glass-intensity,.7); }
+.recognition-glass-data .smash-glass-edge-light { position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none; background:conic-gradient(from var(--glass-angle,115deg),transparent 0deg,#ffffff14 45deg,#fff 85deg,var(--panel-glow) 105deg,transparent 145deg,transparent 210deg,#ffffffd9 260deg,transparent 300deg); mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0); mask-composite:exclude; opacity:var(--glass-intensity,.7); }
+.recognition-glass-data .smash-glass-reflection { transform:translateX(calc((var(--glass-light,50%) - 50%) * .15)); }
+
+/* Keep the platform centered with the avatars and its surface at their feet. */
+.recognition-composition .recognition-scene { clip-path:inset(-40px 0 0); }
+.recognition-composition .crystal-stage-fixed { width:100%; max-width:none; }
+.recognition-composition .crystal-platform { width:min(100%,960px); height:var(--platform-height); left:50%; bottom:calc(56px - var(--platform-height) * .65625); transform:translateX(-50%); }
+.recognition-composition .crystal-platform svg { filter:drop-shadow(0 0 8px #fff) drop-shadow(0 10px 15px #a7d4ef66); }
+.recognition-composition .crystal-platform .crystal-rim { filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 10px #d0efff); }
+.recognition-composition .crystal-sheen { background:radial-gradient(ellipse at var(--glass-light,50%) 28%,#fff,transparent 38%),linear-gradient(115deg,transparent 28%,#ffffff94 42%,transparent 57%,#ffffff63 75%,transparent 84%); opacity:calc(.55 + var(--crystal-travel,0) * .4); }
+.crystal-partnership { display:flex; justify-content:center; align-items:flex-end; gap:0; }
+.crystal-partner { position:relative; width:50%; min-width:0; }
+.recognition-composition .crystal-partner .crystal-standing-avatar { width:100%; max-width:240px; }
+.recognition-composition .crystal-partner .crystal-avatar-reflection { top:100%; left:0; width:100%; }
+.recognition-composition .crystal-partner .crystal-reflected-avatar { width:100%; max-width:240px; }

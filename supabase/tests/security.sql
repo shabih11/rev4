@@ -132,4 +132,45 @@ do $$ begin
  if (select balance from private.employee_scores() where profile_id='verify-outside')<>0 then raise exception 'Unlinked employee received credit'; end if;
 end $$;
 select 'Employee feature permissions, thresholds, accessories and account boundaries verified' as feature_verification;
+-- Employee last sign-in privacy: synthetic fixtures only; enclosing transaction rolls back.
+reset role;
+update auth.users set last_sign_in_at='2026-10-27T08:00:00Z' where id='00000000-0000-4000-8000-000000000003';
+insert into public.profiles(id,data) values('verify-sign-in-unlinked','{"id":"verify-sign-in-unlinked","name":"Verification unlinked","role":"employee","branch":"verify-branch-a"}');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_employee_last_sign_ins();
+ if (result->>'verify-employee')::timestamptz is distinct from '2026-10-27T08:00:00Z'::timestamptz then raise exception 'Last sign-in timestamp mismatch'; end if;
+ if result->'verify-sign-in-unlinked' is distinct from 'null'::jsonb then raise exception 'Unlinked account must not invent a sign-in'; end if;
+ if result ? 'verify-admin' or result ? 'verify-manager' then raise exception 'Non-employee sign-ins exposed'; end if;
+ if public.get_read_model()::text like '%last_sign_in%' then raise exception 'Shared directory exposed sign-ins'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Manager can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Employee can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000099","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Non-member can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid='00000000-0000-4000-8000-000000000001';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Disabled admin can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=false where uid='00000000-0000-4000-8000-000000000001';
+set local role anon;
+select set_config('request.jwt.claims','{}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Anon can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'Employee sign-in authorization verified' as sign_in_verification;
 rollback;

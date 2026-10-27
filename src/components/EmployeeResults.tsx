@@ -15,7 +15,7 @@ interface EmployeeResultsProps {
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
   const { features } = useData();
   const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
-  const period = new Intl.DateTimeFormat('ar-SA', {
+  const period = new Intl.DateTimeFormat('ar-SA-u-nu-latn', {
     calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
   }).format(new Date());
 

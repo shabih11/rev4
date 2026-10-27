@@ -1,3 +1,4 @@
+import { arabicReviewCount } from '../lib/arabicReviewCount';
 import type { UserAccount } from '../lib/mockData';
 
 const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق', 'موظفة خارجية'];
@@ -17,7 +18,7 @@ export function MergeAccountPicker({ label, branch, onBranchChange, value, onCha
       <label className="grid gap-2 text-sm font-semibold">الموظفة
         <select required disabled={!branch} value={value} onChange={event => onChange(event.target.value)} className="w-full min-h-11 border border-slate-300 rounded-xl p-3 bg-white disabled:bg-slate-100 disabled:text-slate-400">
           <option value="">{branch ? 'اختاري الموظفة' : 'اختاري الفرع أولًا'}</option>
-          {employees.map(user => <option key={user.id} value={user.id}>{user.name} — {ready ? user.reviewsCount.toLocaleString('ar-SA') : '…'} تقييم</option>)}
+          {employees.map(user => <option key={user.id} value={user.id}>{user.name} — {ready ? arabicReviewCount(user.reviewsCount) : '…'}</option>)}
         </select>
       </label>
     </div>

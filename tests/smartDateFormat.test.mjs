@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatDateTime, formatDate } from '../src/lib/formatDate.ts';
+import { formatDateTime, formatDate, formatTime } from '../src/lib/formatDate.ts';
 
 test('smart formatDateTime formats today, yesterday, day before yesterday with time, and older dates without time', () => {
   // Get current date in Asia/Riyadh
@@ -40,4 +40,10 @@ test('smart formatDateTime formats today, yesterday, day before yesterday with t
   // Must NOT contain time and must be only the date
   assert.doesNotMatch(olderFormatted, /م|ص|:/);
   assert.strictEqual(olderFormatted, formatDate(olderKey));
+});
+
+test('display times use Western digits while Arabic input remains supported', () => {
+  assert.equal(formatTime('١٤:٣٠'), '2:30 م');
+  assert.equal(formatTime('09:05'), '9:05 ص');
+  assert.equal(formatTime('00:00'), '12:00 ص');
 });

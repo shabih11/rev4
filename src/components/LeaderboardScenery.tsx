@@ -1,19 +1,20 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
-import { goldBetweenSlides, makeSceneryMesh, polygonFill, sceneryOffset } from '../lib/polygonScenery';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
+
 export interface SceneryHandle { move: (position: number, duration: number) => void }
-export const LeaderboardScenery = forwardRef<SceneryHandle, { goldSlides: boolean[]; reduceMotion: boolean }>(function LeaderboardScenery({ goldSlides, reduceMotion }, ref) {
-  const svg = useRef<SVGSVGElement>(null);
-  const polygons = useRef<(SVGPolygonElement | null)[]>([]);
+
+export const LeaderboardScenery = forwardRef<SceneryHandle, { goldSlides: boolean[]; reduceMotion: boolean }>(function LeaderboardScenery({ reduceMotion }, ref) {
+  const glass = useRef<HTMLDivElement>(null);
   const position = useRef(0);
   const frame = useRef(0);
-  const mesh = useMemo(() => makeSceneryMesh(goldSlides.length), [goldSlides.length]);
+  const scrollOffset = useRef(0);
   const paint = useCallback((value: number) => {
     position.current = value;
-    const offset = sceneryOffset(value), gold = goldBetweenSlides(value, goldSlides);
-    svg.current?.setAttribute('viewBox', `${offset} 0 1350 1050`);
-    svg.current?.parentElement?.style.setProperty('--scenery-gold', String(gold));
-    mesh.forEach((cell, index) => polygons.current[index]?.setAttribute('fill', polygonFill(index, cell.x, cell.y, offset, gold)));
-  }, [mesh, goldSlides]);
+    const phase = reduceMotion ? 0 : value * .9 + scrollOffset.current;
+    const surface = glass.current?.closest<HTMLElement>('.recognition-composition');
+    surface?.style.setProperty('--glass-light', `${50 + Math.sin(phase) * 32}%`);
+    surface?.style.setProperty('--glass-angle', `${115 + Math.sin(phase) * 45}deg`);
+    surface?.style.setProperty('--glass-intensity', String(.55 + Math.abs(Math.sin(phase)) * .35));
+  }, [reduceMotion]);
   useImperativeHandle(ref, () => ({ move(target, duration) {
     cancelAnimationFrame(frame.current);
     if (reduceMotion || duration <= 0) { paint(target); return; }
@@ -25,9 +26,24 @@ export const LeaderboardScenery = forwardRef<SceneryHandle, { goldSlides: boolea
     }
     frame.current = requestAnimationFrame(step);
   }}));
-  useEffect(() => { paint(position.current); return () => cancelAnimationFrame(frame.current); }, [paint, reduceMotion]);
-  return <div className="valley-scenery" aria-hidden="true"><svg ref={svg} viewBox="0 0 1350 1050" preserveAspectRatio="none">
-    <rect x="-100" y="0" width={1450 + goldSlides.length * 420} height="1050" fill="#fff"/>
-    {mesh.map((cell, index) => <polygon key={index} ref={element => { polygons.current[index] = element; }} points={cell.points} fill={polygonFill(index, cell.x, cell.y, 0, Number(goldSlides[0]))}/>)}
-  </svg></div>;
+  useEffect(() => {
+    let scrollFrame = 0;
+    const update = () => {
+      cancelAnimationFrame(scrollFrame);
+      scrollFrame = requestAnimationFrame(() => {
+        scrollOffset.current = window.scrollY / Math.max(window.innerHeight, 1) * 2;
+        paint(position.current);
+      });
+    };
+    paint(position.current);
+    if (!reduceMotion) window.addEventListener('scroll', update, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', update);
+      cancelAnimationFrame(scrollFrame);
+      cancelAnimationFrame(frame.current);
+    };
+  }, [reduceMotion, paint]);
+  return <div ref={glass} className="valley-scenery smash-glass" aria-hidden="true">
+    <div className="smash-glass-pane"><div className="smash-glass-reflection" /><div className="smash-glass-edge-light" /></div>
+  </div>;
 });

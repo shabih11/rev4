@@ -32,7 +32,7 @@ test('art is decoded, scaled, reencoded and uploaded to an immutable random path
 test('oversized decoded images and unsupported encoder outputs never reach storage', async () => {
   const before = uploaded.length;
   width = 4097; height = 100;
-  await assert.rejects(uploadAvatarArt({ type: 'image/png', size: 100 }), /٤٠٩٦/);
+  await assert.rejects(uploadAvatarArt({ type: 'image/png', size: 100 }), /4096/);
   width = 100; outputType = 'image/png';
   await assert.rejects(uploadAvatarArt({ type: 'image/png', size: 100 }), /الصيغة/);
   assert.equal(uploaded.length, before);

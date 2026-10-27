@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { gems, type Gem } from '../lib/gems';
 import type { UserAccount } from '../lib/mockData';
 import { StoreGem } from './StoreGem';
-const amount = (n: number) => n.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
+const amount = (n: number) => n.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 export function MysteryStore({ employee }: { employee: UserAccount }) {
   const { features, currentAccount } = useData();
   const magic = features?.store?.magic;
@@ -27,7 +27,7 @@ export function MysteryStore({ employee }: { employee: UserAccount }) {
     finally { setBusy(false); }
   }
   return <section className="rounded-3xl border border-slate-200 bg-white p-5 space-y-5" aria-label="متجر الجواهر">
-    <div className="flex items-center justify-between gap-3"><h3 className="text-xl font-black">متجر الجواهر</h3><p className="font-bold text-teal-900">{amount(wallet.available)} <span className="text-xs">رصيد</span></p></div>
+    <div className="flex items-center justify-between gap-3"><h3 className="text-xl font-black">متجر الجواهر</h3><p className="font-bold text-teal-900">{amount(wallet.available)} <span className="text-xs">عملة</span></p></div>
     {magic.settings.boxes && <div className="rounded-2xl bg-violet-50 p-5 flex flex-wrap items-center gap-4"><Gift size={48} className="text-violet-800" aria-hidden="true"/><div className="flex-1"><h4 className="font-black text-lg text-violet-950">الصندوق السحري</h4><p className="mt-1 text-sm text-violet-900">جوهرة عشوائية · {amount(magic.settings.price)} رصيد</p></div><button className="action-primary" disabled={busy || wallet.available < magic.settings.price} onClick={() => { request.current ??= { id: crypto.randomUUID(), price: magic.settings.price }; setRevealed(null); setMessage(''); setConfirm(true); }}>فتح الصندوق</button></div>}
     {revealed && <div role="status" className="rounded-2xl bg-slate-50 p-5 text-center space-y-3"><StoreGem gem={revealed}/><p className="font-black text-lg">حصلتِ على {gems[revealed].name}</p></div>}
     {message && <p role="status" className="text-sm text-indigo-900">{message}</p>}

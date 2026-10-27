@@ -69,7 +69,7 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
               <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
               <EmployeeIdentity employee={item} className="items-center text-slate-800" />{(item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) && <span className="text-xs text-slate-500">تغطية</span>}
-              <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA') : '…'}</span>
+              <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA-u-nu-latn') : '…'}</span>
             </button>
           </EmployeeCard><EmployeeAccountActions employee={item} /></div>)}
         </div>

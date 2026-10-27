@@ -57,17 +57,26 @@ function dayKey(value: string) {
 export function comparisonFromRecords(state: FeatureState | null, employees: RankedEmployee[], reviews: { date: string; rating: string; linkedEmployeeIds: string[] }[], now = new Date()): FeatureState | null {
   if (!state) return null;
   const today = riyadhDay(now);
-  if (state.comparisonSource === 'snapshot' && state.baselineDay === today) return state;
+  // Keep the last day's progress through midnight and quiet days, until new
+  // linked reviews arrive. Reconstruct from shared records, never browser storage.
+  const employeeIds = new Set(employees.map(employee => employee.id));
+  let activityDay = '';
+  for (const review of reviews) {
+    const day = dayKey(review.date);
+    if (day.startsWith(today.slice(0, 7)) && day <= today && day > activityDay && review.linkedEmployeeIds.some(id => employeeIds.has(id))) activityDay = day;
+  }
+  const comparisonDay = activityDay || today;
+  if (state.comparisonSource === 'snapshot' && state.baselineDay === comparisonDay) return state;
   const baseline = Object.fromEntries(employees.map(employee => [employee.id, employee.manualStats?.monthReviews || 0]));
   for (const review of reviews) {
     const day = dayKey(review.date);
     const rating = review.rating.replace(/[٠-٩]/g, digit => String(digit.charCodeAt(0) - 1632));
-    if (!day || !day.startsWith(today.slice(0, 7)) || day >= today || !['4', '5'].includes(rating)) continue;
+    if (!day || !day.startsWith(today.slice(0, 7)) || day >= comparisonDay || !['4', '5'].includes(rating)) continue;
     const ids = [...new Set(review.linkedEmployeeIds)];
     for (const id of ids) if (id in baseline) baseline[id] += 1 / ids.length;
   }
   for (const id of Object.keys(baseline)) baseline[id] = Math.round((baseline[id] + Number.EPSILON) * 10) / 10;
-  return { ...state, baseline, baselineDay: today, comparisonSource: 'records' };
+  return { ...state, baseline, baselineDay: comparisonDay, comparisonSource: 'records' };
 }
 const order = (a: RankedEmployee, b: RankedEmployee) => (b.monthReviewsCount || 0) - (a.monthReviewsCount || 0) || a.name.localeCompare(b.name, 'ar') || a.id.localeCompare(b.id);
 export function dailyProgress(employee: RankedEmployee, employees: RankedEmployee[], state: FeatureState | null) {

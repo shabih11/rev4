@@ -6,7 +6,7 @@ import type { UserAccount } from '../lib/mockData';
 import type { AvatarCollection, AvatarVariant } from '../lib/employeeFeatures';
 import { AvatarImage } from './AvatarImage';
 import { EmployeeAvatar } from './EmployeeFeatures';
-const amount = (value: number) => value.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
+const amount = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 export function AvatarStore({ employee }: { employee: UserAccount }) {
   const { features, currentAccount } = useData();
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   }
   return <section className="avatar-shop rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-6">
     <div className="flex items-center gap-4"><EmployeeAvatar employee={employee} className="h-28 w-20 shrink-0"/><div><h3 className="text-2xl font-black text-slate-900 mt-1">متجر الأفاتار</h3></div></div>
-    <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="flex items-center gap-2 font-bold text-teal-950"><Wallet size={18}/>رصيد المتجر</p><p className="text-2xl font-black text-teal-900">{amount(wallet.available)} <span className="text-xs">رصيد</span></p></div></div>
+    <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="flex items-center gap-2 font-bold text-teal-950"><Wallet size={18}/>رصيد المتجر</p><p className="text-2xl font-black text-teal-900">{amount(wallet.available)} <span className="text-xs">عملة</span></p></div></div>
     <button type="button" disabled={busy || !store.selectedVariant} onClick={() => void equip(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 disabled:opacity-50">استخدام الأفاتار الافتراضي</button>
     {message && <p role="status" className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-900">{message}</p>}
     {store.collections.length === 0 && <p className="rounded-2xl border border-dashed p-6 text-center text-slate-600">لا توجد أفاتارات متاحة حاليًا.</p>}

@@ -230,7 +230,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     <Award size={28} className="text-yellow-300" />
                     <div>
                       <p className="font-bold text-xl">التقييم العام</p>
-                      <p className="text-blue-100 text-sm">من إجمالي ١١ نقطة</p>
+                      <p className="text-blue-100 text-sm">من إجمالي 11 نقطة</p>
                     </div>
                   </div>
                   <p className="text-4xl font-extrabold">{employee.points?.toFixed(1)}</p>
@@ -240,7 +240,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
                       <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات الإيجابية</p>
-                      <p className="text-xs text-gray-400">من أصل ٥ نقاط</p>
+                      <p className="text-xs text-gray-400">من أصل 5 نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-green-600 mt-2">{employee.stats?.positive?.toFixed(1) || '0.0'}</p>
                   </div>
@@ -248,7 +248,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
                       <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات السلبية</p>
-                      <p className="text-xs text-gray-400">من أصل ٢ نقاط</p>
+                      <p className="text-xs text-gray-400">من أصل 2 نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-red-500 mt-2">{employee.stats?.negative?.toFixed(1) || '0.0'}</p>
                   </div>
@@ -256,7 +256,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between sm:col-span-2">
                     <div>
                       <p className="text-gray-500 text-sm font-bold mb-1">نقاط الجودة (الشكاوى والسلامة)</p>
-                      <p className="text-xs text-gray-400">من أصل ٤ نقاط</p>
+                      <p className="text-xs text-gray-400">من أصل 4 نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600 mt-2">{((employee.stats?.complaints === 0 && employee.stats?.safety === 0) ? 4 : (4 - (employee.stats?.complaints || 0) - (employee.stats?.safety || 0))).toFixed(1)}</p>
                   </div>

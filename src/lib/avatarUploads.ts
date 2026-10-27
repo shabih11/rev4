@@ -4,11 +4,11 @@ export function validAvatarFile(file: Pick<File, 'type' | 'size'>) {
   return ['image/png', 'image/jpeg', 'image/webp'].includes(file.type) && file.size > 0 && file.size <= avatarUploadLimit;
 }
 export async function uploadAvatarArt(file: File): Promise<string> {
-  if (!validAvatarFile(file)) throw new Error('اختاري صورة PNG أو WebP أو JPEG بحجم لا يتجاوز ٥ ميغابايت.');
+  if (!validAvatarFile(file)) throw new Error('اختاري صورة PNG أو WebP أو JPEG بحجم لا يتجاوز 5 ميغابايت.');
   let bitmap: ImageBitmap;
   try { bitmap = await createImageBitmap(file); } catch { throw new Error('تعذر قراءة الصورة. اختاري ملف صورة صالحًا.'); }
   try {
-    if (!bitmap.width || !bitmap.height || bitmap.width > 4096 || bitmap.height > 4096) throw new Error('الحد الأقصى لأبعاد الصورة هو ٤٠٩٦ × ٤٠٩٦.');
+    if (!bitmap.width || !bitmap.height || bitmap.width > 4096 || bitmap.height > 4096) throw new Error('الحد الأقصى لأبعاد الصورة هو 4096 × 4096.');
     const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
