@@ -193,10 +193,9 @@ export const Leaderboard: React.FC = () => {
         onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
       <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />
       {/* Top Header - Contextual */}
-      <AnimatePresence mode="wait">
         <motion.div
           key={activeIndex + '-header'}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}
+          initial={reduceMotion ? false : { opacity: 0.6 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}
           className="recognition-rank relative w-full px-4 pt-3 flex justify-center items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
@@ -210,16 +209,14 @@ export const Leaderboard: React.FC = () => {
             {activeSlide.type === 'praised_employee' && `نجمة الثناء`}
           </div>
         </motion.div>
-      </AnimatePresence>
 
       {/* White results panel */}
       <div className="recognition-results w-full relative z-30 pointer-events-none">
         <div className="recognition-panel w-full flex flex-col items-center justify-center text-slate-900 pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
 
-          <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex + '-bottom'}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: reduceMotion ? 0 : 0.15 }}
+              initial={reduceMotion ? false : { opacity: 0.6, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}
               className="flex flex-col items-center w-full px-4 sm:px-6"
             >
 
@@ -288,7 +285,6 @@ export const Leaderboard: React.FC = () => {
               )}
 
             </motion.div>
-          </AnimatePresence>
         </div>
       </div>
 
@@ -327,7 +323,7 @@ export const Leaderboard: React.FC = () => {
           style={{ overflow: 'hidden' }}
         >
           {slidesData.map((slide, i) => (
-            <SwiperSlide key={i} className="flex justify-center items-center" style={{ overflow: 'hidden' }}>
+            <SwiperSlide key={i} className="flex justify-center items-center">
               <div className="h-full flex justify-center items-center relative w-full px-4">
 
                 {slide.type === 'employee' && (
