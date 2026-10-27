@@ -11,11 +11,12 @@ import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/Employee
 import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay } from 'swiper/modules';
+import { Autoplay, EffectCoverflow } from 'swiper/modules';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Building2, Users, Star, TrendingUp, UserRound } from 'lucide-react';
 import 'swiper/css';
+import 'swiper/css/effect-coverflow';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
@@ -308,7 +309,11 @@ export const Leaderboard: React.FC = () => {
           allowTouchMove={true}
           rewind={true}
           centeredSlides={true}
-          slidesPerView={1}
+          slidesPerView={1.8}
+          spaceBetween={8}
+          breakpoints={{ 640: { slidesPerView: 1, spaceBetween: 0 } }}
+          effect="coverflow"
+          coverflowEffect={{ rotate: 0, stretch: 32, depth: 80, scale: 0.9, slideShadows: false }}
           autoplay={{ delay: 5000, disableOnInteraction: false, waitForTransition: false }}
           threshold={8}
           touchAngle={55}
@@ -316,9 +321,9 @@ export const Leaderboard: React.FC = () => {
           speed={reduceMotion ? 0 : 560}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           onSetTransition={(_swiper, duration) => { sceneryDuration.current = duration; }}
-          onSetTranslate={swiper => { if (swiper.width) { const position = -swiper.translate / swiper.width; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
-          modules={[Autoplay]}
-          className="w-full min-w-0 mx-auto"
+          onSetTranslate={swiper => { const step = swiper.slidesGrid[1] - swiper.slidesGrid[0]; if (step) { const position = (-swiper.translate - swiper.slidesGrid[0]) / step; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
+          modules={[Autoplay, EffectCoverflow]}
+          className="recognition-carousel w-full min-w-0 mx-auto"
           style={{ overflow: 'hidden' }}
         >
           {slidesData.map((slide, i) => (
@@ -375,6 +380,10 @@ export const Leaderboard: React.FC = () => {
           ))}
         </Swiper>
       </div>
+
+      <p className="sm:hidden text-center text-xs font-medium text-slate-600 pb-3" role="status" aria-live="off">
+        اسحبي للتنقل بين البطاقات · {(activeIndex + 1).toLocaleString('ar-SA')} / {slidesData.length.toLocaleString('ar-SA')}
+      </p>
 
       {/* All Employees Modal */}
       <AnimatePresence>
