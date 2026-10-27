@@ -1,7 +1,7 @@
 import { useEmployeeSignIns } from '../hooks/useEmployeeSignIns';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { CrystalPlatform } from '../components/CrystalPlatform';
-import { praiseCycle, nextPraiseCycle, praisedEmployee } from '../lib/praisedEmployee';
+import { praiseCycle, nextPraiseCycle, praisedEmployee, recentPraiseCount } from '../lib/praisedEmployee';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
@@ -135,7 +135,7 @@ export const Leaderboard: React.FC = () => {
     const praise = praisedEmployee(reviews, allEmployeesSorted, praisePeriod);
     const mostPraisedEmployee = users.find(employee => employee.id === praise.id);
     if (mostPraisedEmployee && praise.count > 0) {
-      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: praise.count });
+      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: recentPraiseCount(reviews, mostPraisedEmployee.id) });
     }
 
     const order = { praised_employee: 0, active_employee: 1, active_branch: 2, employee: 3, partnership: 4 };
@@ -156,13 +156,15 @@ export const Leaderboard: React.FC = () => {
     const employee = slide.type === 'employee' ? slide.data : slide.type === 'active_employee' || slide.type === 'praised_employee' ? slide.employee : null;
     return Boolean(employee && features && employeeTier(employee.points, features.settings) === 'gold');
   }), [slidesData, features]);
-  const hasInteracted = useRef(false);
-  const handleTouchStart = useCallback(() => {
-    hasInteracted.current = true;
-    swiperRef.current?.swiper?.autoplay.stop();
-  }, []);
-  const handleModalOpen = handleTouchStart;
-  const handleModalClose = useCallback(() => {}, []);
+  const [modalOpen, setModalOpen] = useState(false);
+  const handleModalOpen = useCallback(() => setModalOpen(true), []);
+  const handleModalClose = useCallback(() => setModalOpen(false), []);
+  useEffect(() => {
+    const autoplay = swiperRef.current?.swiper?.autoplay;
+    if (!autoplay) return;
+    if (modalOpen || reduceMotion) autoplay.stop();
+    else autoplay.start();
+  }, [modalOpen, reduceMotion]);
   const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
@@ -176,9 +178,6 @@ export const Leaderboard: React.FC = () => {
       data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className="recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
       dir="rtl"
-      onPointerDownCapture={handleTouchStart}
-      onTouchStartCapture={handleTouchStart}
-      onKeyDownCapture={handleTouchStart}
     >
 
       <header className="recognition-header relative z-30">
@@ -189,9 +188,9 @@ export const Leaderboard: React.FC = () => {
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
         </nav>
       </header>
-      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 hidden md:flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
-        <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
-        <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
+      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
+        <button aria-label="البطاقة السابقة" onClick={() => { swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-3 text-blue-600 shadow"><ChevronRight size={22}/></button>
+        <button aria-label="البطاقة التالية" onClick={() => { swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-3 text-blue-600 shadow"><ChevronLeft size={22}/></button>
       </div>
       <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
         onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
@@ -289,7 +288,7 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-gray-800">نجمة الثناء</h2>
+                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA')} تقييم آخر ١٠ ايام</p>
                   <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
                 </>
@@ -318,9 +317,11 @@ export const Leaderboard: React.FC = () => {
           rewind={true}
           centeredSlides={true}
           slidesPerView={1}
-          autoplay={reduceMotion ? false : { delay: 5000, disableOnInteraction: true }}
+          autoplay={reduceMotion ? false : { delay: 5000, disableOnInteraction: false }}
+          threshold={8}
+          touchAngle={55}
+          longSwipesRatio={0.2}
           speed={reduceMotion ? 0 : 560}
-          onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           onSetTransition={(_swiper, duration) => { sceneryDuration.current = duration; }}
           onSetTranslate={swiper => { if (swiper.width) { const position = -swiper.translate / swiper.width; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
@@ -374,7 +375,6 @@ export const Leaderboard: React.FC = () => {
                     <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
                     <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
                     <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
-                    <p className="text-orange-700 font-bold bg-orange-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm">نجمة الثناء</p>
                   </div>
                 )}
 

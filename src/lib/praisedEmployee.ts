@@ -25,3 +25,12 @@ export function praisedEmployee(reviews: { date: string; linkedEmployeeIds: stri
   const [id, count] = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0] || ['', 0];
   return { id, count };
 }
+
+// Include today and the preceding nine Riyadh calendar days; exclude future dates.
+export function recentPraiseCount(reviews: { date: string; linkedEmployeeIds: string[] }[], employeeId: string, now = Date.now()) {
+  const today = Math.floor((now + 3 * 3600000) / day) * day - 3 * 3600000;
+  return reviews.filter(review => {
+    const stamp = reviewDay(review.date);
+    return stamp >= today - 9 * day && stamp <= today && review.linkedEmployeeIds.includes(employeeId);
+  }).length;
+}
