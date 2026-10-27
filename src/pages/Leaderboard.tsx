@@ -12,7 +12,7 @@ import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectCoverflow } from 'swiper/modules';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Building2, Users, Star, TrendingUp, UserRound } from 'lucide-react';
 import 'swiper/css';
@@ -33,7 +33,8 @@ type SlideData =
   | { type: 'praised_employee'; employee: UserAccount; count: number };
 
 export const Leaderboard: React.FC = () => {
-  const reduceMotion = useReducedMotion();
+  const [effectsEnabled, setEffectsEnabled] = useState(true);
+  const reduceMotion = !effectsEnabled;
   const { users, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -175,6 +176,7 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div
+      data-motion={effectsEnabled ? 'full' : 'reduced'}
       data-gem-theme={activeSlide.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
       data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className="recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
@@ -184,6 +186,7 @@ export const Leaderboard: React.FC = () => {
       <header className="recognition-header relative z-30">
         <BrandName />
         <nav className="recognition-header-actions" aria-label="التنقل">
+          <button type="button" aria-pressed={effectsEnabled} onClick={() => setEffectsEnabled(enabled => !enabled)}>{effectsEnabled ? 'إيقاف التأثيرات' : 'تفعيل التأثيرات'}</button>
           <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
@@ -316,7 +319,7 @@ export const Leaderboard: React.FC = () => {
           longSwipesRatio={0.2}
           speed={reduceMotion ? 0 : 560}
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
-          onSetTransition={(_swiper, duration) => { sceneryDuration.current = duration; }}
+          onSetTransition={(swiper, duration) => { sceneryDuration.current = duration; swiper.el.style.setProperty('--recognition-slide-duration', `${duration}ms`); }}
           onSetTranslate={swiper => { const step = swiper.slidesGrid[1] - swiper.slidesGrid[0]; if (step) { const position = (-swiper.translate - swiper.slidesGrid[0]) / step; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
           modules={[Autoplay, EffectCoverflow]}
           className="recognition-carousel w-full min-w-0 mx-auto"

@@ -170,3 +170,10 @@
 /* Preserve the avatars' foot line and leave room for card shadows while swiping. */
 .recognition-carousel .swiper-slide { transform-origin:center bottom; }
 .recognition-carousel { padding-block:16px; }
+
+/* The recognition page has its own motion control. Preserve drag duration (0ms)
+   as well as animated transitions when the OS requests reduced motion. */
+@media (prefers-reduced-motion:reduce) {
+  .recognition-page[data-motion="full"] .recognition-carousel :is(.swiper-wrapper,.swiper-slide) { transition-duration:var(--recognition-slide-duration,0ms) !important; }
+  .recognition-page[data-motion="full"] .crystal-stage-fixed[data-visible="true"] .crystal-sheen::after { animation:crystal-light-pass 6s ease-in-out infinite !important; }
+}
