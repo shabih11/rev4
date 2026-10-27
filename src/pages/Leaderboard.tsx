@@ -33,8 +33,7 @@ type SlideData =
   | { type: 'praised_employee'; employee: UserAccount; count: number };
 
 export const Leaderboard: React.FC = () => {
-  const [effectsEnabled, setEffectsEnabled] = useState(true);
-  const reduceMotion = !effectsEnabled;
+  const reduceMotion = false;
   const { users, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -176,7 +175,7 @@ export const Leaderboard: React.FC = () => {
 
   return (
     <div
-      data-motion={effectsEnabled ? 'full' : 'reduced'}
+      data-motion="full"
       data-gem-theme={activeSlide.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
       data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className="recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
@@ -186,7 +185,6 @@ export const Leaderboard: React.FC = () => {
       <header className="recognition-header relative z-30">
         <BrandName />
         <nav className="recognition-header-actions" aria-label="التنقل">
-          <button type="button" aria-pressed={effectsEnabled} onClick={() => setEffectsEnabled(enabled => !enabled)}>{effectsEnabled ? 'إيقاف التأثيرات' : 'تفعيل التأثيرات'}</button>
           <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
@@ -379,10 +377,6 @@ export const Leaderboard: React.FC = () => {
           ))}
         </Swiper>
       </div>
-
-      <p className="sm:hidden text-center text-xs font-medium text-slate-600 pb-3" role="status" aria-live="off">
-        اسحبي للتنقل بين البطاقات · {(activeIndex + 1).toLocaleString('ar-SA')} / {slidesData.length.toLocaleString('ar-SA')}
-      </p>
 
       {/* All Employees Modal */}
       <AnimatePresence>

@@ -147,7 +147,11 @@
 .recognition-header-actions > a,.recognition-header-actions > button { display:inline-flex; align-items:center; justify-content:center; gap:4px; min-height:44px; padding:8px 12px; font-size:12px; white-space:nowrap; background:transparent; color:inherit; }
 .recognition-header-actions > * + * { border-inline-start:1px solid #cbd5e1; }
 .recognition-header-actions > a:hover,.recognition-header-actions > button:hover { background:#eff6ff; }
-@media (max-width:480px) { .recognition-header { flex-wrap:wrap; justify-content:center; gap:4px; } .recognition-header-actions { justify-content:center; } }
+@media (max-width:639px) {
+  .recognition-header { flex-direction:column; justify-content:center; gap:8px; padding:12px 16px 8px; }
+  .recognition-header-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:min(100%,440px); }
+  .recognition-header-actions > a,.recognition-header-actions > button { padding:8px 6px; }
+}
 
 
 .employee-backlight { opacity:var(--glass-intensity,.7); }
@@ -171,7 +175,7 @@
 .recognition-carousel .swiper-slide { transform-origin:center bottom; }
 .recognition-carousel { padding-block:16px; }
 
-/* The recognition page has its own motion control. Preserve drag duration (0ms)
+/* Keep recognition effects enabled. Preserve drag duration (0ms)
    as well as animated transitions when the OS requests reduced motion. */
 @media (prefers-reduced-motion:reduce) {
   .recognition-page[data-motion="full"] .recognition-carousel :is(.swiper-wrapper,.swiper-slide) { transition-duration:var(--recognition-slide-duration,0ms) !important; }
