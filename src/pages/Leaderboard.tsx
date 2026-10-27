@@ -11,12 +11,11 @@ import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/Employee
 import { BrandName, PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, EffectCoverflow } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { X, Building2, Users, Star, TrendingUp, UserRound } from 'lucide-react';
 import 'swiper/css';
-import 'swiper/css/effect-coverflow';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
@@ -306,11 +305,8 @@ export const Leaderboard: React.FC = () => {
           allowTouchMove={true}
           rewind={true}
           centeredSlides={true}
-          slidesPerView={1.8}
-          spaceBetween={8}
-          breakpoints={{ 640: { slidesPerView: 1, spaceBetween: 0 } }}
-          effect="coverflow"
-          coverflowEffect={{ rotate: 0, stretch: 32, depth: 80, scale: 0.9, slideShadows: false }}
+          slidesPerView={1}
+          spaceBetween={0}
           autoplay={{ delay: 5000, disableOnInteraction: false, waitForTransition: false }}
           threshold={8}
           touchAngle={55}
@@ -319,7 +315,7 @@ export const Leaderboard: React.FC = () => {
           onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
           onSetTransition={(swiper, duration) => { sceneryDuration.current = duration; swiper.el.style.setProperty('--recognition-slide-duration', `${duration}ms`); }}
           onSetTranslate={swiper => { const step = swiper.slidesGrid[1] - swiper.slidesGrid[0]; if (step) { const position = (-swiper.translate - swiper.slidesGrid[0]) / step; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
-          modules={[Autoplay, EffectCoverflow]}
+          modules={[Autoplay]}
           className="recognition-carousel w-full min-w-0 mx-auto"
           style={{ overflow: 'hidden' }}
         >

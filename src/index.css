@@ -171,8 +171,7 @@
 .recognition-composition .crystal-partner .crystal-avatar-reflection { top:100%; left:0; width:100%; }
 .recognition-composition .crystal-partner .crystal-reflected-avatar { width:100%; max-width:240px; }
 
-/* Preserve the avatars' foot line and leave room for card shadows while swiping. */
-.recognition-carousel .swiper-slide { transform-origin:center bottom; }
+/* Leave room for card shadows while swiping. */
 .recognition-carousel { padding-block:16px; }
 
 /* Keep recognition effects enabled. Preserve drag duration (0ms)
