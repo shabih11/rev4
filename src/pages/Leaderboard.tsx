@@ -14,7 +14,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Building2, Users, Star, TrendingUp, UserRound } from 'lucide-react';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -162,9 +162,9 @@ export const Leaderboard: React.FC = () => {
   useEffect(() => {
     const autoplay = swiperRef.current?.swiper?.autoplay;
     if (!autoplay) return;
-    if (modalOpen || reduceMotion) autoplay.stop();
+    if (modalOpen) autoplay.stop();
     else autoplay.start();
-  }, [modalOpen, reduceMotion]);
+  }, [modalOpen]);
   const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
@@ -188,10 +188,6 @@ export const Leaderboard: React.FC = () => {
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
         </nav>
       </header>
-      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
-        <button aria-label="البطاقة السابقة" onClick={() => { swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-3 text-blue-600 shadow"><ChevronRight size={22}/></button>
-        <button aria-label="البطاقة التالية" onClick={() => { swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-3 text-blue-600 shadow"><ChevronLeft size={22}/></button>
-      </div>
       <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
         onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
       <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />
@@ -209,7 +205,7 @@ export const Leaderboard: React.FC = () => {
             </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
             {activeSlide.type === 'active_branch' && `إحصائية الأسبوع`}
-            {activeSlide.type === 'active_employee' && `نشاط الأسبوع`}
+            {activeSlide.type === 'active_employee' && `الموظفة الأنشط مؤخراً`}
             {activeSlide.type === 'praised_employee' && `نجمة الثناء`}
           </div>
         </motion.div>
@@ -276,20 +272,16 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'active_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-emerald-950">الموظفة الأنشط مؤخراً</h2>
                   <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2 text-emerald-950" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
-                  <div className="flex flex-col items-center">
-                    <p className="text-emerald-800 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold text-emerald-950">{arabicReviewCount(activeSlide.count)}</p>
-                  </div>
+                  <p className="text-sm sm:text-xl font-bold text-emerald-950">اكتسبت {arabicReviewCount(activeSlide.count)} في 4 أيام</p>
                 </>
               )}
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA')} تقييم آخر ١٠ ايام</p>
                   <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA')} تقييم آخر ١٠ ايام</p>
 
                 </>
               )}
@@ -317,7 +309,7 @@ export const Leaderboard: React.FC = () => {
           rewind={true}
           centeredSlides={true}
           slidesPerView={1}
-          autoplay={reduceMotion ? false : { delay: 5000, disableOnInteraction: false }}
+          autoplay={{ delay: 5000, disableOnInteraction: false, waitForTransition: false }}
           threshold={8}
           touchAngle={55}
           longSwipesRatio={0.2}
