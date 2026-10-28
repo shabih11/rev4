@@ -340,9 +340,9 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'active_branch' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-branch rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
                     <Building2 size={48} className="text-teal-500 opacity-20 absolute top-6 left-6" />
-                    <div className="w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
+                    <div className="recognition-highlight-stat w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
                       <TrendingUp size={32} className="text-teal-500 mb-1" />
                       <p className="text-xl sm:text-3xl font-extrabold text-teal-600">+{slide.count}</p>
                     </div>
@@ -352,7 +352,7 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'active_employee' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-green-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-employee rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <TrendingUp size={48} className="text-emerald-600 opacity-70 absolute top-6 right-6" />
                     <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
                     <h3 className="text-xl sm:text-3xl font-black text-emerald-950 leading-tight z-10">{slide.employee.name}</h3>
@@ -361,7 +361,7 @@ export const Leaderboard: React.FC = () => {
                 )}
 
                 {slide.type === 'praised_employee' && (
-                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-praise rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
                     <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
                     <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
                     <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
