@@ -183,9 +183,9 @@
 }
 
 /* Preserve each highlight's palette with translucent glass and soft edge light. */
-.recognition-highlight-branch { --highlight-start:#ecfdf5c9; --highlight-end:#ccfbf1b3; }
-.recognition-highlight-employee { --highlight-start:#ecfdf5c9; --highlight-end:#dcfce7b3; }
-.recognition-highlight-praise { --highlight-start:#fffbebc9; --highlight-end:#ffedd5b3; }
+.recognition-highlight-branch { --highlight-start:#ecfdf559; --highlight-end:#ccfbf147; }
+.recognition-highlight-employee { --highlight-start:#ecfdf559; --highlight-end:#dcfce747; }
+.recognition-highlight-praise { --highlight-start:#fffbeb59; --highlight-end:#ffedd547; }
 .recognition-carousel .recognition-highlight-card {
   isolation:isolate;
   border:1px solid #ffffffd9;
@@ -197,9 +197,9 @@
 .recognition-highlight-card::before {
   content:''; position:absolute; inset:4px; border-radius:inherit; z-index:-1; pointer-events:none;
   border:1px solid #ffffff73;
-  background:radial-gradient(ellipse at var(--glass-light,28%) 0%,#ffffff80,transparent 60%),linear-gradient(var(--glass-angle,118deg),transparent 15%,#ffffff59 30%,transparent 48%,#ffffff1a 80%);
+  background:radial-gradient(ellipse at var(--glass-light,28%) 0%,#ffffff33,transparent 60%),linear-gradient(var(--glass-angle,118deg),transparent 15%,#ffffff24 30%,transparent 48%,#ffffff0d 80%);
 }
 .recognition-highlight-card .recognition-highlight-stat {
-  background:#ffffffa6; border:1px solid #ffffffd9;
+  background:#ffffff66; border:1px solid #ffffffd9;
   box-shadow:inset 0 1px 2px #fff,inset 0 -1px 2px #6b8b9d1a,0 3px 12px #38576a08;
 }
