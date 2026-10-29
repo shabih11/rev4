@@ -1,3 +1,4 @@
+import { AdminShiftCalendar } from '../components/AdminShiftCalendar';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
@@ -17,7 +18,7 @@ import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, GitMerge } from 'lucide-react';
 import employeeImg from '../assets/employee.png';
-import { formatDateTime, formatDate, formatTime, shiftName } from '../lib/formatDate';
+import { formatDateTime, formatTime } from '../lib/formatDate';
 import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
@@ -54,7 +55,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const [showMergeModal, setShowMergeModal] = useState(false);
   const needsAllRecords = showMergeModal;
   useRecordScope({
-    users: activeTab === 'employees' || activeTab === 'stats' || activeTab === 'notes',
+    users: activeTab === 'employees' || activeTab === 'stats' || activeTab === 'notes' || activeTab === 'shifts',
     reviews: needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
     timeline: needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
       : activeTab === 'shifts' || activeTab === 'stats' || activeTab === 'notes' ? { branches: [effectiveTimelineBranch] } : undefined,
@@ -1028,36 +1029,7 @@ export const SystemAdminDashboard: React.FC = () => {
                   )}
                 </div>
               </div>
-              <div className="space-y-4">
-                {timeline.filter(t => t.branch === effectiveTimelineBranch && t.type === 'shift').sort(newestFirst).map(s => {
-                  const linkedReviewsCount = reviews.filter(r => r.linkedShiftId === s.id || (r.branch === s.branch && r.time >= s.time && (s.endTime ? r.time <= s.endTime : true) && r.linkedShiftId === undefined)).length;
-                  return (
-                    <div key={s.id} className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm flex flex-col md:flex-row justify-between md:items-center gap-4">
-                      <div>
-                        <div className="font-bold text-gray-800 text-lg flex items-center gap-2">
-                          {formatDate(s.date)} <span className="text-xs font-medium text-gray-500">({shiftName(s.time)})</span>
-                          <p className="text-xs text-gray-500">{formatTime(s.time)} – {s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'}</p>
-                        </div>
-                        <div className="text-sm text-gray-500 mt-2 flex flex-wrap gap-1">
-                          {s.employees?.filter(e => users.some(user => user.id === e.id)).map(e => (
-                            <span key={e.id} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs font-bold">{e.name}</span>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-center font-bold flex flex-col justify-center items-center min-w-[100px]">
-                        <span className="text-2xl">{linkedReviewsCount}</span>
-                        <span className="text-xs">تقييمات مرتبطة</span>
-                      </div>
-                    </div>
-                  );
-                })}
-                {timeline.filter(t => t.branch === effectiveTimelineBranch && t.type === 'shift').length === 0 && (
-                  <div className="text-center text-gray-500 py-12 border-dashed border-2 rounded-xl flex flex-col items-center gap-3">
-                    <CalendarClock size={48} className="text-gray-300"/>
-                    <p className="font-bold text-lg">لا توجد شفتات مسجلة لهذا الفرع.</p>
-                  </div>
-                )}
-              </div>
+              <AdminShiftCalendar key={effectiveTimelineBranch} branch={effectiveTimelineBranch} />
             </div>
           )}
 
