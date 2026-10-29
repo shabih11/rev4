@@ -8,7 +8,7 @@ import { employeeTier } from '../lib/employeeFeatures';
 import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
-import { BrandName, PageLoading } from '../components/Brand';
+import { PageLoading } from '../components/Brand';
 import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
@@ -183,7 +183,6 @@ export const Leaderboard: React.FC = () => {
     >
 
       <header className="recognition-header relative z-30">
-        <BrandName />
         <nav className="recognition-header-actions" aria-label="التنقل">
           <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>

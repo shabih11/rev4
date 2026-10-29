@@ -253,7 +253,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm font-bold mb-1">الجودة (تقييمات سلبية، حوادث سلامة، شكاوى مؤكدة)</p>
+                      <p className="text-gray-500 text-sm font-bold mb-1">الجودة</p>
                       <p className="text-xs text-gray-400">من أصل ٦ نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600 mt-2">{employeeQualityPoints(employee.stats).toFixed(1)}</p>
