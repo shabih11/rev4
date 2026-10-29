@@ -3,9 +3,10 @@ import { useData } from '../context/DataContext';
 import { ShiftCalendar } from './ShiftCalendar';
 import { formatDate, formatTime, shiftName, timeMinutes } from '../lib/formatDate';
 import { reviewTimestamp } from '../lib/employeeActivity';
+import { isCoverageEmployee } from '../lib/employeeBranches';
 
 export function AdminShiftCalendar({ branch }: { branch: string }) {
-  const { users, timeline, reviews, recordsReady, syncError, syncStatus, updateTimelineEvent } = useData();
+  const { users, timeline, reviews, recordsReady, syncError, syncStatus, currentAccount, updateUser, updateTimelineEvent } = useData();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
@@ -18,9 +19,19 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
   const eligibleEmployees = users.filter(employee => employee.role === 'employee' &&
     (employee.branch === branch || employee.assignedBranches?.includes(branch)));
 
+  const coverageEmployees = users.filter(employee => employee.role === 'employee' && (employee.branch === 'موظفة خارجية' || isCoverageEmployee(employee)));
+  const branchEmployees = eligibleEmployees.filter(employee => !coverageEmployees.some(coverage => coverage.id === employee.id));
+  const saving = syncStatus === 'جارٍ حفظ التعديلات…';
+
+  function enableCoverage(employeeId: string) {
+    const employee = coverageEmployees.find(item => item.id === employeeId);
+    if (!employee || !recordsReady || syncError || saving || currentAccount?.role !== 'admin') return;
+    updateUser(employee.id, { assignedBranches: [...new Set([...(employee.assignedBranches || []), branch])] });
+  }
+
   function saveEmployees() {
     const shift = shifts.find(item => item.id === editingId && item.date === selectedDate);
-    if (!recordsReady || syncError || !shift) { setError('تعذر الحفظ؛ تحققي من اكتمال التحميل والمزامنة.'); return; }
+    if (!recordsReady || syncError || saving || !shift) { setError('تعذر الحفظ؛ تحققي من اكتمال التحميل والمزامنة.'); return; }
     if (!employeeIds.length) { setError('اختاري موظفة واحدة على الأقل للشفت.'); return; }
     const employees = employeeIds.map(id => eligibleEmployees.find(employee => employee.id === id));
     if (employees.some(employee => !employee)) { setError('أزيلي الموظفات غير المسندات لهذا الفرع قبل الحفظ.'); return; }
@@ -47,7 +58,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
           {editingId === shift.id && <fieldset className="border-t pt-4 space-y-3">
             <legend className="font-bold">الموظفات المسجلات في الشفت</legend>
             <div className="max-h-64 overflow-y-auto grid sm:grid-cols-2 gap-2">
-              {eligibleEmployees.map(employee => <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
+              {branchEmployees.map(employee => <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
                 <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
                 <span>{employee.name}{employee.branch !== branch ? ` (${employee.branch})` : ''}</span>
               </label>)}
@@ -56,10 +67,26 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
                 <span>{shift.employees?.find(employee => employee.id === id)?.name} — غير مسندة للفرع؛ أزيليها قبل الحفظ</span>
               </label>)}
             </div>
-            {!eligibleEmployees.length && <p>لا توجد موظفات مسندات لهذا الفرع.</p>}
+            <details className="rounded-2xl border border-indigo-100 p-3" open>
+              <summary className="font-bold cursor-pointer text-indigo-800">موظفات التغطية (المصدر الخارجي)</summary>
+              <p className="text-xs text-slate-500 my-2">يمكن اختيار المسندات لهذا الفرع مباشرة. إتاحة موظفة تغطية تضيف الفرع إلى فروعها المسموحة، ثم يمكنك اختيارها بعد اكتمال المزامنة.</p>
+              <div className="max-h-64 overflow-y-auto grid sm:grid-cols-2 gap-2">
+                {coverageEmployees.map(employee => eligibleEmployees.some(item => item.id === employee.id) ?
+                  <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
+                    <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
+                    <span>{employee.name} <span className="text-xs text-slate-500">({employee.branch})</span></span>
+                  </label> :
+                  <div key={employee.id} className="rounded-xl border p-3 space-y-2">
+                    <p>{employee.name} <span className="text-xs text-slate-500">({employee.branch})</span></p>
+                    <button type="button" disabled={saving || Boolean(syncError) || currentAccount?.role !== 'admin'} onClick={() => enableCoverage(employee.id)} className="text-sm font-bold text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 disabled:opacity-50" aria-label={`إتاحة ${employee.name} للتغطية في ${branch}`}>إتاحة التغطية لهذا الفرع</button>
+                  </div>)}
+              </div>
+              {!coverageEmployees.length && <p className="text-sm text-slate-500 mt-2">لا توجد موظفات تغطية مسجلات.</p>}
+            </details>
+            {!branchEmployees.length && <p className="text-sm text-slate-500">لا توجد موظفات فرع؛ يمكنك اختيار موظفات التغطية.</p>}
             {error && <p role="alert" className="text-red-700">{error}</p>}
             <div className="flex gap-2">
-              <button type="button" disabled={!recordsReady || Boolean(syncError)} onClick={saveEmployees} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold disabled:opacity-50">حفظ الموظفات</button>
+              <button type="button" disabled={!recordsReady || Boolean(syncError) || saving} onClick={saveEmployees} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold disabled:opacity-50">حفظ الموظفات</button>
               <button type="button" onClick={() => { setEditingId(null); setError(''); }} className="border px-4 py-2 rounded-xl">إلغاء</button>
             </div>
           </fieldset>}
