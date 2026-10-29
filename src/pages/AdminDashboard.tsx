@@ -276,7 +276,7 @@ export const AdminDashboard: React.FC = () => {
       <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg md:text-xl font-black">لوحة إدارة فرع {user?.branch}</h1>
+            <h1 className="text-lg md:text-xl font-black">إدارة فرع {user?.branch}</h1>
           </div>
           <p className="text-xs text-blue-100 font-medium mt-0.5">
             بدء العمل في الفرع : {formatTime(branchHours.open)}

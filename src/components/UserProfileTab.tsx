@@ -60,7 +60,7 @@ export const UserProfileTab: React.FC = () => {
     }
   };
 
-  const roleTitle = user.role === 'admin' ? 'الإدارة العامة' : user.role === 'manager' ? 'مديرة فرع' : 'موظفة فرع';
+  const roleTitle = user.role === 'admin' ? 'الإدارة العامة' : user.role === 'manager' ? 'إدارة الفرع' : 'موظفة فرع';
 
   return (
     <div className="profile-panel max-w-2xl mx-auto space-y-6 font-sans" dir="rtl">
@@ -75,7 +75,7 @@ export const UserProfileTab: React.FC = () => {
               <Shield size={13} />
               {roleTitle}
             </div>
-            <h2 className="text-2xl font-black"><EmployeeIdentity employee={user} className="employee-identity-on-dark" /></h2>
+            <h2 className="text-2xl font-black">{user.role === 'manager' ? `إدارة فرع ${user.branch}` : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}</h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
               {user.email && (
                 <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" dir="ltr">
