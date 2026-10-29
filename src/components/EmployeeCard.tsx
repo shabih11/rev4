@@ -112,7 +112,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           data-gem-theme={gemTheme(features?.store?.magic, employee.id)}
-          className="gem-employee-page relative w-full max-w-2xl min-w-0 bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+          className="gem-employee-page relative w-full max-w-2xl min-w-0 glass-modal-shell rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -283,7 +283,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
     <AnimatePresence>
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 touch-auto font-alexandria" dir="rtl">
          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-         <motion.div initial={{y:50, opacity:0}} animate={{y:0, opacity:1}} exit={{y:50, opacity:0}} className="relative w-full max-w-lg bg-gray-100 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+         <motion.div initial={{y:50, opacity:0}} animate={{y:0, opacity:1}} exit={{y:50, opacity:0}} className="relative w-full max-w-lg glass-modal-shell rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
             <div className="glass-modal-header p-4 z-10 flex justify-between items-center shrink-0">
                <div>
                  <h3 className="text-lg font-bold text-gray-800">{shift.branch} - {formatDate(shift.date) || 'اليوم'}</h3>

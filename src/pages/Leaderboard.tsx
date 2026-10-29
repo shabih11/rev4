@@ -397,7 +397,7 @@ export const Leaderboard: React.FC = () => {
             />
             <motion.div
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-lg glass-modal-shell rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
               <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Users size={24} /> جميع الموظفات</h3>
@@ -449,7 +449,7 @@ export const Leaderboard: React.FC = () => {
             />
             <motion.div
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-lg glass-modal-shell rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
               <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Building2 size={24} /> الفروع</h3>
@@ -582,7 +582,7 @@ export const Leaderboard: React.FC = () => {
                 />
                 <motion.div
                   initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-                  className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
+                  className="relative w-full max-w-2xl glass-modal-shell rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
                   <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                     <h3 className="text-xl font-bold">{modalBranchName}</h3>

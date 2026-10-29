@@ -144,8 +144,8 @@
 .employee-backlight::after { content:''; position:absolute; inset:-12% 12% 10%; background:conic-gradient(from var(--glass-angle,155deg) at var(--glass-light,50%) 0%,transparent 0deg,#fff9 12deg,#e9f8ff59 25deg,transparent 48deg); filter:blur(8px); }
 .recognition-header { background:transparent; border-block-end:0; }
 .recognition-header-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:var(--navy); }
-.recognition-header-actions > a,.recognition-header-actions > button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:8px 16px; font-family:inherit; font-size:14px; font-weight:800; line-height:1.5; white-space:nowrap; color:inherit; border:1px solid #ffffffd9; border-radius:16px; background:linear-gradient(135deg,#ffffffb3,#d7e5ed80 55%,#eff7fba6); backdrop-filter:blur(18px) saturate(145%); -webkit-backdrop-filter:blur(18px) saturate(145%); box-shadow:inset 0 1px 2px #ffffffb3,inset 0 -1px 2px #6b8b9d24,0 2px 8px #38576a08; }
-.recognition-header-actions > a:hover,.recognition-header-actions > button:hover { background:linear-gradient(135deg,#fff,#e3eff7b3); }
+.recognition-header-actions > a,.recognition-header-actions > button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:44px; padding:8px 16px; font-family:inherit; font-size:14px; font-weight:800; line-height:1.5; white-space:nowrap; color:inherit; border-radius:16px; }
+
 .recognition-header-actions > a:focus-visible,.recognition-header-actions > button:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }
 @media (max-width:639px) {
   .recognition-header { flex-direction:column; align-items:flex-start; gap:12px; padding:12px 16px; }
@@ -203,9 +203,34 @@
   box-shadow:inset 0 1px 2px #fff,inset 0 -1px 2px #6b8b9d1a,0 3px 12px #38576a08;
 }
 
-.glass-modal-header { color:var(--navy,#142b54); border:1px solid #ffffffd9; background:linear-gradient(135deg,#ffffffb3,#d7e5ed80 55%,#eff7fba6); backdrop-filter:blur(18px) saturate(145%); -webkit-backdrop-filter:blur(18px) saturate(145%); box-shadow:inset 0 1px 2px #ffffffb3,inset 0 -1px 2px #6b8b9d24,0 2px 8px #38576a08; }
+/* Keep only the header transparent; readable content retains an opaque surface. */
+.glass-modal-shell,.glass-modal-shell.gem-employee-page { background:transparent; }
+.glass-modal-shell > :not(.glass-modal-header) { background-color:#fff; }
+.glass-modal-shell.gem-employee-page > .p-4:not(.glass-modal-header) { background-color:var(--gem-bg,#fff); }
+.glass-modal-header { color:var(--navy,#142b54); border-top-left-radius:inherit; border-top-right-radius:inherit; }
+.glass-modal-header:not(.sticky),.glass-modal-control,.recognition-header-actions > :is(a,button) { position:relative; }
+.glass-modal-header,.glass-modal-control,.recognition-header-actions > :is(a,button) {
+  border:1px solid #ffffff80;
+  background:linear-gradient(145deg,#ffffff52,#ecf6ff1f 48%,#d9eaf138);
+  backdrop-filter:blur(24px) saturate(165%);
+  -webkit-backdrop-filter:blur(24px) saturate(165%);
+  box-shadow:inset 0 1px 0 #ffffffe6,inset 1px 0 0 #ffffff73,inset -1px -1px 0 #7c9ba133,0 3px 12px #1d39470a;
+}
+.glass-modal-header::before,.glass-modal-control::before,.recognition-header-actions > :is(a,button)::before {
+  content:''; position:absolute; inset:0; padding:1px; border-radius:inherit; pointer-events:none;
+  background:linear-gradient(135deg,#fff,#ffffff14 38%,#ffffff00 58%,#ffffffb3);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  mask-composite:exclude;
+}
+.glass-modal-control,.recognition-header-actions > :is(a,button) { transition:background .18s ease,box-shadow .18s ease; }
+button.glass-modal-control:hover,.recognition-header-actions > :is(a,button):hover { background:linear-gradient(145deg,#ffffff73,#ecf6ff38 48%,#d9eaf152); }
+button.glass-modal-control:active,.recognition-header-actions > :is(a,button):active { box-shadow:inset 0 1px 3px #4d6a7a26,inset 0 -1px 0 #ffffffb3; }
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  .glass-modal-header,.glass-modal-control,.recognition-header-actions > :is(a,button) { background:linear-gradient(145deg,#f8fcfff2,#e3eff6e6); }
+}
 .recognition-page button[data-period-leader="true"] { color:#064e3b; background:#ecfdf5; border:2px solid #16a34a; box-shadow:0 0 0 2px #86efac80,0 0 14px #22c55e80; }
 
-.glass-modal-control { color:inherit; border:1px solid #ffffffd9; background:linear-gradient(135deg,#ffffffb3,#d7e5ed80 55%,#eff7fba6); box-shadow:inset 0 1px 2px #ffffffb3,inset 0 -1px 2px #6b8b9d24,0 2px 8px #38576a08; }
-button.glass-modal-control:hover { background:linear-gradient(135deg,#fff,#e3eff7b3); }
+.glass-modal-control { color:inherit; }
 button.glass-modal-control:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }
