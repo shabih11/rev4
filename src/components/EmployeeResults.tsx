@@ -2,93 +2,46 @@ import { useData } from '../context/DataContext';
 import { TierBadge } from './EmployeeFeatures';
 import { employeeTier } from '../lib/employeeFeatures';
 import type { UserAccount } from '../lib/mockData';
-import { Award, Star, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Award, ChevronDown } from 'lucide-react';
 
 interface EmployeeResultsProps {
   user: UserAccount;
   ready: boolean;
-  generatedAt: string;
   error: string | null;
 }
 
-// Summary readiness is separate from the optional review and shift detail queries.
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
   const { features } = useData();
   const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
-  const period = new Intl.DateTimeFormat('ar-SA-u-nu-latn', {
-    calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
-  }).format(new Date());
-
-  return (
-    <section aria-label="نتائجي" aria-busy={!ready && !error}>
-      <div className="px-6 mb-4 text-sm text-gray-600 space-y-1">
-        <p className="font-bold">فترة النتيجة: {period}</p>
-
-      </div>
-      {!ready ? (
-        <div className="mx-6 mb-8 rounded-2xl border bg-white p-6">
-          {error ? (
-            <div role="alert" className="text-red-700 space-y-3">
-              <p>تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p>
-            </div>
-          ) : <p role="status">جارٍ تحميل نتائجك…</p>}
+  return <section aria-label="نتائجي" aria-busy={!ready && !error} className="px-6 mb-8">
+    {!ready || error ? <div className="rounded-2xl border bg-white p-6">
+      {error ? <p role="alert" className="text-red-700">تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p> : <p role="status">جارٍ تحميل نتائجك…</p>}
+    </div> : <details className="group bg-white rounded-3xl shadow-sm border border-slate-100">
+      <summary className="list-none cursor-pointer flex items-center justify-between gap-3 p-6 sm:p-8 rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+        <div>
+          <h2 className="text-gray-500 font-bold mb-1">نتيجة الشهر الحالي</h2>
+          <p className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</p>
         </div>
-      ) : (
-        <>
-          <p className="px-6 mb-4 text-sm text-gray-600">
-            النتيجة = الإيجابي ({user.stats.positive.toFixed(1)}) + رصيد التقييمات السلبية ({user.stats.negative.toFixed(1)}) + الجودة والسلامة ({Math.max(0, 4 - user.stats.complaints - user.stats.safety).toFixed(1)}).
-          </p>
-      {/* Main Stats */}
-      <div className="px-6 mb-8">
-        <div className="bg-white rounded-3xl p-8 shadow-xl flex items-center justify-between">
-          <div>
-            <p className="text-gray-500 font-bold mb-1">نتيجة الشهر الحالي</p>
-            <h2 className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</h2>
+        <div className="flex items-center gap-3">
+          <div className={`w-16 h-16 flex items-center justify-center ${tier === 'bronze' ? 'bg-blue-100 rounded-full text-blue-500' : ''}`}>
+            {tier === 'bronze' ? <Award size={36} /> : <TierBadge employee={user} />}
           </div>
-          <div className={`w-20 h-20 flex items-center justify-center ${tier === 'bronze' ? 'bg-blue-100 rounded-full text-blue-500' : ''}`}>
-            {tier === 'bronze' ? <Award size={40} /> : <TierBadge employee={user} />}
-          </div>
+          <ChevronDown size={20} aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180" />
         </div>
-      </div>
-
-      {/* Detailed Stats Grid */}
-      <div className="px-6 grid grid-cols-2 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-yellow-400">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <Star className="text-yellow-400" size={20} />
-            رصيد التقييمات
-          </div>
-          <p className="text-3xl font-extrabold">{user.monthReviewsCount != null ? (user.monthReviewsCount % 1 === 0 ? user.monthReviewsCount : user.monthReviewsCount.toFixed(1)) : 0}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-green-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <Star className="text-green-500" size={20} />
-            إيجابي
-          </div>
-          <p className="text-3xl font-extrabold">+{user.stats.positive.toFixed(1)}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-red-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <AlertTriangle className="text-red-500" size={20} />
-            شكاوى
-          </div>
-          <p className="text-3xl font-extrabold">-{user.stats.complaints}</p>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl shadow-lg border-t-4 border-orange-500">
-          <div className="flex items-center gap-2 text-gray-700 mb-2 font-bold">
-            <ShieldAlert className="text-orange-500" size={20} />
-            مخالفات سلامة
-          </div>
-          <p className="text-3xl font-extrabold">-{user.stats.safety}</p>
-        </div>
-      </div>
-
-
-        </>
-      )}
-    </section>
-  );
+      </summary>
+      <dl aria-label="تفاصيل نقاط الشهر الحالي" className="grid grid-cols-2 gap-3 border-t border-slate-100 p-4 sm:p-6">
+        {[
+          ['رصيد التقييمات', String(user.monthReviewsCount ?? 0), 'text-amber-700'],
+          ['إيجابي', user.stats.positive.toFixed(1), 'text-green-700'],
+          ['رصيد التقييمات السلبية', user.stats.negative.toFixed(1), 'text-slate-700'],
+          ['الجودة والسلامة', Math.max(0, 4 - user.stats.complaints - user.stats.safety).toFixed(1), 'text-blue-700'],
+          ['شكاوى', `-${user.stats.complaints}`, 'text-red-700'],
+          ['مخالفات سلامة', `-${user.stats.safety}`, 'text-orange-700'],
+        ].map(([label, value, color]) => <div key={label} className="rounded-2xl bg-slate-50 p-3">
+          <dt className="text-xs sm:text-sm font-bold text-slate-600">{label}</dt>
+          <dd className={`mt-2 text-2xl font-extrabold ${color}`}>{value}</dd>
+        </div>)}
+      </dl>
+    </details>}
+  </section>;
 }

@@ -1,44 +1,34 @@
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
-import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
+import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { Brand } from '../components/Brand';
-import { employeeReviewBranches } from '../lib/employeeBranches';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
-import { ShiftReviewCounts } from '../components/ShiftReviewCounts';
-import { newestFirst } from '../lib/employeeActivity';
 import { useAuth } from '../context/AuthContext';
-import { formatDateTime, formatDate, formatTime, shiftName, toEnglishNumerals } from '../lib/formatDate';
 import { useData } from '../context/DataContext';
-import { useRecordScope } from '../hooks/useRecordScope';
-import { LogOut, Star, Award, AlertTriangle, CalendarClock, ChevronDown, ChevronUp, User } from 'lucide-react';
+import { LogOut, Award, User, Shirt } from 'lucide-react';
+import { AvatarStore } from '../components/AvatarStore';
 import { UserProfileTab } from '../components/UserProfileTab';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { reviews, reviewSummaries, recordsReady, summaryReady, summaryGeneratedAt, syncError, users, timeline, features } = useData();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'profile'>('dashboard');
-  const [showReviews, setShowReviews] = useState(false);
-  const [showShifts, setShowShifts] = useState(false);
-  useRecordScope({ reviews: activeTab === 'dashboard' && showReviews ? { employeeIds: [user?.id || ''] } : undefined, timeline: activeTab === 'dashboard' ? { employeeIds: [user?.id || ''] } : undefined });
-
+  const { summaryReady, syncError, users, features } = useData();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'avatar' | 'profile'>('dashboard');
   if (!user) return null;
   const displayedEmployee = users.find(employee => employee.id === user.id) || user;
-  const multipleReviewBranches = employeeReviewBranches(reviewSummaries, user.id).length > 1;
-  const privateReviews = new Map(reviews.map(review => [review.id, review]));
-  const countReviews = reviewSummaries.map(summary => ({ ...summary, linkedShiftId: privateReviews.get(summary.id)?.linkedShiftId }));
-  const employeeReviews = reviews.filter(review => review.linkedEmployeeIds.includes(user.id)).sort(newestFirst);
-  const employeeShifts = timeline.filter(event => event.type === 'shift' && event.employees?.some(employee => employee.id === user.id)).sort(newestFirst);
-  const detailsReady = recordsReady && !syncError;
-
 
   return (
     <div data-gem-theme={gemTheme(features?.store?.magic, user.id)} className="gem-employee-page w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
+        </div>
+      ) : activeTab === 'avatar' ? (
+        <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-4">
+          <h1 className="text-2xl font-bold text-slate-800">افتار</h1>
+          {!summaryReady ? <p role="status">جارٍ تحميل متجر الأفتارات…</p> : syncError ? <p role="alert" className="text-red-700">تعذر تحميل متجر الأفتارات.</p> : features?.settings.avatars ? <AvatarStore employee={displayedEmployee} /> : <p className="rounded-2xl border bg-white p-5 text-slate-600">متجر الأفتارات غير متاح حاليًا.</p>}
         </div>
       ) : (
         <>
@@ -67,117 +57,7 @@ export const EmployeeDashboard: React.FC = () => {
         </div>
       </div>
 
-      {summaryReady && <div className="px-6 mb-5"><p className="font-bold text-slate-800">رصيد الشهر: {user.monthReviewsCount || 0} <BalanceGrowth employee={user} /></p><Overtaken employee={user} /></div>}
-      <EmployeeResults user={user} ready={summaryReady} generatedAt={summaryGeneratedAt} error={syncError} />
-
-      {/* Reviews Log Section */}
-      <div className="px-6 mb-4">
-        <button 
-          aria-expanded={showReviews}
-          aria-controls="employee-reviews"
-          onClick={() => setShowReviews(!showReviews)}
-          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
-        >
-          <div className="flex items-center gap-3">
-            <Star className="text-yellow-400" size={22} />
-            <span className="font-bold text-gray-800 text-lg">سجل التقييمات</span><span className="font-bold text-gray-700">{summaryReady ? user.reviewsCount : '…'}</span>
-          </div>
-          {showReviews ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
-        </button>
-        
-        {showReviews && (
-          <div id="employee-reviews" className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
-            {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل السجلات المطلوبة…</p>}
-
-
-            {detailsReady && employeeReviews.length === 0 && (
-              <p className="text-center text-gray-500 text-sm">لا توجد تقييمات مرتبطة بك بعد.</p>
-            )}
-
-            {detailsReady && employeeReviews.map(r => {
-              const ratingNum = Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0));
-              const isPositive = ratingNum >= 4;
-              const stars = '★'.repeat(ratingNum) + '☆'.repeat(5 - ratingNum);
-              const otherEmpNames = r.linkedEmployeeIds
-                .filter(id => id !== user.id)
-                .map(id => users.find(u => u.id === id)?.name || id)
-                .join(' و ');
-                
-              let shiftInfo = '';
-              if (r.linkedShiftId) {
-                const s = timeline.find(t => t.id === r.linkedShiftId);
-                if (s) shiftInfo = `في ${shiftName(s.time)} (${formatTime(s.time)} - ${s.endTime ? formatTime(s.endTime) : 'نهاية اليوم'})`;
-              }
-
-              return (
-                <div key={r.id} className={`${isPositive ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'} p-4 rounded-xl border`}>
-                  {multipleReviewBranches && r.branch && <span className="mb-3 inline-flex rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">فرع {r.branch}</span>}
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex text-yellow-400 text-sm">{stars}</div>
-                    <div className="text-xs text-gray-500 font-medium bg-white px-2 py-1 rounded">{formatDateTime(r.date, r.time)}</div>
-                  </div>
-                  <p className="text-gray-700 text-sm">"{r.comment}"</p>
-                  
-                  {(otherEmpNames || shiftInfo) && (
-                    <div className="mt-2 flex flex-col gap-1">
-                      {otherEmpNames && <p className="text-xs text-gray-500 font-bold">(اكتسبته مع {otherEmpNames})</p>}
-                      {shiftInfo && <p className="text-xs text-indigo-500 font-bold">{shiftInfo}</p>}
-                    </div>
-                  )}
-                  {!isPositive && <p className="text-xs text-red-400 mt-2 font-bold">تقييم سلبي</p>}
-                </div>
-              );
-            })}
-            
-            {/* Display Complaints / Safety gaps assigned to this employee */}
-            {detailsReady && timeline.filter(t => t.type === 'gap' && t.title.includes(user.name)).map(t => (
-              <div key={t.id} className={`${t.title.includes('سلامة') ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'} p-4 rounded-xl border`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className={t.title.includes('سلامة') ? 'text-red-500' : 'text-orange-500'} size={16} />
-                  <span className={`${t.title.includes('سلامة') ? 'text-red-700' : 'text-orange-700'} font-bold text-sm`}>{t.title.split(' - ')[0]}</span>
-                </div>
-                <p className="text-gray-700 text-sm">"{t.comment}"</p>
-                <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-gray-500">الوقت: {formatTime(t.time)}</p>
-                  <p className={`text-xs ${t.title.includes('سلامة') ? 'text-red-400' : 'text-orange-400'}`}>مسجلة بواسطة الإدارة</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Shifts Log Section */}
-      <div className="px-6 mb-8">
-        <button 
-          aria-expanded={showShifts}
-          aria-controls="employee-shifts"
-          onClick={() => setShowShifts(!showShifts)}
-          className="w-full bg-white rounded-2xl p-5 shadow-lg flex justify-between items-center"
-        >
-          <div className="flex items-center gap-3">
-            <CalendarClock className="text-blue-500" size={22} />
-            <span className="font-bold text-gray-800 text-lg">سجل الشفتات</span>
-          </div>
-          {showShifts ? <ChevronUp className="text-gray-400" /> : <ChevronDown className="text-gray-400" />}
-        </button>
-        
-        {showShifts && (
-          <div id="employee-shifts" className="bg-white rounded-b-2xl border-t px-5 pb-5 shadow-lg -mt-2 space-y-3 pt-4">
-            {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل السجلات المطلوبة…</p>}
-            {detailsReady && employeeShifts.map(event => (
-              <div key={event.id} className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                <p className="font-bold text-gray-800">{formatDate(event.date)} <span className="text-xs font-medium text-gray-500">({shiftName(event.time)})</span></p>
-                <p className="text-xs text-gray-500 mt-1">{event.employees?.filter(employee => employee.id !== user.id && users.some(active => active.id === employee.id)).length ? `مع ${event.employees.filter(employee => employee.id !== user.id && users.some(active => active.id === employee.id)).map(employee => employee.name).join(' و')}` : 'بدون شريكة'}</p>
-                </div>
-                <ShiftReviewCounts shift={event} employeeId={user.id} reviews={countReviews} ready={recordsReady} />
-              </div>
-            ))}
-            {detailsReady && employeeShifts.length === 0 && <p className="text-sm text-gray-500">لا توجد شفتات مسجلة.</p>}
-          </div>
-        )}
-      </div>
+      <EmployeeResults user={displayedEmployee} ready={summaryReady} error={syncError} />
 
       {/* Shift Information & Objection */}
       <div className="px-6 mb-8">
@@ -205,6 +85,15 @@ export const EmployeeDashboard: React.FC = () => {
         >
           <Award size={22} className={activeTab === 'dashboard' ? 'stroke-[2.5px]' : ''} />
           <span className="text-[11px] font-bold">لوحتي</span>
+        </button>
+
+        <button
+          aria-current={activeTab === 'avatar' ? 'page' : undefined}
+          onClick={() => setActiveTab('avatar')}
+          className={`tab-button ${activeTab === 'avatar' ? 'text-blue-700 bg-blue-50 font-black' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          <Shirt size={22} />
+          <span className="text-[11px] font-bold">افتار</span>
         </button>
 
         <button

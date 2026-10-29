@@ -33,3 +33,12 @@ test('a day without a recorded shift still highlights an unlinked review',()=>{
  const button=dayButton({shifts:[],unlinkedReviewDates:[date]});
  assert.match(button,/bg-blue-600/);assert.match(button,/—/);
 });
+test('employee days are dark green for either one or two shifts',()=>{
+ assert.match(dayButton({highlightEmployeeId:'e'}),/bg-emerald-700/);
+ assert.match(dayButton({highlightEmployeeId:'e',shifts:[shifts[0]]}),/bg-emerald-700/);
+});
+test('other employees shifts stay light in the personal calendar',()=>{
+ const button=dayButton({highlightEmployeeId:'other'});
+ assert.match(button,/bg-emerald-100/);
+ assert.doesNotMatch(button,/bg-emerald-700|bg-emerald-500/);
+});
