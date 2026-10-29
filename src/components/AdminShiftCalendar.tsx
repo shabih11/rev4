@@ -19,7 +19,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
   const eligibleEmployees = users.filter(employee => employee.role === 'employee' &&
     (employee.branch === branch || employee.assignedBranches?.includes(branch)));
 
-  const coverageEmployees = users.filter(employee => employee.role === 'employee' && (employee.branch === 'موظفة خارجية' || isCoverageEmployee(employee)));
+  const coverageEmployees = users.filter(employee => employee.role === 'employee' && isCoverageEmployee(employee));
   const branchEmployees = eligibleEmployees.filter(employee => !coverageEmployees.some(coverage => coverage.id === employee.id));
   const saving = syncStatus === 'جارٍ حفظ التعديلات…';
 
@@ -60,7 +60,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
             <div className="max-h-64 overflow-y-auto grid sm:grid-cols-2 gap-2">
               {branchEmployees.map(employee => <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
                 <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
-                <span>{employee.name}{employee.branch !== branch ? ` (${employee.branch})` : ''}</span>
+                <span>{employee.name}{isCoverageEmployee(employee) ? ' (تغطية)' : ''}</span>
               </label>)}
               {employeeIds.filter(id => !eligibleEmployees.some(employee => employee.id === id)).map(id => <label key={id} className="flex items-center gap-2 rounded-xl border p-3">
                 <input type="checkbox" checked onChange={() => setEmployeeIds(ids => ids.filter(value => value !== id))} />
@@ -74,10 +74,10 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
                 {coverageEmployees.map(employee => eligibleEmployees.some(item => item.id === employee.id) ?
                   <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
                     <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
-                    <span>{employee.name} <span className="text-xs text-slate-500">({employee.branch})</span></span>
+                    <span>{employee.name} <span className="text-xs text-slate-500">(تغطية)</span></span>
                   </label> :
                   <div key={employee.id} className="rounded-xl border p-3 space-y-2">
-                    <p>{employee.name} <span className="text-xs text-slate-500">({employee.branch})</span></p>
+                    <p>{employee.name} <span className="text-xs text-slate-500">(تغطية)</span></p>
                     <button type="button" disabled={saving || Boolean(syncError) || currentAccount?.role !== 'admin'} onClick={() => enableCoverage(employee.id)} className="text-sm font-bold text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 disabled:opacity-50" aria-label={`إتاحة ${employee.name} للتغطية في ${branch}`}>إتاحة التغطية لهذا الفرع</button>
                   </div>)}
               </div>

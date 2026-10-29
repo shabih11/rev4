@@ -1,3 +1,4 @@
+import { leaderboardEmployee } from '../lib/employeeBranches';
 import { useEmployeeSignIns } from '../hooks/useEmployeeSignIns';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { CrystalPlatform } from '../components/CrystalPlatform';
@@ -33,7 +34,8 @@ type SlideData =
 
 export const Leaderboard: React.FC = () => {
   const reduceMotion = false;
-  const { users, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
+  const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
+  const users = useMemo(() => directoryUsers.map(employee => leaderboardEmployee(employee, coverageBranches)), [directoryUsers, coverageBranches]);
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
@@ -222,7 +224,7 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'employee' && (
                 <>
-                  <EmployeeIdentity employee={activeSlide.data} className="items-center mb-3" nameContent={<EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>}/>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.data} className="items-center mb-3" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>}/>
 
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
@@ -270,7 +272,7 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'active_employee' && (
                 <>
-                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2 text-emerald-950" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.employee} className="items-center my-2 text-emerald-950" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
 
                   <p className="text-sm sm:text-xl font-bold text-emerald-950">اكتسبت {arabicReviewCount(activeSlide.count)} في 4 أيام</p>
                 </>
@@ -278,7 +280,7 @@ export const Leaderboard: React.FC = () => {
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <EmployeeIdentity employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
                   <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA')} تقييم آخر ١٠ ايام</p>
 
                 </>
@@ -399,12 +401,12 @@ export const Leaderboard: React.FC = () => {
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
                 {allEmployeesSorted.map((emp, idx) => (
-                  <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                  <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1 min-w-0 space-y-1">
-                        <EmployeeIdentity employee={emp} className="text-gray-800"/>
+                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800"/>
                         <Overtaken employee={emp} />
                         {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
                           آخر دخول: {!employeeSignIns ? 'جارٍ التحميل…' : employeeSignIns.error ? 'تعذر التحميل' : employeeSignIns.data?.[emp.id] === null ? 'لم تسجل دخولًا بعد' : employeeSignIns.data?.[emp.id] ? formatTimestamp(Date.parse(employeeSignIns.data[emp.id]!)) : 'غير متاح'}
@@ -604,7 +606,7 @@ export const Leaderboard: React.FC = () => {
                   <div aria-label="موظفات الفرع" className="p-3 border-t border-gray-100 shrink-0">
                      <div className="flex flex-wrap justify-center gap-1.5">
                        {users.filter(u => u.role === 'employee' && ((u.branch === modalBranchName && (u.monthReviewsCount ?? 0) > 3) || periodLeaders.ids.includes(u.id))).map(emp => (
-                         <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                         <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                          <button type="button" aria-label={`عرض سجل ${emp.name}${periodLeaders.ids.includes(emp.id) ? '، الأكثر جلبًا للتقييمات في الفترة المحددة' : ''}`}
                            data-period-leader={periodLeaders.ids.includes(emp.id)}
                            title={periodLeaders.ids.includes(emp.id) ? `${arabicReviewCount(periodLeaders.count)} خلال الفترة المحددة` : undefined}

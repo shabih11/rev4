@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/employeeBranches.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { isCoverageEmployee, latestCoverageBranches, employeeReviewBranches, belongsToBranch } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { isCoverageEmployee, latestCoverageBranches, employeeReviewBranches, belongsToBranch, employeeBranchLabel, leaderboardEmployee } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 const now = Date.parse('2026-10-25T12:00:00+03:00');
 test('coverage follows the latest started shift, ignoring future shifts and unrelated employees', () => {
   const shifts = [
@@ -23,10 +23,10 @@ test('equal timestamps resolve deterministically; a shift starting now is includ
 });
 test('coverage affiliation does not treat historical branches as current', () => {
   const employee = { branch: 'جديد', assignedBranches: ['قديم'], isCoverage: true };
-  assert.equal(belongsToBranch(employee, 'جديد'), true);
+  assert.equal(belongsToBranch(employee, 'جديد'), false);
   assert.equal(belongsToBranch(employee, 'قديم'), false);
-  assert.equal(isCoverageEmployee({ branch: 'موظفة خارجية' }), true);
-  assert.equal(isCoverageEmployee({ branch: 'جديد', assignedBranches: ['قديم'] }), true);
+  assert.equal(isCoverageEmployee({ branch: 'موظفة خارجية' }), false);
+  assert.equal(isCoverageEmployee({ branch: 'جديد', assignedBranches: ['قديم'] }), false);
   assert.equal(isCoverageEmployee({ ...employee, isCoverage: false }), false);
   assert.equal(belongsToBranch({ ...employee, isCoverage: false }, 'قديم'), true);
 });
@@ -39,4 +39,16 @@ test('branch badges depend on the employee own review history, not other employe
   ];
   assert.deepEqual(employeeReviewBranches(reviews, 'employee'), ['أ']);
   assert.deepEqual(employeeReviewBranches([...reviews, { branch: 'ب', linkedEmployeeIds: ['employee', 'other'] }], 'employee'), ['أ', 'ب']);
+});
+
+test('only explicit coverage flags qualify; management sees a tag and leaderboard gets the latest branch',()=>{
+ const employee={id:'e',branch:'أصلي',assignedBranches:['آخر'],isCoverage:true};
+ assert.equal(isCoverageEmployee(employee),true);
+ assert.equal(employeeBranchLabel(employee),'تغطية');
+ const ranked=leaderboardEmployee(employee,{e:'الأحدث'});
+ assert.equal(employeeBranchLabel(ranked,true),'الأحدث');
+ assert.equal(employee.branch,'أصلي');
+ assert.equal(leaderboardEmployee(employee,{}).branch,'تغطية');
+ assert.equal(isCoverageEmployee({...employee,isCoverage:false}),false);
+ assert.equal(isCoverageEmployee({branch:'موظفة خارجية',assignedBranches:['آخر']}),false);
 });

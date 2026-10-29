@@ -3,7 +3,7 @@ import type { UserAccount } from './mockData';
 export interface ShiftBranchRecord { id: string; branch: string; occurred_at: string; employee_ids: string[] }
 
 export function isCoverageEmployee(employee: Pick<UserAccount, 'branch' | 'isCoverage' | 'assignedBranches'>) {
-  return employee.isCoverage ?? (employee.branch === 'موظفة خارجية' || Boolean(employee.assignedBranches?.some(branch => branch !== employee.branch)));
+  return employee.isCoverage === true;
 }
 
 export function latestCoverageBranches(rows: ShiftBranchRecord[], employeeIds: string[], now: number) {
@@ -26,5 +26,17 @@ export function employeeReviewBranches(reviews: { branch: string; linkedEmployee
 }
 
 export function belongsToBranch(employee: Pick<UserAccount, 'branch' | 'isCoverage' | 'assignedBranches'>, branch: string) {
-  return employee.branch === branch || (!isCoverageEmployee(employee) && Boolean(employee.assignedBranches?.includes(branch)));
+  return !isCoverageEmployee(employee) && (employee.branch === branch || Boolean(employee.assignedBranches?.includes(branch)));
+}
+
+export function employeeBranchLabel(employee: Pick<UserAccount, 'branch' | 'isCoverage'>, showCoverageBranch = false) {
+  return isCoverageEmployee(employee) && !showCoverageBranch ? 'تغطية' : employee.branch;
+}
+
+export function leaderboardEmployee<T extends Pick<UserAccount, 'id' | 'branch' | 'isCoverage'>>(employee: T, latestBranches: Record<string, string>): T {
+  return isCoverageEmployee(employee) ? { ...employee, branch: latestBranches[employee.id] || 'تغطية' } : employee;
+}
+
+export function employeeSelectionBranch(employee?: Pick<UserAccount, 'branch' | 'isCoverage'>) {
+  return employee ? isCoverageEmployee(employee) ? 'موظفة خارجية' : employee.branch : '';
 }

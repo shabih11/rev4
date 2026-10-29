@@ -1,5 +1,5 @@
 import { EmployeeIdentity } from './EmployeeIdentity';
-import { belongsToBranch } from '../lib/employeeBranches';
+import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { EmployeeAvatar } from './EmployeeFeatures';
 import { EmployeeAccountActions } from './EmployeeAccountActions';
 import { EmployeeCard } from './EmployeeCard';
@@ -15,7 +15,7 @@ interface MergeRequest {
 const field = 'w-full border border-slate-300 rounded-xl p-3 bg-white';
 
 export function BranchEmployees({ branch, onReview }: { branch?: string; onReview?: (request: MergeRequest) => void }) {
-  const { users, currentAccount, summaryReady, coverageBranchError } = useData();
+  const { users, currentAccount, summaryReady } = useData();
   const [requests, setRequests] = useState<MergeRequest[]>([]);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -48,7 +48,6 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
   }
   const employees = users.filter(item => item.role === 'employee');
   return <div className="space-y-5">
-    {coverageBranchError && <p role="status" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{coverageBranchError} تُعرض آخر بيانات متاحة للفروع.</p>}
     {message && <p role="status" className="rounded-xl bg-blue-50 p-3 text-blue-900">{message}</p>}
     {!isAdmin && <>
       <section className="bg-white border rounded-3xl p-5 space-y-3">
@@ -57,12 +56,11 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
           {employees.filter(item => belongsToBranch(item, branch || '')).map(item => <div key={item.id}><EmployeeCard employee={item}>
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
               <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
-              <EmployeeIdentity employee={item} className="items-center text-slate-800" />{(item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) && <span className="text-xs text-slate-500">تغطية</span>}
+              <EmployeeIdentity employee={item} className="items-center text-slate-800" />{isCoverageEmployee(item) && <span className="text-xs text-slate-500">تغطية</span>}
               <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA-u-nu-latn') : '…'}</span>
             </button>
           </EmployeeCard><EmployeeAccountActions employee={item} /></div>)}
         </div>
-        <p className="text-sm text-slate-600">تعديل بيانات الموظفات متاح للإدارة العامة.</p>
         <form className="flex flex-col sm:flex-row sm:items-end gap-3 border-t border-slate-100 pt-4" onSubmit={event => {
           event.preventDefault();
           const trimmed = name.trim();
@@ -79,15 +77,27 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
           <button disabled={busy} className="action-primary shrink-0">إضافة موظفة</button>
         </form>
       </section>
+      <section className="bg-white border rounded-3xl p-5 space-y-3">
+        <h2 className="text-xl font-bold">موظفات التغطية</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
+          {employees.filter(isCoverageEmployee).map(item => <div key={item.id}><EmployeeCard employee={item}>
+            <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
+              <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
+              <EmployeeIdentity employee={item} className="items-center text-slate-800" />
+              <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA-u-nu-latn') : '…'}</span>
+            </button>
+          </EmployeeCard><EmployeeAccountActions employee={item} /></div>)}
+        </div>
+      </section>
     </>}
     {isAdmin && <section className="bg-white border rounded-3xl p-5 space-y-3">
       <h2 className="font-bold text-xl">طلبات دمج الموظفات</h2>
       {readError ? <p role="alert">تعذر تحميل الطلبات. تحققي من الاتصال وتفعيل قواعد الصلاحيات.</p> : requests.length === 0 ? <p>لا توجد طلبات دمج.</p> : requests.map(request => <div key={request.id} className="border rounded-xl p-3 space-y-2">
-        <p>{users.find(item => item.id === request.primaryId)?.name || request.name} + {users.find(item => item.id === request.duplicateId)?.name || 'الحساب المكرر'} — {request.targetBranch} (تغطية)</p>
+        <p>{users.find(item => item.id === request.primaryId)?.name || request.name} + {users.find(item => item.id === request.duplicateId)?.name || 'الحساب المكرر'} — {request.isCoverage ? 'تغطية' : request.targetBranch}</p>
         <p>{request.status === 'pending' ? 'بانتظار الإدارة' : request.status === 'reviewed' ? 'تمت المراجعة' : 'مرفوض'}</p>
         {isAdmin && request.status === 'pending' && <div className="flex flex-col sm:flex-row sm:items-end gap-3 border-t border-slate-100 pt-4">
           <button className="text-blue-700" onClick={() => onReview?.(request)}>مراجعة وتنفيذ الدمج</button>
-          <button disabled={busy || users.some(item => item.id === request.duplicateId) || !users.some(item => item.id === request.primaryId && item.branch === request.targetBranch && (item.isCoverage ?? item.assignedBranches?.some(name => name !== item.branch) ?? false) === request.isCoverage)} onClick={() => void perform(async () => { const { error } = await supabase.from('employee_merge_requests').update({ status: 'reviewed' }).eq('id', request.id); if (error) throw error; }, 'تم إغلاق الطلب.')} className="text-emerald-700 disabled:opacity-40">إغلاق بعد تنفيذ الدمج</button>
+          <button disabled={busy || users.some(item => item.id === request.duplicateId) || !users.some(item => item.id === request.primaryId && item.branch === request.targetBranch && isCoverageEmployee(item) === request.isCoverage)} onClick={() => void perform(async () => { const { error } = await supabase.from('employee_merge_requests').update({ status: 'reviewed' }).eq('id', request.id); if (error) throw error; }, 'تم إغلاق الطلب.')} className="text-emerald-700 disabled:opacity-40">إغلاق بعد تنفيذ الدمج</button>
           <button disabled={busy} onClick={() => void perform(async () => { const { error } = await supabase.from('employee_merge_requests').update({ status: 'rejected' }).eq('id', request.id); if (error) throw error; }, 'تم رفض الطلب.')} className="text-red-700">رفض الطلب</button>
         </div>}
       </div>)}

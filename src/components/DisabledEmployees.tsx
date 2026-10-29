@@ -1,3 +1,4 @@
+import { employeeBranchLabel } from '../lib/employeeBranches';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 
@@ -12,7 +13,7 @@ export function DisabledEmployees() {
     {message && <p role="status" className="my-3 text-sm">{message}</p>}
     {!summaryReady ? <p role="status">جارٍ تحميل القائمة…</p> : disabledEmployees.length === 0 ? <p className="text-sm text-slate-600">لا توجد موظفات معطّلات.</p> : <ul className="space-y-2">
       {disabledEmployees.map(employee => <li key={employee.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-3">
-        <div><strong>{employee.name}</strong><p className="text-sm text-slate-600">{employee.branch}</p></div>
+        <div><strong>{employee.name}</strong><p className="text-sm text-slate-600">{employeeBranchLabel(employee)}</p></div>
         <button type="button" disabled={busy !== null} className="min-h-11 rounded-xl border border-blue-200 px-4 py-2 font-bold text-blue-800 disabled:opacity-50" onClick={async () => {
           if (busy || !window.confirm('إعادة تفعيل الموظفة وإظهارها في النظام؟')) return;
           setBusy(employee.id); setMessage('');

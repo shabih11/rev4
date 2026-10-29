@@ -1,3 +1,4 @@
+import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { BranchEmployees } from '../components/BranchEmployees';
 import { ShiftCalendar } from '../components/ShiftCalendar';
 import React, { useState, useCallback, useMemo } from 'react';
@@ -112,18 +113,18 @@ export const AdminDashboard: React.FC = () => {
   }, []);
 
   const branchEmployees = useMemo(() => {
-    return users.filter(u => u.branch === user?.branch && u.role === 'employee');
+    return users.filter(u => belongsToBranch(u, user?.branch || '') && u.role === 'employee');
   }, [users, user?.branch]);
 
   const outsourcedEmployees = useMemo(() => {
-    return users.filter(u => u.branch !== user?.branch && u.role === 'employee');
-  }, [users, user?.branch]);
+    return users.filter(u => isCoverageEmployee(u) && u.role === 'employee');
+  }, [users]);
 
   const coverageList1 = useMemo(() => {
     const map = new Map<string, { id: string; name: string; imageUrl?: string }>();
     outsourcedEmployees.forEach(e => map.set(e.id, { id: e.id, name: e.name, imageUrl: e.imageUrl }));
     shift1Emps.forEach(se => {
-      if (!branchEmployees.some(be => be.id === se.id) && !map.has(se.id)) {
+      if (users.some(user => user.id === se.id && isCoverageEmployee(user)) && !map.has(se.id)) {
         const u = users.find(user => user.id === se.id);
         map.set(se.id, { id: se.id, name: se.name, imageUrl: u?.imageUrl });
       }
@@ -131,13 +132,13 @@ export const AdminDashboard: React.FC = () => {
     const list = Array.from(map.values());
     if (!searchQuery1.trim()) return list;
     return list.filter(e => e.name.includes(searchQuery1.trim()));
-  }, [outsourcedEmployees, shift1Emps, branchEmployees, users, searchQuery1]);
+  }, [outsourcedEmployees, shift1Emps, users, searchQuery1]);
 
   const coverageList2 = useMemo(() => {
     const map = new Map<string, { id: string; name: string; imageUrl?: string }>();
     outsourcedEmployees.forEach(e => map.set(e.id, { id: e.id, name: e.name, imageUrl: e.imageUrl }));
     shift2Emps.forEach(se => {
-      if (!branchEmployees.some(be => be.id === se.id) && !map.has(se.id)) {
+      if (users.some(user => user.id === se.id && isCoverageEmployee(user)) && !map.has(se.id)) {
         const u = users.find(user => user.id === se.id);
         map.set(se.id, { id: se.id, name: se.name, imageUrl: u?.imageUrl });
       }
@@ -145,15 +146,15 @@ export const AdminDashboard: React.FC = () => {
     const list = Array.from(map.values());
     if (!searchQuery2.trim()) return list;
     return list.filter(e => e.name.includes(searchQuery2.trim()));
-  }, [outsourcedEmployees, shift2Emps, branchEmployees, users, searchQuery2]);
+  }, [outsourcedEmployees, shift2Emps, users, searchQuery2]);
 
   const selectedCoverage1Count = useMemo(() => {
-    return shift1Emps.filter(e => !branchEmployees.some(be => be.id === e.id)).length;
-  }, [shift1Emps, branchEmployees]);
+    return shift1Emps.filter(e => users.some(user => user.id === e.id && isCoverageEmployee(user))).length;
+  }, [shift1Emps, users]);
 
   const selectedCoverage2Count = useMemo(() => {
-    return shift2Emps.filter(e => !branchEmployees.some(be => be.id === e.id)).length;
-  }, [shift2Emps, branchEmployees]);
+    return shift2Emps.filter(e => users.some(user => user.id === e.id && isCoverageEmployee(user))).length;
+  }, [shift2Emps, users]);
 
   const branchHours = useMemo(() => {
     return getBranchHours(user?.branch);

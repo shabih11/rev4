@@ -2,7 +2,7 @@ import { employeeQualityPoints } from '../lib/employeeQuality';
 import { EmployeeIdentity } from './EmployeeIdentity';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { shiftReviewCounts } from '../lib/shiftReviewCounts';
-import { employeeReviewBranches } from '../lib/employeeBranches';
+import { employeeReviewBranches, employeeBranchLabel } from '../lib/employeeBranches';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
@@ -19,12 +19,13 @@ import { formatDateTime, toEnglishNumerals, formatDate, formatTime, shiftName } 
 
 interface Props {
   employee: UserAccount;
+  showCoverageBranch?: boolean;
   children: React.ReactNode;
   onModalOpen?: () => void;
   onModalClose?: () => void;
 }
 
-export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen, onModalClose }) => {
+export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen, onModalClose, showCoverageBranch = false }) => {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
       {showModal && typeof document !== 'undefined' && createPortal(
         <EmployeeModalContent 
-          employee={employee} 
+          employee={employee}
+          showCoverageBranch={showCoverageBranch}
           onClose={() => setShowModal(false)} 
         />,
         document.body
@@ -52,7 +54,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
   );
 };
 
-const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
+const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void; showCoverageBranch: boolean }> = ({ employee, onClose, showCoverageBranch }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'summary' | 'points'>('summary');
   const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount } = useData();
   useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
@@ -117,7 +119,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           <div className="glass-modal-header p-4 sm:p-6 flex justify-between items-center sticky top-0 z-10">
             <h2 className="min-w-0 flex flex-wrap items-baseline gap-x-2 text-xl sm:text-2xl">
               <span className="font-extrabold break-words">{employee.name}</span>
-              <span className="text-base sm:text-xl font-medium break-words">({employee.branch})</span>
+              <span className="text-base sm:text-xl font-medium break-words">({employeeBranchLabel(employee, showCoverageBranch)})</span>
             </h2>
             <button 
               onClick={onClose}
@@ -219,7 +221,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             ) : activeTab === 'summary' ? (
               summaryReady && !syncError ? <section className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] items-center gap-3 sm:gap-6 min-h-full text-slate-800" aria-label="ملخص بيانات الموظفة">
                 <div className="min-w-0 space-y-4 text-right">
-                  <EmployeeIdentity employee={employee} className="items-start text-lg sm:text-2xl" />
+                  <EmployeeIdentity employee={employee} showCoverageBranch={showCoverageBranch} className="items-start text-lg sm:text-2xl" />
                   <dl className="space-y-3 text-sm">
                     <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
                     <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{employee.points.toFixed(1)}</button></dd></div>

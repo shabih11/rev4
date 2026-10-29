@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { GitMerge, UserRoundMinus } from 'lucide-react';
 import { MergeAccountPicker } from './MergeAccountPicker';
 import { useData } from '../context/DataContext';
-import { isCoverageEmployee } from '../lib/employeeBranches';
+import { isCoverageEmployee, employeeSelectionBranch } from '../lib/employeeBranches';
 import type { UserAccount } from '../lib/mockData';
 
 export function EmployeeManagementActions({ employee, onComplete }: { employee?: UserAccount; onComplete?: () => void }) {
@@ -18,8 +18,8 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const employees = users.filter(user => user.role === 'employee');
-  const primary = employees.find(user => user.id === primaryId && user.branch === primaryBranch);
-  const duplicate = employees.find(user => user.id === duplicateId && user.branch === duplicateBranch);
+  const primary = employees.find(user => user.id === primaryId && employeeSelectionBranch(user) === primaryBranch);
+  const duplicate = employees.find(user => user.id === duplicateId && employeeSelectionBranch(user) === duplicateBranch);
   const authorized = currentAccount?.role === 'admin';
   useEffect(() => {
     if (action && authorized) dialog.current?.showModal();
@@ -27,7 +27,7 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
   }, [action, authorized]);
   if (!authorized || (employee && employee.role !== 'employee')) return null;
   function open(next: 'disable' | 'merge') {
-    setPrimaryBranch(employee?.branch || ''); setDuplicateBranch('');
+    setPrimaryBranch(employeeSelectionBranch(employee)); setDuplicateBranch('');
     setPrimaryId(employee?.id || ''); setDuplicateId(''); setError(''); setMessage(''); setAction(next);
   }
   return <div className="space-y-2" onClick={event => event.stopPropagation()}>

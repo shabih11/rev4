@@ -49,6 +49,7 @@ export interface TimelineEvent {
 
 interface DataContextType {
   coverageBranchError: string | null;
+  coverageBranches: Record<string, string>;
   features: FeatureState | null;
   requestRecords: (id: string, demand: RecordDemand | null) => void;
   users: UserAccount[];
@@ -223,6 +224,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!target) return;
     updateUser(id, {
       branch: 'موظفة خارجية',
+      isCoverage: true,
       assignedBranches: Array.from(new Set([...(target.assignedBranches || []), target.branch])),
     });
   };
@@ -231,7 +233,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const primary = users.find(u => u.id === primaryId);
     if (!primary || !summaryReadyForMerge()) return false;
     const { error } = await supabase.rpc('merge_employees_with_coverage', { primary_id: primaryId, duplicate_id: duplicateId,
-      requested_name: newName?.trim() || primary.name, requested_branch: newBranch || primary.branch, requested_coverage: coverage ?? (primary.isCoverage ?? primary.assignedBranches?.some(branch => branch !== primary.branch) ?? false) });
+      requested_name: newName?.trim() || primary.name, requested_branch: newBranch || primary.branch, requested_coverage: coverage ?? isCoverageEmployee(primary) });
     if (error) { window.alert('تعذر دمج الموظفات؛ لم تُحفظ أي تغييرات جزئية'); return false; }
     await invalidateRows(readNamespace(session));
     return true;
@@ -322,7 +324,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return users.map(user => {
       // Force all users to use the unified employee image
       const coverage = user.role === 'employee' && isCoverageEmployee(user);
-      const unifiedUser = { ...user, imageUrl: employeeImg, ...(coverage ? { isCoverage: true, branch: coverageBranches.branches[user.id] || user.branch } : {}) };
+      const unifiedUser = { ...user, imageUrl: employeeImg, ...(coverage ? { isCoverage: true } : {}) };
       if (unifiedUser.role !== 'employee') return unifiedUser;
       
       const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id));
@@ -388,7 +390,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
     });
-  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady, coverageBranches.branches]);
+  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady]);
 
   const disabledIds = new Set(daily.data?.disabledEmployeeIds || []);
   const activeUsers = enrichedUsers.filter(user => !disabledIds.has(user.id));
@@ -452,7 +454,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{ 
-      coverageBranchError: coverageBranches.error,
+      coverageBranchError: coverageBranches.error, coverageBranches: coverageBranches.branches,
       features: featureState,
       requestRecords,
       users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings,

@@ -1,3 +1,4 @@
+import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import type { UserAccount } from '../lib/mockData';
 
@@ -6,13 +7,13 @@ export function MergeAccountPicker({ label, branch, onBranchChange, value, onCha
   label: string; branch: string; onBranchChange: (branch: string) => void;
   value: string; onChange: (id: string) => void; excludedId?: string; users: UserAccount[]; ready: boolean;
 }) {
-  const employees = users.filter(user => user.role === 'employee' && user.branch === branch && user.id !== excludedId);
+  const employees = users.filter(user => user.role === 'employee' && (branch === 'موظفة خارجية' ? isCoverageEmployee(user) : belongsToBranch(user, branch)) && user.id !== excludedId);
   return <fieldset className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
     <legend className="px-2 text-sm font-bold text-slate-800">{label}</legend>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <label className="grid gap-2 text-sm font-semibold">الفرع
         <select required value={branch} onChange={event => onBranchChange(event.target.value)} className="w-full min-h-11 border border-slate-300 rounded-xl p-3 bg-white">
-          <option value="">اختاري الفرع</option>{branches.map(name => <option key={name} value={name}>{name}</option>)}
+          <option value="">اختاري الفرع</option>{branches.map(name => <option key={name} value={name}>{name === 'موظفة خارجية' ? 'تغطية' : name}</option>)}
         </select>
       </label>
       <label className="grid gap-2 text-sm font-semibold">الموظفة

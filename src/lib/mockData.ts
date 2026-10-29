@@ -38,7 +38,7 @@ export function matchEmployee(
 
   // 1. Direct or code/alias match in current branch or coverage
   const candidateUsers = users.filter(
-    u => u.role === 'employee' && (u.branch === branch || u.branch === 'موظفة خارجية')
+    u => u.role === 'employee' && (u.branch === branch || u.isCoverage === true)
   );
 
   let found = candidateUsers.find(
