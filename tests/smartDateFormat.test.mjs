@@ -47,3 +47,13 @@ test('display times use Western digits while Arabic input remains supported', ()
   assert.equal(formatTime('09:05'), '9:05 ص');
   assert.equal(formatTime('00:00'), '12:00 ص');
 });
+
+test('date-only summaries omit time and use relative Riyadh days', () => {
+  const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).split('-').map(Number);
+  const dateKey = offset => {
+    const date = new Date(Date.UTC(year, month - 1, day - offset));
+    return `${String(date.getUTCDate()).padStart(2,'0')}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${date.getUTCFullYear()}`;
+  };
+  for (const [offset, expected] of [[0,'اليوم'],[1,'أمس'],[2,'أول أمس']]) assert.equal(formatDateTime(dateKey(offset)), expected);
+  assert.equal(formatDateTime(dateKey(3)), formatDate(dateKey(3)));
+});

@@ -1,5 +1,6 @@
 import { EmployeeIdentity } from './EmployeeIdentity';
-import { EmployeeManagementActions } from './EmployeeManagementActions';
+import { arabicReviewCount } from '../lib/arabicReviewCount';
+import { shiftReviewCounts } from '../lib/shiftReviewCounts';
 import { employeeReviewBranches } from '../lib/employeeBranches';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
@@ -54,7 +55,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
   const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount } = useData();
-  useRecordScope({ users: currentAccount?.role === 'admin', reviews: activeTab !== 'points' ? { employeeIds: [employee.id] } : undefined, timeline: activeTab === 'shifts' ? { employeeIds: [employee.id] } : undefined });
+  useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
   const multipleReviewBranches = employeeReviewBranches(reviewSummaries, employee.id).length > 1;
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
@@ -71,6 +72,9 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const isEmpMatch = (id?: string, _name?: string) => id === employee.id;
 
   const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name))).sort(newestFirst);
+
+  const latestShift = employeeShifts[0];
+  const latestShiftSummary = latestShift ? `${formatDateTime(latestShift.date)} ${arabicReviewCount(shiftReviewCounts(latestShift, employee.id, reviews).total)}`.replace(/[0-9]/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]) : 'لا توجد شفتات مسجلة';
 
   const partner = favoritePartner(employee.id, reviewSummaries);
   const favoritePartnerName = users.find(user => user.id === partner.id)?.name || '';
@@ -136,7 +140,10 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             </button>
           </div>
 
-          {currentAccount?.role === 'admin' && <div className="border-b bg-white px-4 py-3"><EmployeeManagementActions employee={employee} onComplete={onClose} /></div>}
+          <div className="border-b bg-white px-4 py-3 text-sm text-slate-700" role="status">
+            <span className="font-bold">آخر شفت مسجل: </span>
+            {syncError ? 'تعذر تحميل آخر شفت' : !recordsReady ? 'جارٍ التحميل…' : latestShiftSummary}
+          </div>
           {/* Tabs */}
           <div className="flex gap-1 border-b p-2 bg-slate-50">
             <button 

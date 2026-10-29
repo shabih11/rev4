@@ -10,7 +10,7 @@ export function shiftReviewCounts(shift: TimelineEvent, employeeId: string, revi
   const start = date + (startMinutes || 0) * 60000;
   let end = (shift.endDate ? reviewTimestamp({ date: shift.endDate }) : date) + (endMinutes || 0) * 60000;
   if (end <= start) end += 86400000;
-  const counts = { positive: 0, negative: 0 };
+  const counts = { positive: 0, negative: 0, total: 0 };
   const seen = new Set<string>();
   for (const review of reviews) {
     if (seen.has(review.id) || review.branch !== shift.branch || !review.linkedEmployeeIds.includes(employeeId)) continue;
@@ -20,6 +20,7 @@ export function shiftReviewCounts(shift: TimelineEvent, employeeId: string, revi
       Boolean(shift.date && startMinutes !== null && minutes !== null && timestamp >= start && timestamp < end);
     if (!matches) continue;
     seen.add(review.id);
+    counts.total++;
     const rating = parseInt(toEnglishNumerals(review.rating), 10);
     if (rating === 4 || rating === 5) counts.positive++;
     if (rating === 1 || rating === 2) counts.negative++;
