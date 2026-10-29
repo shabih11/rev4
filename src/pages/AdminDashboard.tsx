@@ -1,6 +1,5 @@
 import { BranchEmployees } from '../components/BranchEmployees';
 import { ShiftCalendar } from '../components/ShiftCalendar';
-import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState, useCallback, useMemo } from 'react';
 import { CalendarClock, LogOut, Search, CheckCircle2, Calendar as CalendarIcon, User, Clock, Check, Lock, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -285,7 +284,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <LeaderboardLink className="text-blue-100 hover:bg-white/10" />
         <button
           onClick={logout}
           className="p-2 hover:bg-white/10 rounded-xl flex items-center gap-1.5 text-xs font-bold text-blue-100 transition cursor-pointer"
