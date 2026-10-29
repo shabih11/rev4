@@ -11,6 +11,7 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { summaryReady, syncError } = useData();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'viewer') return <Navigate to="/" replace />;
   return <>
     {!summaryReady && <div className="p-3 text-center bg-amber-50 text-sm" dir="rtl">
       <p>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>

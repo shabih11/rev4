@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const updateName = async (name: string) => {
-    if (!user || user.role === 'manager') return { success: false, error: 'تعديل اسم حساب إدارة الفرع متاح للإدارة العامة فقط' };
+    if (!user || !['admin', 'employee'].includes(user.role)) return { success: false, error: 'تعديل الاسم غير متاح لهذا الحساب' };
     const { error } = await supabase.rpc('rename_me', { new_name: name, previous_name: user.name });
     return error ? { success: false, error: 'لم يُحفظ الاسم. تحققي من الاتصال أو حدّثي البيانات بعد تعارض التعديل.' } : { success: true };
   };

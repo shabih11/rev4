@@ -19,7 +19,7 @@ export function useCloudSession(): CloudSession {
         const { data: verified, error: userError } = await supabase.auth.getUser();
         if (userError || verified.user?.id !== uid) throw new Error('invalid-session');
         const { data, error } = await supabase.rpc('get_my_account').abortSignal(AbortSignal.timeout(15000));
-        if (error || !data || !['admin','manager','employee'].includes(data.role) || typeof data.id !== 'string') throw new Error('invalid-access');
+        if (error || !data || !['admin','manager','employee','viewer'].includes(data.role) || typeof data.id !== 'string') throw new Error('invalid-access');
         if (stopped || current !== epoch || uid !== activeUid) return;
         const next = readNamespace({ uid, account: data });
         if (namespace && next !== namespace) purge();
@@ -95,6 +95,7 @@ export function useCloudList<T extends { id: string }>(name: Source, session: Cl
   }, [key, argsKey, name, enabled, identity, retry, accountRole]);
   const ready = !enabled || (state.key === key && state.ready);
   const change = (action: React.SetStateAction<T[]>) => {
+    if (session.account?.role === 'viewer') { setWriteError('هذا الحساب مخصص للعرض فقط'); return; }
     if (!ready || !session.account || !enabled || name === 'profiles') { setWriteError('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
     const before = latest.current, after = typeof action === 'function' ? action(before) : action;
     let changes;

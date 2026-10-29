@@ -28,7 +28,7 @@ test('coverage affiliation does not treat historical branches as current', () =>
   assert.equal(isCoverageEmployee({ branch: 'موظفة خارجية' }), false);
   assert.equal(isCoverageEmployee({ branch: 'جديد', assignedBranches: ['قديم'] }), false);
   assert.equal(isCoverageEmployee({ ...employee, isCoverage: false }), false);
-  assert.equal(belongsToBranch({ ...employee, isCoverage: false }, 'قديم'), true);
+  assert.equal(belongsToBranch({ ...employee, isCoverage: false }, 'قديم'), false);
 });
 test('branch badges depend on the employee own review history, not other employees', () => {
   const reviews = [
@@ -44,11 +44,19 @@ test('branch badges depend on the employee own review history, not other employe
 test('only explicit coverage flags qualify; management sees a tag and leaderboard gets the latest branch',()=>{
  const employee={id:'e',branch:'أصلي',assignedBranches:['آخر'],isCoverage:true};
  assert.equal(isCoverageEmployee(employee),true);
- assert.equal(employeeBranchLabel(employee),'تغطية');
+ assert.equal(employeeBranchLabel(employee),'موظفة متنقلة');
  const ranked=leaderboardEmployee(employee,{e:'الأحدث'});
  assert.equal(employeeBranchLabel(ranked,true),'الأحدث');
  assert.equal(employee.branch,'أصلي');
- assert.equal(leaderboardEmployee(employee,{}).branch,'تغطية');
+ assert.equal(leaderboardEmployee(employee,{}).branch,'موظفة متنقلة');
  assert.equal(isCoverageEmployee({...employee,isCoverage:false}),false);
  assert.equal(isCoverageEmployee({branch:'موظفة خارجية',assignedBranches:['آخر']}),false);
 });
+
+ test('a fixed employee belongs only to her current branch even with historical assignments', () => {
+  const employee = { branch: 'سلام', assignedBranches: ['سلام', 'جاليري'], isCoverage: false };
+  assert.equal(belongsToBranch(employee, 'سلام'), true);
+  assert.equal(belongsToBranch(employee, 'جاليري'), false);
+  assert.equal(belongsToBranch({ ...employee, branch: 'جاليري' }, 'سلام'), false);
+  assert.equal(belongsToBranch({ ...employee, isCoverage: true }, 'سلام'), false);
+ });

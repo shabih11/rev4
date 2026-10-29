@@ -176,4 +176,66 @@ do $$ begin
 end $$;
 reset role;
 select 'Employee sign-in authorization verified' as sign_in_verification;
+
+-- Read-only display accounts and atomic single-branch transfers.
+reset role;
+insert into public.profiles(id,data) values ('verify-viewer','{"id":"verify-viewer","name":"Verification display","branch":"","role":"viewer"}');
+insert into auth.users(id,email) values ('00000000-0000-4000-8000-000000000005','rev4-viewer@example.invalid');
+insert into public.user_access(uid,profile_id,role,branch) values ('00000000-0000-4000-8000-000000000005','verify-viewer','viewer',null);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ declare rows_changed integer; begin
+ if public.get_my_account()->>'role' is distinct from 'viewer' then raise exception 'Display account role mismatch'; end if;
+ if public.get_read_model()->'directory' is null then raise exception 'Viewer cannot load leaderboard'; end if;
+ if not exists(select 1 from public.timeline_events where id='verify-shift') then raise exception 'Viewer cannot read shifts'; end if;
+ begin perform public.get_accounts(); raise exception 'Viewer exposed accounts'; exception when insufficient_privilege then null; end;
+ begin perform public.authorize_employee_account('verify-employee'); raise exception 'Viewer can change credentials'; exception when insufficient_privilege then null; end;
+ begin perform public.rename_me('Changed display','Verification display'); raise exception 'Viewer can rename'; exception when insufficient_privilege then null; end;
+ update public.profiles set data=jsonb_set(data,'{name}','"Changed display"') where id='verify-viewer';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can write profile directly'; end if;
+ begin insert into public.profiles(id,data) values('verify-viewer-created','{"id":"verify-viewer-created","name":"Forbidden","branch":"verify-branch-a","role":"employee"}'); raise exception 'Viewer can create employees'; exception when insufficient_privilege then null; end;
+ begin perform public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false); raise exception 'Viewer can transfer'; exception when insufficient_privilege then null; end;
+ begin perform public.equip_avatar(null); raise exception 'Viewer can equip avatars'; exception when insufficient_privilege then null; end;
+ begin perform public.set_employee_disabled('verify-employee',true); raise exception 'Viewer can disable employees'; exception when insufficient_privilege then null; end;
+ update public.reviews set data=jsonb_set(data,'{comment}','"Forbidden"') where id='verify-before';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can edit reviews'; end if;
+ delete from public.timeline_events where id='verify-shift';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can delete shifts'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false); raise exception 'Manager can transfer employees'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false);
+do $$ begin
+ if (select branch from public.profiles where id='verify-employee') is distinct from 'verify-branch-b' or (select branch from public.user_access where profile_id='verify-employee') is distinct from 'verify-branch-b' then raise exception 'Transfer profile/access diverged'; end if;
+ if not exists(select 1 from public.timeline_events where id='verify-shift' and 'verify-employee'=any(employee_ids)) then raise exception 'Transfer lost shift history'; end if;
+ begin perform public.transfer_employee('verify-employee','verify-branch-a','verify-branch-a',false); raise exception 'Stale transfer accepted'; exception when serialization_failure then null; end;
+ begin perform public.transfer_employee('verify-employee','invalid','verify-branch-b',false); raise exception 'Invalid target branch accepted'; exception when invalid_parameter_value then null; end;
+end $$;
+-- Keep a legacy assignment deliberately: it must not grant a second current branch.
+update public.profiles set data=data||'{"assignedBranches":["verify-branch-a","verify-branch-b"]}'::jsonb where id='verify-employee';
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin insert into public.timeline_events(id,data) values('verify-wrong-branch','{"id":"verify-wrong-branch","type":"shift","title":"Verification","branch":"verify-branch-a","date":"23-10-2026","time":"16:00","endTime":"17:00","employees":[{"id":"verify-employee","name":"Verification"}]}'); raise exception 'Historical assignment granted second branch'; exception when foreign_key_violation then null; end;
+end $$;
+-- Historical shift edits and imported reviews retain legitimate previous credits.
+update public.timeline_events set data=jsonb_set(data,'{comment}','"Historical edit"') where id='verify-shift';
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into public.reviews(id,data) values('verify-historical-import','{"id":"verify-historical-import","branch":"verify-branch-a","rating":"5","date":"21-10-2026","time":"17:15","linkedEmployeeIds":[]}');
+select public.transfer_employee('verify-employee','موظفة خارجية','verify-branch-b',false);
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+insert into public.timeline_events(id,data) values('verify-mobile-shift','{"id":"verify-mobile-shift","type":"shift","title":"Verification","branch":"verify-branch-a","date":"23-10-2026","time":"16:00","endTime":"17:00","employees":[{"id":"verify-employee","name":"Verification"}]}');
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.transfer_employee('verify-employee','verify-branch-a','موظفة خارجية',true);
+do $$ begin
+ if (select data->'isCoverage' from public.profiles where id='verify-employee') is distinct from 'false'::jsonb then raise exception 'Fixed branch kept mobile flag'; end if;
+ if (select data->'assignedBranches' from public.profiles where id='verify-employee') is distinct from '["verify-branch-a"]'::jsonb then raise exception 'Fixed transfer kept multiple current branches'; end if;
+end $$;
+reset role;
+select 'Read-only viewer and employee transfers verified' as display_verification;
 rollback;

@@ -1,3 +1,4 @@
+import { EmployeeTransfer } from '../components/EmployeeTransfer';
 import { employeeQualityPoints } from '../lib/employeeQuality';
 import { AdminShiftCalendar } from '../components/AdminShiftCalendar';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
@@ -24,7 +25,7 @@ import { newestFirst } from '../lib/employeeActivity';
 
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
+  const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, mergeEmployees, branchSettings, updateBranchSettings, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, reviews } = useData();
   const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features'>('shifts');
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
@@ -118,11 +119,6 @@ export const SystemAdminDashboard: React.FC = () => {
     
     updateUser(id, { manualStats: { ...manual, [type]: currentManual + delta } });
     showToast('تم تحديث الإحصائيات');
-  };
-
-  const handleTransfer = (id: string, newBranch: string) => {
-    updateUser(id, { branch: newBranch, isCoverage: newBranch === 'موظفة خارجية' });
-    showToast('تم نقل الموظفة بنجاح');
   };
 
   // handleSaveTimes was moved inline into the branch list map
@@ -290,11 +286,11 @@ export const SystemAdminDashboard: React.FC = () => {
             {branches.map(b => (
               <option key={b} value={b}>فرع {b}</option>
             ))}
-            <option value="موظفة خارجية">موظفات خارجيات</option>
+            <option value="موظفة خارجية">الموظفات المتنقلات</option>
           </select>
           {globalBranch !== 'all' ? (
             <p className="text-[11px] text-blue-700 font-medium mt-2 bg-blue-50/80 border border-blue-100 rounded-lg p-1.5 text-center leading-relaxed">
-              كافة التبويبات مخصصة لـ <strong>{globalBranch === 'موظفة خارجية' ? 'موظفات التغطية' : `فرع ${globalBranch}`}</strong>
+              كافة التبويبات مخصصة لـ <strong>{globalBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`}</strong>
             </p>
           ) : (
             <p className="text-[11px] text-slate-400 font-medium mt-1.5 text-center">
@@ -387,7 +383,7 @@ export const SystemAdminDashboard: React.FC = () => {
               {branches.map(b => (
                 <option key={b} value={b}>فرع {b}</option>
               ))}
-              <option value="موظفة خارجية">موظفات خارجيات</option>
+              <option value="موظفة خارجية">الموظفات المتنقلات</option>
             </select>
           </div>
         </header>
@@ -401,7 +397,7 @@ export const SystemAdminDashboard: React.FC = () => {
             {globalBranch !== 'all' && (
               <span className="bg-blue-50 text-blue-700 text-xs font-extrabold px-3 py-1 rounded-full border border-blue-200 flex items-center gap-1.5">
                 <Building2 size={13} />
-                {globalBranch === 'موظفة خارجية' ? 'موظفات التغطية' : `فرع ${globalBranch}`}
+                {globalBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`}
               </span>
             )}
           </div>
@@ -419,7 +415,7 @@ export const SystemAdminDashboard: React.FC = () => {
               {branches.map(b => (
                 <option key={b} value={b}>فرع {b}</option>
               ))}
-              <option value="موظفة خارجية">موظفات خارجيات</option>
+              <option value="موظفة خارجية">الموظفات المتنقلات</option>
             </select>
           </div>
         </header>
@@ -553,7 +549,7 @@ export const SystemAdminDashboard: React.FC = () => {
                         if (employee) { setMergedName(employee.name); setMergedBranch(employeeSelectionBranch(employee)); setMergedCoverage(isCoverageEmployee(employee)); }
                       }} users={users} ready={summaryReady} />
                       <MergeAccountPicker label="الحساب المكرر" branch={duplicateMergeBranch} onBranchChange={value => { setDuplicateMergeBranch(value); setDuplicateEmpId(''); }} value={duplicateEmpId} onChange={setDuplicateEmpId} excludedId={primaryEmpId} users={users} ready={summaryReady} />
-                      <label className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm"><input type="checkbox" checked={mergedCoverage} onChange={event => setMergedCoverage(event.target.checked)} className="h-5 w-5 accent-blue-700" />وسم تغطية بعد الدمج</label>
+                      <label className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm"><input type="checkbox" checked={mergedCoverage} onChange={event => setMergedCoverage(event.target.checked)} className="h-5 w-5 accent-blue-700" />وسم موظفة متنقلة بعد الدمج</label>
 
                       <div>
                         <label className="block mb-1">3. الاسم الموحد المعتمد:</label>
@@ -576,7 +572,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           {branches.map(b => (
                             <option key={b} value={b}>فرع {b}</option>
                           ))}
-                          <option value="موظفة خارجية">موظفة متنقلة (خارجية)</option>
+                          <option value="موظفة خارجية">موظفة متنقلة</option>
                         </select>
                       </div>
                     </div>
@@ -617,7 +613,7 @@ export const SystemAdminDashboard: React.FC = () => {
 
               {showAddForm && (
                 <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200">
-                  <h4 className="font-bold text-green-800 mb-3">إضافة موظفة جديدة إلى ({selectedBranch === 'موظفة خارجية' ? 'التغطية' : `فرع ${selectedBranch}`})</h4>
+                  <h4 className="font-bold text-green-800 mb-3">إضافة موظفة جديدة إلى ({selectedBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${selectedBranch}`})</h4>
                   <div className="flex gap-3">
                     <input type="text" placeholder="اسم الموظفة..." value={newEmpName} onChange={e => setNewEmpName(e.target.value)} className="flex-1 p-2 border rounded-lg" />
                     <button onClick={handleAddEmployee} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700">إضافة</button>
@@ -634,25 +630,25 @@ export const SystemAdminDashboard: React.FC = () => {
                   ))}
                   <button onClick={() => setSelectedBranch('موظفة خارجية')}
                     className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap ${selectedBranch === 'موظفة خارجية' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}
-                  >موظفات خارجيات</button>
+                  >الموظفات المتنقلات</button>
                 </div>
               )}
 
               <h3 className="font-bold text-lg mb-4 text-gray-800">
-                {effectiveBranch === 'موظفة خارجية' ? 'موظفات التغطية' : `موظفات فرع ${effectiveBranch}`} ({branchEmployees.length})
+                {effectiveBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `موظفات فرع ${effectiveBranch}`} ({branchEmployees.length})
               </h3>
 
               {effectiveBranch !== 'موظفة خارجية' && (
                 <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                   <h4 className="font-bold text-blue-900 mb-2">الموظفات المرتبطات بالفرع — {effectiveBranch} ({users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).length})</h4>
                   <p className="text-sm text-blue-800">{users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).map(person => person.name + (person.code ? ` (${person.code})` : '')).join('، ')}</p>
-                  <p className="text-xs text-gray-600 mt-2">تظهر موظفة التغطية في آخر فرع بدأ فيه شفت مسجّل لها. تبقى سجلات الفروع السابقة محفوظة.</p>
+                  <p className="text-xs text-gray-600 mt-2">تظهر الموظفة المتنقلة في آخر فرع بدأ فيه شفت مسجّل لها. تبقى سجلات الفروع السابقة محفوظة.</p>
                 </div>
               )}
 
               {selectedBranch === 'موظفة خارجية' && (
                 <p className="text-sm text-purple-600 mb-4 bg-purple-50 p-3 rounded-lg border border-purple-100">
-                  الموظفات الخارجيات يمكن أن يعملن في أي فرع ويجمعن تقييمات من عدة فروع.
+                  الموظفات المتنقلات يمكن أن يعملن في أي فرع ويجمعن تقييمات من عدة فروع.
                 </p>
               )}
               
@@ -694,11 +690,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           <div className="min-w-0 space-y-2">
                             <p className="text-sm font-bold text-slate-600">الفرع (نقل)</p>
 
-                          <select aria-label="الفرع (نقل)" value={isCoverageEmployee(emp) ? 'موظفة خارجية' : emp.branch} onChange={(e) => handleTransfer(emp.id, e.target.value)}
-                            className="w-full p-1 border rounded bg-transparent focus:bg-white text-sm">
-                            {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                            <option value="موظفة خارجية">تغطية</option>
-                          </select>
+                          <EmployeeTransfer employee={emp} />
 
                           </div>
                           <div className="min-w-0 space-y-2">
@@ -753,22 +745,6 @@ export const SystemAdminDashboard: React.FC = () => {
                             <p className="text-sm font-bold text-slate-600">إجراءات الموظفة</p>
 
                           <div className="flex flex-col gap-1.5 items-center justify-center">
-                            {!isCoverageEmployee(emp) ? (
-                              <button
-                                onClick={() => {
-                                  convertToMobile(emp.id);
-                                  showToast(`تم تحويل ${emp.name} إلى موظفة متنقلة بنجاح`);
-                                }}
-                                className="text-[11px] bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md font-bold transition whitespace-nowrap border border-indigo-200"
-                                title="تحويل لموظفة متنقلة خارجية"
-                              >
-                                تحويل لمتنقلة
-                              </button>
-                            ) : (
-                              <span className="text-[10px] bg-purple-50 text-purple-700 font-bold px-2 py-0.5 rounded border border-purple-200">
-                                متنقلة
-                              </span>
-                            )}
                             <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">تعطيل</button>
                           </div>
 
@@ -945,7 +921,7 @@ export const SystemAdminDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex items-center justify-between mb-6 bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-xl font-bold text-sm">
-                  <span>عرض تقييمات {globalBranch === 'موظفة خارجية' ? 'موظفات التغطية' : `فرع ${globalBranch}`}</span>
+                  <span>عرض تقييمات {globalBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`}</span>
                   <button onClick={() => handleGlobalBranchChange('all')} className="text-xs bg-white text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 shadow-sm transition">
                     عرض كل الفروع
                   </button>

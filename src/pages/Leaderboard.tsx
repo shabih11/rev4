@@ -14,8 +14,9 @@ import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, TrendingUp, UserRound } from 'lucide-react';
+import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut } from 'lucide-react';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -33,6 +34,9 @@ type SlideData =
   | { type: 'praised_employee'; employee: UserAccount; count: number };
 
 export const Leaderboard: React.FC = () => {
+  const { logout } = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
   const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
   const users = useMemo(() => directoryUsers.map(employee => leaderboardEmployee(employee, coverageBranches)), [directoryUsers, coverageBranches]);
@@ -172,8 +176,20 @@ export const Leaderboard: React.FC = () => {
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  if (!summaryReady) return <PageLoading error={syncError} />;
-  if (slidesData.length === 0) return <div className="p-8 text-center" dir="rtl">{syncError || 'لا توجد نتائج لعرضها بعد.'}</div>;
+  const navigation = <header className="recognition-header relative z-30">
+        <nav className="recognition-header-actions" aria-label="التنقل">
+          {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
+            setLoggingOut(true); setLogoutError('');
+            try { await logout(); } catch { setLogoutError('تعذر تسجيل الخروج؛ أعيدي المحاولة.'); } finally { setLoggingOut(false); }
+          }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>}
+          <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
+          <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
+        </nav>
+        {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
+      </header>;
+
+  if (!summaryReady) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
+  if (slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
     <div
@@ -184,13 +200,7 @@ export const Leaderboard: React.FC = () => {
       dir="rtl"
     >
 
-      <header className="recognition-header relative z-30">
-        <nav className="recognition-header-actions" aria-label="التنقل">
-          <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>
-          <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
-          <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
-        </nav>
-      </header>
+      {navigation}
       <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
         onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
       <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />

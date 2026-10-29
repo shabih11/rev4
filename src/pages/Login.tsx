@@ -15,7 +15,7 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => { if (user) navigate('/dashboard', { replace: true }); }, [user, navigate]);
+  useEffect(() => { if (user) navigate(user.role === 'viewer' ? '/' : '/dashboard', { replace: true }); }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

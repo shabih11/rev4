@@ -3,10 +3,10 @@ import { useData } from '../context/DataContext';
 import { ShiftCalendar } from './ShiftCalendar';
 import { formatDate, formatTime, shiftName, timeMinutes } from '../lib/formatDate';
 import { reviewTimestamp } from '../lib/employeeActivity';
-import { isCoverageEmployee } from '../lib/employeeBranches';
+import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 
 export function AdminShiftCalendar({ branch }: { branch: string }) {
-  const { users, timeline, reviews, recordsReady, syncError, syncStatus, currentAccount, updateUser, updateTimelineEvent } = useData();
+  const { users, timeline, reviews, recordsReady, syncError, syncStatus, updateTimelineEvent } = useData();
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
@@ -17,23 +17,18 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
   const dayReviews = selectedDate ? reviews.filter(review => review.branch === branch &&
     reviewTimestamp({ date: review.date }) === reviewTimestamp({ date: selectedDate })) : [];
   const eligibleEmployees = users.filter(employee => employee.role === 'employee' &&
-    (employee.branch === branch || employee.assignedBranches?.includes(branch)));
+    (belongsToBranch(employee, branch) || isCoverageEmployee(employee)));
 
   const coverageEmployees = users.filter(employee => employee.role === 'employee' && isCoverageEmployee(employee));
   const branchEmployees = eligibleEmployees.filter(employee => !coverageEmployees.some(coverage => coverage.id === employee.id));
   const saving = syncStatus === 'جارٍ حفظ التعديلات…';
 
-  function enableCoverage(employeeId: string) {
-    const employee = coverageEmployees.find(item => item.id === employeeId);
-    if (!employee || !recordsReady || syncError || saving || currentAccount?.role !== 'admin') return;
-    updateUser(employee.id, { assignedBranches: [...new Set([...(employee.assignedBranches || []), branch])] });
-  }
-
   function saveEmployees() {
     const shift = shifts.find(item => item.id === editingId && item.date === selectedDate);
     if (!recordsReady || syncError || saving || !shift) { setError('تعذر الحفظ؛ تحققي من اكتمال التحميل والمزامنة.'); return; }
     if (!employeeIds.length) { setError('اختاري موظفة واحدة على الأقل للشفت.'); return; }
-    const employees = employeeIds.map(id => eligibleEmployees.find(employee => employee.id === id));
+    const employees = employeeIds.map(id => eligibleEmployees.find(employee => employee.id === id) ||
+      (shift.employees?.some(item => item.id === id) ? users.find(employee => employee.id === id) : undefined));
     if (employees.some(employee => !employee)) { setError('أزيلي الموظفات غير المسندات لهذا الفرع قبل الحفظ.'); return; }
     updateTimelineEvent(shift.id, { employees: employees.map(employee => ({ id: employee!.id, name: employee!.name })) });
     setEditingId(null);
@@ -60,30 +55,24 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
             <div className="max-h-64 overflow-y-auto grid sm:grid-cols-2 gap-2">
               {branchEmployees.map(employee => <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
                 <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
-                <span>{employee.name}{isCoverageEmployee(employee) ? ' (تغطية)' : ''}</span>
+                <span>{employee.name}{isCoverageEmployee(employee) ? ' (موظفة متنقلة)' : ''}</span>
               </label>)}
               {employeeIds.filter(id => !eligibleEmployees.some(employee => employee.id === id)).map(id => <label key={id} className="flex items-center gap-2 rounded-xl border p-3">
                 <input type="checkbox" checked onChange={() => setEmployeeIds(ids => ids.filter(value => value !== id))} />
-                <span>{shift.employees?.find(employee => employee.id === id)?.name} — غير مسندة للفرع؛ أزيليها قبل الحفظ</span>
+                <span>{shift.employees?.find(employee => employee.id === id)?.name} — مسجلة سابقًا في هذا الشفت</span>
               </label>)}
             </div>
             <details className="rounded-2xl border border-indigo-100 p-3" open>
-              <summary className="font-bold cursor-pointer text-indigo-800">موظفات التغطية (المصدر الخارجي)</summary>
-              <p className="text-xs text-slate-500 my-2">يمكن اختيار المسندات لهذا الفرع مباشرة. إتاحة موظفة تغطية تضيف الفرع إلى فروعها المسموحة، ثم يمكنك اختيارها بعد اكتمال المزامنة.</p>
+              <summary className="font-bold cursor-pointer text-indigo-800">الموظفات المتنقلات</summary>
               <div className="max-h-64 overflow-y-auto grid sm:grid-cols-2 gap-2">
-                {coverageEmployees.map(employee => eligibleEmployees.some(item => item.id === employee.id) ?
-                  <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
-                    <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
-                    <span>{employee.name} <span className="text-xs text-slate-500">(تغطية)</span></span>
-                  </label> :
-                  <div key={employee.id} className="rounded-xl border p-3 space-y-2">
-                    <p>{employee.name} <span className="text-xs text-slate-500">(تغطية)</span></p>
-                    <button type="button" disabled={saving || Boolean(syncError) || currentAccount?.role !== 'admin'} onClick={() => enableCoverage(employee.id)} className="text-sm font-bold text-indigo-700 bg-indigo-50 rounded-lg px-3 py-2 disabled:opacity-50" aria-label={`إتاحة ${employee.name} للتغطية في ${branch}`}>إتاحة التغطية لهذا الفرع</button>
-                  </div>)}
+                {coverageEmployees.map(employee => <label key={employee.id} className="flex items-center gap-2 rounded-xl border p-3 cursor-pointer">
+                  <input type="checkbox" checked={employeeIds.includes(employee.id)} onChange={event => setEmployeeIds(ids => event.target.checked ? [...ids, employee.id] : ids.filter(id => id !== employee.id))} />
+                  <span>{employee.name} <span className="text-xs text-slate-500">(موظفة متنقلة)</span></span>
+                </label>)}
               </div>
-              {!coverageEmployees.length && <p className="text-sm text-slate-500 mt-2">لا توجد موظفات تغطية مسجلات.</p>}
+              {!coverageEmployees.length && <p className="text-sm text-slate-500 mt-2">لا توجد موظفات متنقلات مسجلات.</p>}
             </details>
-            {!branchEmployees.length && <p className="text-sm text-slate-500">لا توجد موظفات فرع؛ يمكنك اختيار موظفات التغطية.</p>}
+            {!branchEmployees.length && <p className="text-sm text-slate-500">لا توجد موظفات فرع؛ يمكنك اختيار الموظفات المتنقلات.</p>}
             {error && <p role="alert" className="text-red-700">{error}</p>}
             <div className="flex gap-2">
               <button type="button" disabled={!recordsReady || Boolean(syncError) || saving} onClick={saveEmployees} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold disabled:opacity-50">حفظ الموظفات</button>

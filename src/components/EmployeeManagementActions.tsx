@@ -1,3 +1,4 @@
+import { EmployeeTransfer } from './EmployeeTransfer';
 import { useEffect, useId, useRef, useState } from 'react';
 import { GitMerge, UserRoundMinus } from 'lucide-react';
 import { MergeAccountPicker } from './MergeAccountPicker';
@@ -31,6 +32,7 @@ export function EmployeeManagementActions({ employee, onComplete }: { employee?:
     setPrimaryId(employee?.id || ''); setDuplicateId(''); setError(''); setMessage(''); setAction(next);
   }
   return <div className="space-y-2" onClick={event => event.stopPropagation()}>
+    {employee && <EmployeeTransfer employee={employee} />}
     <div className="flex flex-wrap gap-2">
       <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-sm font-bold text-purple-800" onClick={() => open('merge')}><GitMerge size={16} aria-hidden="true" />{employee ? 'دمج الموظفة' : 'دمج موظفتين'}</button>
       <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-bold text-red-800" onClick={() => open('disable')}><UserRoundMinus size={16} aria-hidden="true" />تعطيل الموظفة</button>

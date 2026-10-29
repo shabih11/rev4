@@ -1,6 +1,6 @@
 import type { Employee } from '../types';
 
-export type Role = 'manager' | 'employee' | 'admin';
+export type Role = 'manager' | 'employee' | 'admin' | 'viewer';
 
 export interface UserAccount extends Employee {
   email: string;

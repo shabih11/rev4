@@ -57,7 +57,7 @@ interface DataContextType {
   addUser: (user: Omit<UserAccount, 'points' | 'reviewsCount'>) => void;
   disabledEmployees: UserAccount[];
   setEmployeeDisabled: (id: string, disabled: boolean) => Promise<boolean>;
-  convertToMobile: (id: string) => void;
+  transferEmployee: (id: string, branch: string) => Promise<boolean>;
   mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
   updateBranchSettings: (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => void;
@@ -219,14 +219,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { return false; }
   };
 
-  const convertToMobile = (id: string) => {
-    const target = users.find(u => u.id === id);
-    if (!target) return;
-    updateUser(id, {
-      branch: 'موظفة خارجية',
-      isCoverage: true,
-      assignedBranches: Array.from(new Set([...(target.assignedBranches || []), target.branch])),
+  const transferEmployee = async (id: string, branch: string) => {
+    const employee = users.find(item => item.id === id && item.role === 'employee');
+    if (session.account?.role !== 'admin' || !daily.ready || !employee || (branch !== 'موظفة خارجية' && !branchSettings[branch])) return false;
+    const { error } = await supabase.rpc('transfer_employee', {
+      employee_id: id, requested_branch: branch, expected_branch: employee.branch, expected_mobile: isCoverageEmployee(employee),
     });
+    if (error) return false;
+    await invalidateRows(readNamespace(session));
+    return true;
   };
 
   const mergeEmployees = async (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => {
@@ -457,7 +458,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       coverageBranchError: coverageBranches.error, coverageBranches: coverageBranches.branches,
       features: featureState,
       requestRecords,
-      users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, convertToMobile, mergeEmployees, branchSettings, updateBranchSettings,
+      users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, transferEmployee, mergeEmployees, branchSettings, updateBranchSettings,
       timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       resetUsersToRoster,

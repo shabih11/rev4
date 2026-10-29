@@ -438,12 +438,12 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <span className="block text-xs font-black text-slate-800">
-                              موظفات التغطية (المصدر الخارجي)
+                              الموظفات المتنقلات
                             </span>
                             <span className="block text-[10px] text-slate-400">
                               {selectedCoverage1Count > 0
-                                ? `${selectedCoverage1Count} موظفة تغطية مختارة للشفت الأول`
-                                : 'انقري لعرض واختيار موظفات التغطية'}
+                                ? `${selectedCoverage1Count} موظفة متنقلة مختارة للشفت الأول`
+                                : 'انقري لعرض واختيار الموظفات المتنقلات'}
                             </span>
                           </div>
                         </div>
@@ -468,7 +468,7 @@ export const AdminDashboard: React.FC = () => {
                         <div className="p-3 bg-white border border-indigo-100 rounded-2xl shadow-sm space-y-2.5 animate-fade-in">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[11px] font-bold text-indigo-950">
-                              موظفات التغطية بالشفت الأول:
+                              الموظفات المتنقلات بالشفت الأول:
                             </span>
                             {outsourcedEmployees.length > 5 && (
                               <div className="relative w-36 sm:w-44">
@@ -522,7 +522,7 @@ export const AdminDashboard: React.FC = () => {
                                         {emp.name}
                                       </span>
                                       <span className="text-[9px] text-indigo-600 font-semibold block leading-tight">
-                                        تغطية
+                                        موظفة متنقلة
                                       </span>
                                     </div>
                                   </button>
@@ -530,7 +530,7 @@ export const AdminDashboard: React.FC = () => {
                               })}
                             </div>
                           ) : (
-                            <p className="text-xs text-slate-400 italic py-2 text-center">لا توجد نتائج مطابقة لموظفات التغطية.</p>
+                            <p className="text-xs text-slate-400 italic py-2 text-center">لا توجد نتائج مطابقة للموظفات المتنقلات.</p>
                           )}
                         </div>
                       )}
@@ -643,12 +643,12 @@ export const AdminDashboard: React.FC = () => {
                           </div>
                           <div className="text-right">
                             <span className="block text-xs font-black text-slate-800">
-                              موظفات التغطية (المصدر الخارجي)
+                              الموظفات المتنقلات
                             </span>
                             <span className="block text-[10px] text-slate-400">
                               {selectedCoverage2Count > 0
-                                ? `${selectedCoverage2Count} موظفة تغطية مختارة للشفت الثاني`
-                                : 'انقري لعرض واختيار موظفات التغطية'}
+                                ? `${selectedCoverage2Count} موظفة متنقلة مختارة للشفت الثاني`
+                                : 'انقري لعرض واختيار الموظفات المتنقلات'}
                             </span>
                           </div>
                         </div>
@@ -673,7 +673,7 @@ export const AdminDashboard: React.FC = () => {
                         <div className="p-3 bg-white border border-purple-100 rounded-2xl shadow-sm space-y-2.5 animate-fade-in">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-[11px] font-bold text-purple-950">
-                              موظفات التغطية بالشفت الثاني:
+                              الموظفات المتنقلات بالشفت الثاني:
                             </span>
                             {outsourcedEmployees.length > 5 && (
                               <div className="relative w-36 sm:w-44">
@@ -727,7 +727,7 @@ export const AdminDashboard: React.FC = () => {
                                         {emp.name}
                                       </span>
                                       <span className="text-[9px] text-purple-600 font-semibold block leading-tight">
-                                        تغطية
+                                        موظفة متنقلة
                                       </span>
                                     </div>
                                   </button>
@@ -735,7 +735,7 @@ export const AdminDashboard: React.FC = () => {
                               })}
                             </div>
                           ) : (
-                            <p className="text-xs text-slate-400 italic py-2 text-center">لا توجد نتائج مطابقة لموظفات التغطية.</p>
+                            <p className="text-xs text-slate-400 italic py-2 text-center">لا توجد نتائج مطابقة للموظفات المتنقلات.</p>
                           )}
                         </div>
                       )}

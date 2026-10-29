@@ -26,15 +26,15 @@ export function employeeReviewBranches(reviews: { branch: string; linkedEmployee
 }
 
 export function belongsToBranch(employee: Pick<UserAccount, 'branch' | 'isCoverage' | 'assignedBranches'>, branch: string) {
-  return !isCoverageEmployee(employee) && (employee.branch === branch || Boolean(employee.assignedBranches?.includes(branch)));
+  return !isCoverageEmployee(employee) && employee.branch === branch;
 }
 
 export function employeeBranchLabel(employee: Pick<UserAccount, 'branch' | 'isCoverage'>, showCoverageBranch = false) {
-  return isCoverageEmployee(employee) && !showCoverageBranch ? 'تغطية' : employee.branch;
+  return isCoverageEmployee(employee) && !showCoverageBranch ? 'موظفة متنقلة' : employee.branch;
 }
 
 export function leaderboardEmployee<T extends Pick<UserAccount, 'id' | 'branch' | 'isCoverage'>>(employee: T, latestBranches: Record<string, string>): T {
-  return isCoverageEmployee(employee) ? { ...employee, branch: latestBranches[employee.id] || 'تغطية' } : employee;
+  return isCoverageEmployee(employee) ? { ...employee, branch: latestBranches[employee.id] || 'موظفة متنقلة' } : employee;
 }
 
 export function employeeSelectionBranch(employee?: Pick<UserAccount, 'branch' | 'isCoverage'>) {

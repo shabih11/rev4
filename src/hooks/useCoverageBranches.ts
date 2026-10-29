@@ -34,7 +34,7 @@ export function useCoverageBranches(users: UserAccount[], session: CloudSession,
         if ((data || []).length < 500 || Object.keys(latestCoverageBranches(rows, ids, now)).length === ids.length) return rows;
       }
     }, true).then(rows => { if (active) setResult({ key, identity, branches: latestCoverageBranches(rows, ids, now), error: null }); })
-      .catch(() => { if (active) setResult(previous => ({ key, identity, branches: previous?.identity === identity ? previous.branches : {}, error: 'تعذر التحقق من آخر فرع لموظفات التغطية. ستُعاد المحاولة تلقائياً.' })); });
+      .catch(() => { if (active) setResult(previous => ({ key, identity, branches: previous?.identity === identity ? previous.branches : {}, error: 'تعذر التحقق من آخر فرع لالموظفات المتنقلات. ستُعاد المحاولة تلقائياً.' })); });
     // The cache shares in-flight reads; cancelling here would break another subscriber (including StrictMode).
     return () => { active = false; };
   }, [key, identity, idsKey, enabled, session.account]);

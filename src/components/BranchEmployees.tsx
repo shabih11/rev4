@@ -56,7 +56,7 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
           {employees.filter(item => belongsToBranch(item, branch || '')).map(item => <div key={item.id}><EmployeeCard employee={item}>
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
               <EmployeeAvatar employee={item} className="h-16 w-16 rounded-full border-2 border-slate-100 bg-slate-50" />
-              <EmployeeIdentity employee={item} className="items-center text-slate-800" />{isCoverageEmployee(item) && <span className="text-xs text-slate-500">تغطية</span>}
+              <EmployeeIdentity employee={item} className="items-center text-slate-800" />{isCoverageEmployee(item) && <span className="text-xs text-slate-500">موظفة متنقلة</span>}
               <span className="text-xs font-semibold text-blue-700">التقييمات: {summaryReady ? item.reviewsCount.toLocaleString('ar-SA-u-nu-latn') : '…'}</span>
             </button>
           </EmployeeCard><EmployeeAccountActions employee={item} /></div>)}
@@ -78,7 +78,7 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
         </form>
       </section>
       <section className="bg-white border rounded-3xl p-5 space-y-3">
-        <h2 className="text-xl font-bold">موظفات التغطية</h2>
+        <h2 className="text-xl font-bold">الموظفات المتنقلات</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
           {employees.filter(isCoverageEmployee).map(item => <div key={item.id}><EmployeeCard employee={item}>
             <button type="button" className="w-full min-h-40 rounded-2xl border border-slate-200 bg-white p-4 flex flex-col items-center justify-center gap-3 hover:border-indigo-400 hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500 transition-colors" aria-label={`عرض بيانات ${item.name}`}>
@@ -93,7 +93,7 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
     {isAdmin && <section className="bg-white border rounded-3xl p-5 space-y-3">
       <h2 className="font-bold text-xl">طلبات دمج الموظفات</h2>
       {readError ? <p role="alert">تعذر تحميل الطلبات. تحققي من الاتصال وتفعيل قواعد الصلاحيات.</p> : requests.length === 0 ? <p>لا توجد طلبات دمج.</p> : requests.map(request => <div key={request.id} className="border rounded-xl p-3 space-y-2">
-        <p>{users.find(item => item.id === request.primaryId)?.name || request.name} + {users.find(item => item.id === request.duplicateId)?.name || 'الحساب المكرر'} — {request.isCoverage ? 'تغطية' : request.targetBranch}</p>
+        <p>{users.find(item => item.id === request.primaryId)?.name || request.name} + {users.find(item => item.id === request.duplicateId)?.name || 'الحساب المكرر'} — {request.isCoverage ? 'موظفة متنقلة' : request.targetBranch}</p>
         <p>{request.status === 'pending' ? 'بانتظار الإدارة' : request.status === 'reviewed' ? 'تمت المراجعة' : 'مرفوض'}</p>
         {isAdmin && request.status === 'pending' && <div className="flex flex-col sm:flex-row sm:items-end gap-3 border-t border-slate-100 pt-4">
           <button className="text-blue-700" onClick={() => onReview?.(request)}>مراجعة وتنفيذ الدمج</button>
