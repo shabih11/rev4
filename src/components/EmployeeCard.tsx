@@ -113,18 +113,18 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="gem-profile-header bg-blue-600 p-4 sm:p-6 text-white flex justify-between items-center sticky top-0 z-10">
+          <div className="glass-modal-header p-4 sm:p-6 flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-4">
-              <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/50 shadow-md shrink-0 bg-blue-200" />
+              <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/80 shadow-sm shrink-0 bg-white/60" />
               <div>
-                <EmployeeIdentity employee={employee} className="employee-identity-on-dark text-xl sm:text-2xl" />
+                <EmployeeIdentity employee={employee} className="text-xl sm:text-2xl" />
                 <Overtaken employee={employee} /><p className="text-xs">رصيد الشهر: {employee.monthReviewsCount || 0} <BalanceGrowth employee={employee} /></p>
                 <div className="flex gap-2 mt-1 flex-wrap">
-                  <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="text-[10px] sm:text-xs bg-blue-500/50 hover:bg-blue-500 px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
-                  <p className="text-[10px] sm:text-xs bg-blue-500/50 px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
+                  <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="glass-modal-control text-[10px] sm:text-xs px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
+                  <p className="glass-modal-control text-[10px] sm:text-xs px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
                 </div>
                 {favoritePartnerName && (
-                  <p className="text-[10px] sm:text-xs text-blue-100 mt-2 font-medium bg-blue-800/40 w-fit px-2 py-1 rounded-full">
+                  <p className="glass-modal-control text-[10px] sm:text-xs mt-2 font-medium w-fit px-2 py-1 rounded-full">
                     شريكتي المفضلة: {favoritePartnerName}
                   </p>
                 )}
@@ -132,7 +132,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
             </div>
             <button 
               onClick={onClose}
-              className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full transition-colors self-start shrink-0"
+              className="glass-modal-control p-2 rounded-full transition-colors self-start shrink-0"
               aria-label="إغلاق"
             >
               <X size={20} />
@@ -301,12 +301,12 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
       <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 touch-auto font-alexandria" dir="rtl">
          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
          <motion.div initial={{y:50, opacity:0}} animate={{y:0, opacity:1}} exit={{y:50, opacity:0}} className="relative w-full max-w-lg bg-gray-100 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-            <div className="bg-white p-4 shadow-sm z-10 flex justify-between items-center shrink-0">
+            <div className="glass-modal-header p-4 z-10 flex justify-between items-center shrink-0">
                <div>
                  <h3 className="text-lg font-bold text-gray-800">{shift.branch} - {formatDate(shift.date) || 'اليوم'}</h3>
                  <p className="text-sm text-gray-500">{shiftName(shift.time)} · {formatTime(shift.time)} - {shift.endTime ? formatTime(shift.endTime) : 'نهاية اليوم'}</p>
                </div>
-               <button onClick={onClose} className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600" aria-label="إغلاق"><X size={20}/></button>
+               <button onClick={onClose} className="glass-modal-control p-2 rounded-full" aria-label="إغلاق"><X size={20}/></button>
             </div>
             <div className="p-4 bg-white mt-1 shadow-sm shrink-0">
                <p className="text-sm font-bold text-gray-800 mb-2">فريق الشفت:</p>

@@ -388,12 +388,12 @@ export const Leaderboard: React.FC = () => {
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
               className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Users size={24} /> جميع الموظفات</h3>
                 <button
                   onClick={() => { setShowAllEmployeesModal(false); handleModalClose(); }}
                   aria-label="إغلاق نشاط الفرع"
-                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
+                      className="glass-modal-control p-2 rounded-full"
                 >
                   <X size={20} />
                 </button>
@@ -440,12 +440,12 @@ export const Leaderboard: React.FC = () => {
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
               className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Building2 size={24} /> الفروع</h3>
                 <button
                   onClick={() => { setShowAllBranchesModal(false); handleModalClose(); }}
                   aria-label="إغلاق نشاط الفرع"
-                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
+                      className="glass-modal-control p-2 rounded-full"
                 >
                   <X size={20} />
                 </button>
@@ -573,12 +573,12 @@ export const Leaderboard: React.FC = () => {
                   initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
                   className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
-                  <div className="branch-glass-header p-4 flex justify-between items-center shrink-0">
+                  <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                     <h3 className="text-xl font-bold">{modalBranchName}</h3>
                     <button
                       onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
                       aria-label="إغلاق نشاط الفرع"
-                      className="p-2 border border-white/80 bg-white/40 hover:bg-white/70 rounded-full"
+                      className="glass-modal-control p-2 rounded-full"
                     >
                       <X size={20} />
                     </button>
