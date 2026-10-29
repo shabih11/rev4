@@ -22,6 +22,7 @@ export const UserProfileTab: React.FC = () => {
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     setNameMsg(null);
+    if (user.role === 'manager') return;
     if (!name.trim()) {
       setNameMsg({ text: 'يرجى إدخال اسم صحيح', type: 'error' });
       return;
@@ -33,6 +34,7 @@ export const UserProfileTab: React.FC = () => {
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (user.role !== 'admin') return;
     setPassMsg(null);
 
     const cleanPass = newPassword.trim();
@@ -88,7 +90,7 @@ export const UserProfileTab: React.FC = () => {
 
       <MysteryStore employee={user} />
       {/* Edit Name Card */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+      {user.role !== 'manager' && <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex items-center gap-2.5 border-b pb-3">
           <User className="text-blue-600" size={20} />
           <h3 className="font-bold text-gray-800 text-base">تعديل الاسم</h3>
@@ -121,10 +123,10 @@ export const UserProfileTab: React.FC = () => {
             حفظ الاسم
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Change Password Card */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+      {user.role === 'admin' && <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex items-center gap-2.5 border-b pb-3">
           <Lock className="text-amber-600" size={20} />
           <h3 className="font-bold text-gray-800 text-base">تغيير كلمة المرور</h3>
@@ -182,7 +184,7 @@ export const UserProfileTab: React.FC = () => {
             {isUpdatingPass ? 'جارٍ التحديث...' : 'تحديث كلمة المرور'}
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Logout button */}
       <div className="pt-2 flex items-center justify-center gap-2">

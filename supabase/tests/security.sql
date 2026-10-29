@@ -90,6 +90,7 @@ insert into public.user_access(uid,profile_id,role,branch) values('00000000-0000
 update public.profiles set data=data||'{"manualStats":{"positive":3}}' where id='verify-employee';
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin if public.authorize_employee_account('verify-employee')<>'00000000-0000-4000-8000-000000000003'::uuid then raise exception 'Admin employee account action denied'; end if; end $$;
 select public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":8,"goldAt":11}',(select data from public.employee_feature_settings where id=1));
 do $$ begin
  begin perform public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":11,"goldAt":8}',(select data from public.employee_feature_settings where id=1)); raise exception 'Invalid thresholds accepted'; exception when invalid_parameter_value then null; end;
@@ -97,8 +98,10 @@ do $$ begin
 end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 do $$ begin
- if public.authorize_employee_account('verify-employee')<>'00000000-0000-4000-8000-000000000003'::uuid then raise exception 'Branch account action denied'; end if;
+ begin perform public.authorize_employee_account('verify-employee'); raise exception 'Manager can change branch employee credentials'; exception when insufficient_privilege then null; end;
  begin perform public.authorize_employee_account('verify-outside'); raise exception 'Manager changed another branch account'; exception when insufficient_privilege then null; end;
+ begin perform public.rename_me('Changed manager name',(select data->>'name' from public.profiles where id='verify-manager')); raise exception 'Manager can rename own account'; exception when insufficient_privilege then null; end;
+ begin update public.profiles set data=jsonb_set(data,'{name}','"Changed manager name"'::jsonb) where id='verify-manager'; raise exception 'Manager bypassed rename guard through direct write'; exception when insufficient_privilege then null; end;
  begin perform public.authorize_employee_account('verify-admin'); raise exception 'Manager changed admin account'; exception when insufficient_privilege then null; end;
  begin perform public.save_employee_features('{}','{}'); raise exception 'Manager changed global features'; exception when insufficient_privilege then null; end;
 end $$;

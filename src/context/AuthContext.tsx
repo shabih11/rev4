@@ -31,14 +31,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const updateName = async (name: string) => {
-    if (!user) return { success: false, error: 'يجب تسجيل الدخول أولًا' };
+    if (!user || user.role === 'manager') return { success: false, error: 'تعديل اسم حساب إدارة الفرع متاح للإدارة العامة فقط' };
     const { error } = await supabase.rpc('rename_me', { new_name: name, previous_name: user.name });
     return error ? { success: false, error: 'لم يُحفظ الاسم. تحققي من الاتصال أو حدّثي البيانات بعد تعارض التعديل.' } : { success: true };
   };
   const logout = async () => { const { error } = await supabase.auth.signOut({ scope: 'local' }); if (error) throw error; };
   const changePassword = async (newPass: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      if (!user) return { success: false, error: 'يجب تسجيل الدخول أولًا' };
+      if (!user || user.role !== 'admin') return { success: false, error: 'تغيير كلمة المرور متاح للإدارة العامة فقط' };
       const { data, error: sessionError } = await supabase.auth.getUser();
       if (sessionError || !data.user) return { success: false, error: 'سجلي الدخول مجددًا لتغيير كلمة المرور' };
       const { error } = await supabase.auth.updateUser({ password: newPass });

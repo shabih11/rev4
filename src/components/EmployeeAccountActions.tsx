@@ -8,12 +8,12 @@ export function EmployeeAccountActions({ employee }: { employee: UserAccount }) 
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
-  if (!currentAccount || !['admin', 'manager'].includes(currentAccount.role)) return null;
+  if (currentAccount?.role !== 'admin') return null;
   return <div className="mt-3 space-y-2 text-sm" onClick={event => event.stopPropagation()}>
     <div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg border border-blue-200 px-3 py-2 text-blue-800 bg-blue-50 font-bold" onClick={() => { setAction('email'); setMessage(''); }}>تغيير البريد</button><button type="button" className="rounded-lg border border-amber-200 px-3 py-2 text-amber-900 bg-amber-50 font-bold" onClick={() => { setAction('reset'); setMessage(''); }}>استعادة كلمة السر</button></div>
     {action && <form className="space-y-2 rounded-xl border bg-white p-3" onSubmit={async event => {
       event.preventDefault();
-      if (busy) return;
+      if (busy || currentAccount?.role !== 'admin') return;
       setBusy(true); setMessage('');
       const { error } = await supabase.functions.invoke('employee-account', { body: { profileId: employee.id, action, ...(action === 'email' ? { email: email.trim() } : {}) } });
       setBusy(false);

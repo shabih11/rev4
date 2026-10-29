@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
-let handler, authorized = true, authenticated = true, configured = true, updated = [], calls = [];
+let handler, callerRole = 'admin', authorized = true, authenticated = true, configured = true, updated = [], calls = [];
 const caller = {
-  auth: { getUser: async () => ({ data: { user: authenticated ? { id: 'test-caller' } : null } }) },
-  rpc: async (name, args) => { calls.push([name, args]); return authorized ? { data: 'test-target-uuid' } : { error: { message: 'private details' } }; },
+  auth: { getUser: async () => ({ data: { user: authenticated ? { id: 'test-caller', user_metadata: { role: 'admin' } } : null } }) },
+  rpc: async (name, args) => { calls.push([name, args]); if (name === 'get_my_account') return { data: { role: callerRole } }; return authorized ? { data: 'test-target-uuid' } : { error: { message: 'private details' } }; },
 };
 const admin = {
   auth: { admin: { updateUserById: async (...args) => { updated.push(args); return {}; } } },
@@ -17,7 +17,7 @@ const source = readFileSync(new URL('../supabase/functions/employee-account/inde
 const compiled = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
 await import('data:text/javascript;base64,' + Buffer.from(compiled).toString('base64'));
 const request = (body, token = true) => new Request('https://test.invalid/account', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer synthetic-test-token' } : {}) }, body: JSON.stringify(body) });
-const reset = () => { authorized = true; authenticated = true; configured = true; updated = []; calls = []; };
+const reset = () => { callerRole = 'admin'; authorized = true; authenticated = true; configured = true; updated = []; calls = []; };
 test('account endpoint rejects unauthenticated and out-of-scope callers before admin writes', async () => {
   reset();
   assert.equal((await handler(request({ profileId: 'employee', action: 'reset' }, false))).status, 401);
@@ -48,4 +48,16 @@ test('email is validated and only the SQL-authorized target is changed', async (
   assert.equal(response.status, 200);
   assert.deepEqual(updated, [['test-target-uuid', { email: 'new@example.invalid', email_confirm: true }]]);
   assert.equal((await response.text()).includes('example.invalid'), false);
+});
+
+test('manager and employee roles cannot reach credential mutations even when target authorization would pass', async () => {
+ for (const role of ['manager', 'employee', null]) {
+  reset(); callerRole = role;
+  for (const action of ['reset', 'email']) {
+   const response = await handler(request({ profileId: 'employee', action, email: 'test@example.invalid' }));
+   assert.equal(response.status, 403);
+  }
+  assert.equal(updated.length, 0);
+  assert.equal(calls.some(([name]) => name === 'authorize_employee_account'), false);
+ }
 });

@@ -11,6 +11,8 @@ Deno.serve(async req => {
     const caller = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: authorization } }, auth: { persistSession: false, autoRefreshToken: false } });
     const { data: identity, error: identityError } = await caller.auth.getUser();
     if (identityError || !identity.user) return reply(401, 'authentication_required');
+    const { data: account, error: accountError } = await caller.rpc('get_my_account');
+    if (accountError || account?.role !== 'admin') return reply(403, 'operation_unavailable');
     if (Number(req.headers.get('content-length') || 0) > 4096) return reply(400, 'invalid_request');
     const body = await req.json();
     if (!body || typeof body.profileId !== 'string' || body.profileId.length > 200 || !['email', 'reset'].includes(body.action)) return reply(400, 'invalid_request');
