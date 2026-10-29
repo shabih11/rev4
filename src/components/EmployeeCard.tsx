@@ -1,3 +1,4 @@
+import { employeeQualityPoints } from '../lib/employeeQuality';
 import { EmployeeIdentity } from './EmployeeIdentity';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { shiftReviewCounts } from '../lib/shiftReviewCounts';
@@ -252,18 +253,10 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات السلبية</p>
-                      <p className="text-xs text-gray-400">من أصل 2 نقاط</p>
+                      <p className="text-gray-500 text-sm font-bold mb-1">الجودة</p>
+                      <p className="text-xs text-gray-400">من أصل ٦ نقاط</p>
                     </div>
-                    <p className="text-2xl font-bold text-red-500 mt-2">{employee.stats?.negative?.toFixed(1) || '0.0'}</p>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between sm:col-span-2">
-                    <div>
-                      <p className="text-gray-500 text-sm font-bold mb-1">نقاط الجودة (الشكاوى والسلامة)</p>
-                      <p className="text-xs text-gray-400">من أصل 4 نقاط</p>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-600 mt-2">{((employee.stats?.complaints === 0 && employee.stats?.safety === 0) ? 4 : (4 - (employee.stats?.complaints || 0) - (employee.stats?.safety || 0))).toFixed(1)}</p>
+                    <p className="text-2xl font-bold text-blue-600 mt-2">{employeeQualityPoints(employee.stats).toFixed(1)}</p>
                   </div>
                 </div>
               </div>

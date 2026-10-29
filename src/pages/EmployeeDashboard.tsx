@@ -2,7 +2,6 @@ import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { Brand } from '../components/Brand';
-import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
@@ -59,16 +58,6 @@ export const EmployeeDashboard: React.FC = () => {
 
       <EmployeeResults user={displayedEmployee} ready={summaryReady} error={syncError} />
 
-      {/* Shift Information & Objection */}
-      <div className="px-6 mb-8">
-        <div className="bg-white rounded-3xl p-6 shadow-lg border border-blue-50">
-          <div className="pt-4">
-            <p className="text-gray-500 text-sm mb-3">هل نسيت مديرة الفرع تسجيل الشفت الخاص بك؟</p>
-            <h3 className="font-bold mb-4">طلب تسجيل شفت مفقود</h3>
-            <MissingShiftRequest />
-          </div>
-        </div>
-      </div>
       </>
       )}
 

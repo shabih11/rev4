@@ -1,5 +1,6 @@
 import { useData } from '../context/DataContext';
 import { TierBadge } from './EmployeeFeatures';
+import { employeeQualityPoints } from '../lib/employeeQuality';
 import { employeeTier } from '../lib/employeeFeatures';
 import type { UserAccount } from '../lib/mockData';
 import { Award, ChevronDown } from 'lucide-react';
@@ -33,11 +34,8 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
         {[
           ['رصيد التقييمات', String(user.monthReviewsCount ?? 0), 'text-amber-700'],
           ['إيجابي', user.stats.positive.toFixed(1), 'text-green-700'],
-          ['رصيد التقييمات السلبية', user.stats.negative.toFixed(1), 'text-slate-700'],
-          ['الجودة والسلامة', Math.max(0, 4 - user.stats.complaints - user.stats.safety).toFixed(1), 'text-blue-700'],
-          ['شكاوى', `-${user.stats.complaints}`, 'text-red-700'],
-          ['مخالفات سلامة', `-${user.stats.safety}`, 'text-orange-700'],
-        ].map(([label, value, color]) => <div key={label} className="rounded-2xl bg-slate-50 p-3">
+          ['الجودة (من ٦)', employeeQualityPoints(user.stats).toFixed(1), 'text-blue-700'],
+        ].map(([label, value, color]) => <div key={label} className="rounded-2xl bg-slate-50 p-3 last:col-span-2">
           <dt className="text-xs sm:text-sm font-bold text-slate-600">{label}</dt>
           <dd className={`mt-2 text-2xl font-extrabold ${color}`}>{value}</dd>
         </div>)}

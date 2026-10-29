@@ -11,6 +11,7 @@ export function ActivityChart({ reviews, subject = 'employee', onPeriodSelect }:
   const positiveText = branch ? 'text-teal-700' : 'text-green-700';
   const negativeText = branch ? 'text-violet-700' : 'text-red-600';
   const weeks = weeklyActivity(reviews);
+  const hasImprovementReviews = weeks.some(week => week.negative > 0);
   const [selected, setSelected] = useState<number | null>(null);
   const selectPeriod = (index: number) => {
     setSelected(index);
@@ -29,21 +30,21 @@ export function ActivityChart({ reviews, subject = 'employee', onPeriodSelect }:
   }).sort(newestFirst);
   return <section className="bg-white p-4 rounded-2xl border shadow-sm space-y-4" aria-label={branch ? 'نشاط الفرع الأسبوعي خلال آخر ثلاثة أشهر' : 'نشاط الموظفة الأسبوعي خلال آخر ثلاثة أشهر'}>
     <div><h4 className="font-bold text-gray-800">{branch ? 'نشاط الفرع خلال آخر ثلاثة أشهر' : 'نشاطي خلال آخر ثلاثة أشهر'}</h4>{!branch && <p className="text-xs text-gray-500 mt-1">عدد التقييمات المرتبطة بالموظفة لكل أسبوع</p>}</div>
-    <div className="flex flex-wrap gap-4 text-xs"><span className={positiveText}>━ التقييمات الإيجابية</span><span className={negativeText}>┄ التقييمات السلبية</span></div>
-    <svg viewBox="0 0 600 245" className="w-full" role="group" aria-label="منحنى أسبوعي للتقييمات الإيجابية والسلبية" style={{ direction: 'ltr' }}>
+    <div className="flex flex-wrap gap-4 text-xs"><span className={positiveText}>━ التقييمات الإيجابية</span>{hasImprovementReviews && <span className={negativeText}>┄ تقييمات بحاجة للتحسين</span>}</div>
+    <svg viewBox="0 0 600 245" className="w-full" role="group" aria-label="منحنى أسبوعي للتقييمات" style={{ direction: 'ltr' }}>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop stopColor={positiveColor} stopOpacity=".3"/><stop offset="1" stopColor={positiveColor} stopOpacity="0"/></linearGradient></defs>
       {[0, 1, 2, 3].map(level => <g key={level}><line x1="40" x2="560" y1={y(max * level / 3)} y2={y(max * level / 3)} stroke="#e5e7eb"/><text x="580" y={y(max * level / 3) + 4} fontSize="11" fill="#6b7280" textAnchor="middle">{Math.round(max * level / 3)}</text></g>)}
       <polygon points={`40,205 ${line('positive')} 560,205`} fill={`url(#${gradient})`}/>
-      <polyline points={line('negative')} fill="none" stroke={negativeColor} strokeWidth="2" strokeDasharray="5 4"/>
+      {hasImprovementReviews && <polyline points={line('negative')} fill="none" stroke={negativeColor} strokeWidth="2" strokeDasharray="5 4"/>}
       <polyline points={line('positive')} fill="none" stroke={positiveColor} strokeWidth="2.5"/>
-      {weeks.map((week, index) => <g key={index} role="button" tabIndex={0} aria-pressed={selected === index} aria-label={`${format(week.start)}: ${week.positive} إيجابي، ${week.negative} سلبي`} onClick={() => selectPeriod(index)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeriod(index); } }} className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700">
+      {weeks.map((week, index) => <g key={index} role="button" tabIndex={0} aria-pressed={selected === index} aria-label={`${format(week.start)}: ${week.positive} إيجابي${week.negative ? `، ${week.negative} بحاجة للتحسين` : ''}`} onClick={() => selectPeriod(index)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeriod(index); } }} className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700">
         <rect x={x(index) - 12} y="25" width="24" height="190" fill="transparent" className="cursor-pointer"><title>{format(week.start)}: {week.positive} إيجابي، {week.negative} سلبي</title></rect>
         <circle cx={x(index)} cy={y(week.positive)} r={selected === index ? 5 : 3} fill={positiveColor} className="cursor-pointer"/>
-        <circle cx={x(index)} cy={y(week.negative)} r={selected === index ? 5 : 3} fill={negativeColor} className="cursor-pointer"/>
+        {hasImprovementReviews && <circle cx={x(index)} cy={y(week.negative)} r={selected === index ? 5 : 3} fill={negativeColor} className="cursor-pointer"/>}
         {(index === 0 || index === weeks.length - 1 || index % 4 === 0) && <text x={x(index)} y="230" textAnchor="middle" fontSize="10" fill="#6b7280">{format(week.start)}</text>}
       </g>)}
     </svg>
-    <p className="text-sm text-gray-600" role="status">{format(active.start)} – {format(active.end)}: <strong className={positiveText}>{arabicReviewCount(active.positive, 'positive')}</strong> و<strong className={negativeText}>{arabicReviewCount(active.negative, 'negative')}</strong></p>
+    <p className="text-sm text-gray-600" role="status">{format(active.start)} – {format(active.end)}: <strong className={positiveText}>{arabicReviewCount(active.positive, 'positive')}</strong>{active.negative > 0 && <> و<strong className={negativeText}>{arabicReviewCount(active.negative)} بحاجة للتحسين</strong></>}</p>
     {!branch && selected !== null && <div className="space-y-3 border-t pt-4" aria-label="تقييمات الأسبوع المحدد">
       <h5 className="font-bold text-gray-800">تقييمات الأسبوع ({selectedReviews.length})</h5>
       {selectedReviews.map(review => {

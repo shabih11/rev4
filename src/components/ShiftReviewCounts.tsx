@@ -8,8 +8,8 @@ export function ShiftReviewCounts({ shift, employeeId, reviews, ready }: { shift
     <div className="min-w-10 rounded-xl border border-green-100 bg-green-50 px-2 py-1.5 text-center text-green-700" aria-label={ready ? arabicReviewCount(counts.positive, 'positive') : 'جارٍ تحميل التقييمات الإيجابية'}>
       <p className="text-xs font-bold leading-tight">{ready ? arabicReviewCount(counts.positive, 'positive') : '—'}</p>
     </div>
-    <div className="min-w-10 rounded-xl border border-red-100 bg-red-50 px-2 py-1.5 text-center text-red-600" aria-label={ready ? arabicReviewCount(counts.negative, 'negative') : 'جارٍ تحميل التقييمات السلبية'}>
-      <p className="text-xs font-bold leading-tight">{ready ? arabicReviewCount(counts.negative, 'negative') : '—'}</p>
-    </div>
+    {ready && counts.negative > 0 && <div className="min-w-10 rounded-xl border border-red-100 bg-red-50 px-2 py-1.5 text-center text-red-600" aria-label={`${arabicReviewCount(counts.negative)} بحاجة للتحسين`}>
+      <p className="text-xs font-bold leading-tight">{arabicReviewCount(counts.negative)} بحاجة للتحسين</p>
+    </div>}
   </div>;
 }
