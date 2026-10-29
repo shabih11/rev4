@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import type { UserAccount } from './mockData';
 import { cachedRows, invalidateRows, readNamespace, stableJSON } from './browserReadCache';
 import { type RecordScope } from './cloudReadPlan';
-import { loadRows, rowChanges, scopeArguments } from './supabaseRecords';
+import { loadRows, rowChanges, scopeArguments, publicProfile } from './supabaseRecords';
 export { publicProfile } from './supabaseRecords';
 export interface CloudSession { account: UserAccount | null; ready: boolean; uid: string | null; error: string | null; dataVersion?: string }
 export function useCloudSession(): CloudSession {
@@ -30,6 +30,8 @@ export function useCloudSession(): CloudSession {
         purge(); setSession({ account: null, uid, ready: true, error: 'الحساب غير مخوّل أو تعذر التحقق من صلاحياته. تواصلي مع الإدارة.' });
       }
     };
+    const accountChanged = () => { if (activeUid) { purge(); void verify(activeUid); } };
+    window.addEventListener('rev4-account-changed', accountChanged);
     const { data: authListener } = supabase.auth.onAuthStateChange((event, authSession) => {
       // Do not await Supabase inside this callback: it can deadlock token refresh.
       if (stopped) return;
@@ -51,7 +53,7 @@ export function useCloudSession(): CloudSession {
         .subscribe(status => { if (status === 'SUBSCRIBED') { if (subscribed) void verify(uid); subscribed = true; } });
       setTimeout(() => { if (!stopped && signature === authSession.access_token) void verify(uid); }, 0);
     });
-    return () => { stopped = true; epoch++; authListener.subscription.unsubscribe(); if (channel) void supabase.removeChannel(channel); };
+    return () => { stopped = true; epoch++; authListener.subscription.unsubscribe(); window.removeEventListener('rev4-account-changed', accountChanged); if (channel) void supabase.removeChannel(channel); };
   }, []);
   return session;
 }
@@ -99,7 +101,7 @@ export function useCloudList<T extends { id: string }>(name: Source, session: Cl
     if (!ready || !session.account || !enabled || name === 'profiles') { setWriteError('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
     const before = latest.current, after = typeof action === 'function' ? action(before) : action;
     let changes;
-    try { changes = rowChanges(before, after); } catch { setWriteError('توجد سجلات مكررة؛ لم يُحفظ التعديل'); return; }
+    try { changes = rowChanges(name === 'users' ? before.map(publicProfile) : before, name === 'users' ? after.map(publicProfile) : after); } catch { setWriteError('توجد سجلات مكررة؛ لم يُحفظ التعديل'); return; }
     if (!changes.length) return;
     if (changes.length > 1500) { setWriteError('حجم التعديل أكبر من الحد المسموح للحفظ'); return; }
     if (name === 'timeline' && session.account.role === 'employee') {

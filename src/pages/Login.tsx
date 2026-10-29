@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
           <form onSubmit={handleLogin} className="login-form" aria-busy={busy}>
             {(error || syncError) && <div id="login-error" className="login-error" role="alert"><AlertCircle size={18} aria-hidden="true" /><p>{error || syncError}</p></div>}
             <div className="login-field">
-              <label htmlFor="login-email">البريد الإلكتروني أو اسم المستخدم</label>
+              <label htmlFor="login-email">اسم المستخدم أو البريد الإلكتروني</label>
               <div className="login-input-wrap">
                 <Mail size={18} aria-hidden="true" />
                 <input id="login-email" name="username" type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false}

@@ -5,6 +5,8 @@ export type Role = 'manager' | 'employee' | 'admin' | 'viewer';
 export interface UserAccount extends Employee {
   email: string;
   mustChangePassword?: boolean;
+  mustSetUsername?: boolean;
+  username?: string;
   role: Role;
 }
 

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense } from 'react';
 import { PageLoading } from './components/Brand';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 const Leaderboard = lazy(() => import('./pages/Leaderboard').then(m => ({ default: m.Leaderboard })));
@@ -6,21 +6,15 @@ import { Login } from './pages/Login';
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 import { useData } from './context/DataContext';
 import { useAuth } from './context/AuthContext';
-import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { AccountSetup } from './components/AccountSetup';
+import { requireAccountSetup } from './lib/accountSetupConfig';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
-  const [passwordChangeCompleted, setPasswordChangeCompleted] = useState(false);
   if (!ready) return <PageLoading />;
   if (!user) return <Navigate to="/login" replace />;
-  return <>
-    <ChangePasswordModal
-      isOpen={user.mustChangePassword !== false && !passwordChangeCompleted}
-      isMandatory
-      onClose={() => setPasswordChangeCompleted(true)}
-    />
-    {children}
-  </>;
+  if (requireAccountSetup && (user.mustSetUsername !== false || user.mustChangePassword !== false)) return <AccountSetup />;
+  return children;
 }
 
 function App() {

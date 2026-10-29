@@ -1,3 +1,4 @@
+import { invalidateRows, readNamespace } from '../lib/browserReadCache';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
@@ -10,6 +11,10 @@ export function EmployeeAccountActions({ employee }: { employee: UserAccount }) 
   const [message, setMessage] = useState('');
   if (currentAccount?.role !== 'admin') return null;
   return <div className="mt-3 space-y-2 text-sm" onClick={event => event.stopPropagation()}>
+    <dl className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 text-slate-800">
+      <div><dt className="font-bold">اسم المستخدم</dt><dd dir="ltr" className="break-all select-text">{employee.username || 'لم يُعيّن بعد'}</dd></div>
+      <div><dt className="font-bold">بريد الدخول</dt><dd dir="ltr" className="break-all select-text">{employee.email || 'لا يوجد حساب دخول مرتبط'}</dd></div>
+    </dl>
     <div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg border border-blue-200 px-3 py-2 text-blue-800 bg-blue-50 font-bold" onClick={() => { setAction('email'); setMessage(''); }}>تغيير البريد</button><button type="button" className="rounded-lg border border-amber-200 px-3 py-2 text-amber-900 bg-amber-50 font-bold" onClick={() => { setAction('reset'); setMessage(''); }}>استعادة كلمة السر</button></div>
     {action && <form className="space-y-2 rounded-xl border bg-white p-3" onSubmit={async event => {
       event.preventDefault();
@@ -18,7 +23,7 @@ export function EmployeeAccountActions({ employee }: { employee: UserAccount }) 
       const { error } = await supabase.functions.invoke('employee-account', { body: { profileId: employee.id, action, ...(action === 'email' ? { email: email.trim() } : {}) } });
       setBusy(false);
       setMessage(error ? 'تعذرت العملية. تحققي من الصلاحيات وإعداد خدمة الحسابات أو تواصلي مع الإدارة.' : action === 'reset' ? 'تمت استعادة كلمة السر الافتراضية.' : 'تم تحديث بريد الدخول.');
-      if (!error) { setAction(null); setEmail(''); window.dispatchEvent(new Event('rev4-cache-changed')); }
+      if (!error) { setAction(null); setEmail(''); const { data: auth } = await supabase.auth.getSession(); if (auth.session) await invalidateRows(readNamespace({ uid: auth.session.user.id, account: currentAccount })); }
     }}>
       <p className="font-bold text-slate-900">{action === 'email' ? `تغيير بريد دخول ${employee.name}` : `استعادة كلمة السر الافتراضية لحساب ${employee.name}؟`}</p>
       {action === 'email' && <label className="block text-slate-700">البريد الجديد<input required type="email" maxLength={254} autoComplete="off" dir="ltr" value={email} onChange={event => setEmail(event.target.value)} className="w-full rounded-lg border p-2 mt-1" /></label>}

@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { recordFilters, type RecordScope } from './cloudReadPlan';
 import { stableJSON } from './browserReadCache';
 export function publicProfile<T extends Record<string, any>>(record: T) {
-  const { email: _email, password: _password, mustChangePassword: _flag, ...profile } = record;
+  const { email: _email, password: _password, mustChangePassword: _flag, mustSetUsername: _setup, username: _username, ...profile } = record;
   return profile;
 }
 export function scopeArguments(source: string, scope: RecordScope | null, account: { role: string; id: string; branch: string }) {

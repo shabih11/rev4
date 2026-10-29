@@ -3,7 +3,7 @@ import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { EmployeeAvatar } from './EmployeeFeatures';
 import { EmployeeAccountActions } from './EmployeeAccountActions';
 import { EmployeeCard } from './EmployeeCard';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { invalidateRows, readNamespace } from '../lib/browserReadCache';
 import { useData } from '../context/DataContext';
@@ -18,6 +18,7 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
   const { users, currentAccount, summaryReady } = useData();
   const [requests, setRequests] = useState<MergeRequest[]>([]);
   const [name, setName] = useState('');
+  const registration = useRef<{ name: string; id: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [readError, setReadError] = useState(false);
@@ -66,12 +67,14 @@ export function BranchEmployees({ branch, onReview }: { branch?: string; onRevie
           const trimmed = name.trim();
           if (!trimmed || !branch || currentAccount?.role !== 'manager' || currentAccount.branch !== branch) return;
           void perform(async () => {
-            const { error } = await supabase.rpc('register_branch_employee', { employee_name: trimmed, requested_branch: branch });
+            if (registration.current?.name !== trimmed) registration.current = { name: trimmed, id: crypto.randomUUID() };
+            const { data, error } = await supabase.functions.invoke('employee-register', { body: { name: trimmed, requestId: registration.current.id } });
+            if (!data?.success && !error) throw new Error('Registration unavailable');
             if (error) throw error;
-            setName('');
+            setName(''); registration.current = null;
             const { data: auth } = await supabase.auth.getSession();
             if (auth.session) await invalidateRows(readNamespace({ uid: auth.session.user.id, account: currentAccount }));
-          }, 'تمت إضافة سجل الموظفة. تهيئة حساب الدخول من اختصاص الإدارة العامة.');
+          }, 'تم تسجيل الموظفة في فرعك وإنشاء حساب دخول لها تلقائيًا.');
         }}>
           <label className="flex-1 min-w-40">اسم الموظفة<input required maxLength={100} value={name} onChange={event => setName(event.target.value)} className={field} /></label>
           <button disabled={busy} className="action-primary shrink-0">إضافة موظفة</button>

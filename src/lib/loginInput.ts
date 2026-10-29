@@ -18,7 +18,7 @@ export function loginErrorMessage(code: string) {
     case 'invalid_credentials':
     case 'auth/invalid-credential':
     case 'auth/wrong-password':
-    case 'auth/user-not-found': return 'البريد الإلكتروني أو كلمة المرور غير صحيحة. تحققي من البريد وبيانات الدخول المحفوظة في المتصفح.';
+    case 'auth/user-not-found': return 'اسم المستخدم أو البريد أو كلمة المرور غير صحيحة. تحققي من بيانات الدخول.';
     case 'over_request_rate_limit':
     case 'over_email_send_rate_limit':
     case 'auth/too-many-requests': return 'توقفت المحاولات مؤقتًا بسبب تكرارها. انتظري قليلًا ثم أعيدي المحاولة.';

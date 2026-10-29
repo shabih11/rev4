@@ -23,7 +23,7 @@ test('row changes retain the original baseline and reject duplicate identities',
  assert.deepEqual(rowChanges(before,after),[{id:'a',before:before[0],after:after[0]}]);
  assert.deepEqual(rowChanges([{id:'a',x:1,y:2}],[{y:2,id:'a',x:1}]),[]);
  assert.throws(()=>rowChanges([], [{id:'a'},{id:'a'}]));
- assert.deepEqual(publicProfile({id:'a',email:'synthetic@example.invalid',password:'synthetic',mustChangePassword:true}),{id:'a'});
+ assert.deepEqual(publicProfile({id:'a',email:'synthetic@example.invalid',password:'synthetic',mustChangePassword:true,mustSetUsername:true,username:'private.username'}),{id:'a'});
 });
 test('pagination reads every page and propagates partial failures',async()=>{
  const calls=[],rows=Array.from({length:1201},(_,i)=>({id:String(i)}));
