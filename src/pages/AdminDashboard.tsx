@@ -82,7 +82,7 @@ const MONTH_NAMES_AR = [
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const { recordsReady, users, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, acceptShiftRequest } = useData();
+  const { recordsReady, users, reviews, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, acceptShiftRequest } = useData();
 
   const [activeTab, setActiveTab] = useState<'shifts' | 'employees' | 'profile'>('shifts');
   useRecordScope(activeTab !== 'profile' ? { users: true, reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } } : {});
@@ -301,7 +301,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
         {activeTab === 'shifts' && (
           <div className="space-y-6">
-            <ShiftCalendar shifts={timeline.filter(t => t.type === 'shift' && t.branch === user?.branch)} onSelect={key => {
+            <ShiftCalendar shifts={timeline.filter(t => t.type === 'shift' && t.branch === user?.branch)} unlinkedReviewDates={reviews.filter(review => review.branch === user?.branch && !review.linkedEmployeeIds.length).map(review => review.date)} onSelect={key => {
               const [day, month, year] = key.split('-').map(Number);
               setCurrentYear(year); setCurrentMonth(month - 1);
               handleDayClick(new Date(year, month - 1, day));

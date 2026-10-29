@@ -43,7 +43,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
   if (!recordsReady) return <p role="status">{syncError || 'جارٍ تحميل الشفتات والتقييمات…'}</p>;
   return <div className="space-y-5" dir="rtl">
     {syncError && <p role="alert" className="text-red-700">{syncError}</p>}
-    <ShiftCalendar shifts={shifts} onSelect={date => { setSelectedDate(date); setEditingId(null); setError(''); }} />
+    <ShiftCalendar shifts={shifts} unlinkedReviewDates={reviews.filter(review => review.branch === branch && !review.linkedEmployeeIds.length).map(review => review.date)} onSelect={date => { setSelectedDate(date); setEditingId(null); setError(''); }} />
     {!selectedDate ? <p className="text-center text-slate-500">اختاري يومًا لعرض الموظفات والتقييمات وتعديل الشفتات.</p> :
       <section className="bg-white rounded-3xl border p-4 sm:p-6 space-y-5" aria-label={`تفاصيل يوم ${formatDate(selectedDate)}`}>
         <h3 className="text-xl font-bold">{formatDate(selectedDate)} — فرع {branch}</h3>
