@@ -235,7 +235,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="flex items-center gap-3">
                     <Award size={28} className="text-yellow-300" />
                     <div>
-                      <p className="font-bold text-xl">التقييم العام</p>
+                      <p className="font-bold text-xl">نقاط الشهر الحالي</p>
                       <p className="text-blue-100 text-sm">من إجمالي 11 نقطة</p>
                     </div>
                   </div>
@@ -245,7 +245,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm font-bold mb-1">نقاط التقييمات الإيجابية</p>
+                      <p className="text-gray-500 text-sm font-bold mb-1">نقاط الإيجابية</p>
                       <p className="text-xs text-gray-400">من أصل 5 نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-green-600 mt-2">{employee.stats?.positive?.toFixed(1) || '0.0'}</p>
@@ -253,7 +253,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm font-bold mb-1">الجودة</p>
+                      <p className="text-gray-500 text-sm font-bold mb-1">الجودة (تقييمات سلبية، حوادث سلامة، شكاوى مؤكدة)</p>
                       <p className="text-xs text-gray-400">من أصل ٦ نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600 mt-2">{employeeQualityPoints(employee.stats).toFixed(1)}</p>

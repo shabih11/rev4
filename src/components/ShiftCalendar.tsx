@@ -3,17 +3,17 @@ import type { TimelineEvent } from '../context/DataContext';
 import { timeMinutes } from '../lib/formatDate';
 import { reviewTimestamp } from '../lib/employeeActivity';
 
-export function ShiftCalendar({ shifts, onSelect, unlinkedReviewDates = [], highlightEmployeeId }: { shifts: TimelineEvent[]; onSelect: (date: string) => void; unlinkedReviewDates?: string[]; highlightEmployeeId?: string }) {
+export function ShiftCalendar({ shifts, onSelect, unlinkedReviewDates = [], highlightEmployeeId, showMonthNavigation = true }: { shifts: TimelineEvent[]; onSelect: (date: string) => void; unlinkedReviewDates?: string[]; highlightEmployeeId?: string; showMonthNavigation?: boolean }) {
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const unlinkedDays = new Set(unlinkedReviewDates.map(date => reviewTimestamp({ date })));
   const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   return <section className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6" dir="rtl">
     <h2 className="text-xl font-black text-slate-800">تقويم شفتات الفرع</h2>
-    <div className="flex items-center justify-between bg-slate-50 border rounded-2xl p-2">
+    {showMonthNavigation && <div className="flex items-center justify-between bg-slate-50 border rounded-2xl p-2">
       <button aria-label="الشهر السابق" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}>→</button>
       <strong>{month.toLocaleDateString('ar-SA-u-nu-latn', { calendar: 'gregory', month: 'long', year: 'numeric' })}</strong>
       <button aria-label="الشهر التالي" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}>←</button>
-    </div>
+    </div>}
     {unlinkedDays.size > 0 && <p className="text-xs font-bold text-blue-700">الأزرق: توجد تقييمات غير مرتبطة</p>}
     {highlightEmployeeId && <p className="text-xs font-bold text-emerald-800">الأخضر الغامق: شفت مسجل لكِ</p>}
     <div className="grid grid-cols-7 gap-2 sm:gap-3">

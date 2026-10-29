@@ -2,6 +2,7 @@ import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { Brand } from '../components/Brand';
+import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
@@ -57,6 +58,7 @@ export const EmployeeDashboard: React.FC = () => {
       </div>
 
       <EmployeeResults user={displayedEmployee} ready={summaryReady} error={syncError} />
+      <div className="px-6 mb-8"><MissingShiftRequest currentMonthOnly /></div>
 
       </>
       )}

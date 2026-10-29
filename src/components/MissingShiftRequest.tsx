@@ -18,7 +18,7 @@ export function AdministrationPhone() {
   }}><label className="block font-bold">رقم واتساب الإدارة للتصعيد<input required type="tel" dir="ltr" value={phone} onChange={e => setPhone(e.target.value)} placeholder="9665xxxxxxxx" className="border rounded p-2 mx-2" /></label><button className="action-primary mt-2">حفظ رقم الإدارة</button><p role="status">{message}</p></form>;
 }
 
-export function MissingShiftRequest() {
+export function MissingShiftRequest({ currentMonthOnly = false }: { currentMonthOnly?: boolean }) {
   const { user } = useAuth();
   const { timeline, addTimelineEvent, recordsReady, syncError } = useData();
   useRecordScope({ timeline: { branches: [user?.branch || ''] } });
@@ -40,8 +40,8 @@ export function MissingShiftRequest() {
     } catch { setMessage('تعذر تحميل رقم الإدارة'); }
   }
   return <div className="space-y-4">
-    <p className="text-sm text-gray-500">متاح لاخر ثلاثة ايام</p>
-    {shifts.error || syncError ? <p role="alert">تعذر تحميل الشفتات والطلبات</p> : !shifts.ready || !recordsReady ? <p role="status">جارٍ تحميل الشفتات والطلبات…</p> : <ShiftCalendar shifts={shifts.rows} highlightEmployeeId={user.id} onSelect={setSelected} />}
+    {!currentMonthOnly && <p className="text-sm text-gray-500">متاح لاخر ثلاثة ايام</p>}
+    {shifts.error || syncError ? <p role="alert">تعذر تحميل الشفتات والطلبات</p> : !shifts.ready || !recordsReady ? <p role="status">جارٍ تحميل الشفتات والطلبات…</p> : <ShiftCalendar shifts={shifts.rows} highlightEmployeeId={user.id} showMonthNavigation={!currentMonthOnly} onSelect={setSelected} />}
     {selected && <div role="dialog" aria-label={`شفتات ${selected}`} className="relative bg-white rounded-3xl shadow-xl border p-5 after:absolute after:-top-3 after:right-8 after:border-x-[12px] after:border-x-transparent after:border-b-[12px] after:border-b-white">
       <button aria-label="إغلاق تفاصيل اليوم" onClick={() => setSelected('')} className="float-left">✕</button><h3 className="font-bold mb-3">{selected}</h3>
       {(['first','second'] as const).map(slot => {

@@ -42,3 +42,11 @@ test('other employees shifts stay light in the personal calendar',()=>{
  assert.match(button,/bg-emerald-100/);
  assert.doesNotMatch(button,/bg-emerald-700|bg-emerald-500/);
 });
+
+test('personal current-month calendar keeps day buttons but hides month navigation',()=>{
+ const html=renderToStaticMarkup(createElement(ShiftCalendar,{shifts,onSelect(){},highlightEmployeeId:'e',showMonthNavigation:false}));
+ assert.doesNotMatch(html,/الشهر السابق|الشهر التالي/);
+ assert.match(html,/تقويم شفتات الفرع/);
+ assert.match(html,/bg-emerald-700/);
+ assert.match(html,/>1<\/span>/);
+});
