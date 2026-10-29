@@ -7,7 +7,6 @@ import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShiftReviewCounts } from './ShiftReviewCounts';
-import { ActivityChart } from './ActivityChart';
 import { favoritePartner, newestFirst } from '../lib/employeeActivity';
 import type { UserAccount } from '../lib/mockData';
 import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
@@ -53,7 +52,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 };
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void }> = ({ employee, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'activity' | 'points'>('activity');
+  const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'summary' | 'points'>('summary');
   const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount } = useData();
   useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
   const multipleReviewBranches = employeeReviewBranches(reviewSummaries, employee.id).length > 1;
@@ -85,7 +84,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
     if (duration < 0) duration += 1440;
     return total + (Number.isFinite(duration) ? duration / 60 : 0);
   }, 0));
-  const tabReady = activeTab === 'activity' || activeTab === 'points' ? (activeTab === 'activity' ? recordsReady : summaryReady) : recordsReady;
+  const tabReady = activeTab === 'summary' || activeTab === 'points' ? summaryReady : recordsReady;
 
   return (
     <>
@@ -161,16 +160,16 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               شفتاتي
             </button>
             <button 
-              onClick={() => setActiveTab('activity')}
-              className={`flex-1 min-h-11 rounded-xl px-2 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'activity' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('summary')}
+              className={`flex-1 min-h-11 rounded-xl px-2 py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'summary' ? 'bg-white shadow-sm text-blue-700' : 'text-gray-500'}`}
             >
               <Award size={18} />
-              نشاطي
+              ملخصي
             </button>
           </div>
 
           {/* Body */}
-          <div className="p-4 sm:p-6 bg-gray-50 h-[50vh] overflow-y-auto">
+          <div className={`p-4 sm:p-6 h-[50vh] overflow-y-auto ${activeTab === 'summary' ? 'bg-white' : 'bg-gray-50'}`}>
             {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !tabReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
             {activeTab === 'reviews' ? (
               <div className="space-y-4 pt-2 pb-2">
@@ -228,8 +227,19 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   recordsReady && !syncError && <p className="text-center text-gray-500 py-10">لا توجد شفتات مسجلة.</p>
                 )}
               </div>
-            ) : activeTab === 'activity' ? (
-              recordsReady && !syncError ? <ActivityChart reviews={employeeReviews} /> : null
+            ) : activeTab === 'summary' ? (
+              summaryReady && !syncError ? <section className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] items-center gap-3 sm:gap-6 min-h-full text-slate-800" aria-label="ملخص بيانات الموظفة">
+                <div className="min-w-0 space-y-4 text-right">
+                  <EmployeeIdentity employee={employee} className="items-start text-lg sm:text-2xl" />
+                  <dl className="space-y-3 text-sm">
+                    <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
+                    <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{employee.points.toFixed(1)}</button></dd></div>
+                    <div><dt className="text-xs text-slate-500">إجمالي التقييمات</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.reviewsCount ?? 0)}</dd></div>
+                    {favoritePartnerName && <div><dt className="text-xs text-slate-500">شريكتي المفضلة</dt><dd className="font-bold break-words">{favoritePartnerName}</dd></div>}
+                  </dl>
+                </div>
+                <EmployeeAvatar employee={employee} className="block w-full h-[clamp(240px,38svh,360px)]" />
+              </section> : null
             ) : activeTab === 'points' ? (
               <div className="space-y-4">
                 <div className="bg-blue-600 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg">
