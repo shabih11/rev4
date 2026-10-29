@@ -22,7 +22,7 @@ import { ActivityChart } from '../components/ActivityChart';
 import { formatTimestamp, isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
-import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
+import { favoritePartner, newestFirst, monthlyEmployeeOrder, weeklyActivity, periodReviewLeaders } from '../lib/employeeActivity';
 
 type SlideData =
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -39,6 +39,7 @@ export const Leaderboard: React.FC = () => {
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const employeeSignIns = useEmployeeSignIns(showAllEmployeesModal, currentAccount);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
+  const [selectedBranchPeriod, setSelectedBranchPeriod] = useState<{ branch: string; start: number; end: number } | null>(null);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
 
   const allEmployeesSorted = useMemo(() => {
@@ -513,6 +514,9 @@ export const Leaderboard: React.FC = () => {
       {(() => {
         if (!modalBranchName) return null;
         const branchActivityReviews = reviewSummaries.filter(review => review.branch === modalBranchName);
+        const latestPeriod = weeklyActivity(branchActivityReviews).at(-1)!;
+        const period = selectedBranchPeriod?.branch === modalBranchName ? selectedBranchPeriod : { start: latestPeriod.start.getTime(), end: latestPeriod.end.getTime() };
+        const periodLeaders = periodReviewLeaders(branchActivityReviews, period.start, period.end);
         const branchReviews = branchActivityReviews.filter(review => isInCurrentMonth(review.date));
 
         let shiningStar = { name: 'لا يوجد', count: 0 };
@@ -563,18 +567,18 @@ export const Leaderboard: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  onClick={() => { setShowBranchModal(false); setManualBranchName(null); handleModalClose(); }}
+                  onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
                 />
                 <motion.div
                   initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
                   className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
-                  <div className="bg-teal-700 p-4 text-white flex justify-between items-center shrink-0">
+                  <div className="branch-glass-header p-4 flex justify-between items-center shrink-0">
                     <h3 className="text-xl font-bold">{modalBranchName}</h3>
                     <button
-                      onClick={() => { setShowBranchModal(false); setManualBranchName(null); handleModalClose(); }}
+                      onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
                       aria-label="إغلاق نشاط الفرع"
-                      className="p-2 bg-teal-600/50 hover:bg-teal-600 rounded-full"
+                      className="p-2 border border-white/80 bg-white/40 hover:bg-white/70 rounded-full"
                     >
                       <X size={20} />
                     </button>
@@ -600,9 +604,11 @@ export const Leaderboard: React.FC = () => {
                   {/* Employees List */}
                   <div aria-label="موظفات الفرع" className="p-3 border-t border-gray-100 shrink-0">
                      <div className="flex flex-wrap justify-center gap-1.5">
-                       {users.filter(u => u.branch === modalBranchName && u.role === 'employee' && (u.monthReviewsCount ?? 0) > 3).map(emp => (
+                       {users.filter(u => u.role === 'employee' && ((u.branch === modalBranchName && (u.monthReviewsCount ?? 0) > 3) || periodLeaders.ids.includes(u.id))).map(emp => (
                          <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                         <button type="button" aria-label={`عرض سجل ${emp.name}`}
+                         <button type="button" aria-label={`عرض سجل ${emp.name}${periodLeaders.ids.includes(emp.id) ? '، الأكثر جلبًا للتقييمات في الفترة المحددة' : ''}`}
+                           data-period-leader={periodLeaders.ids.includes(emp.id)}
+                           title={periodLeaders.ids.includes(emp.id) ? `${arabicReviewCount(periodLeaders.count)} خلال الفترة المحددة` : undefined}
                            className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold text-blue-900 bg-transparent border border-blue-100 shadow-[0_0_6px_rgba(59,130,246,0.2)] hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
                          >
                            {emp.name}
@@ -613,7 +619,7 @@ export const Leaderboard: React.FC = () => {
                   </div>
 
                   <div className="p-4 bg-teal-50/50 border-b border-teal-100 shrink-0">
-                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" />
+                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" onPeriodSelect={period => setSelectedBranchPeriod({ branch: modalBranchName, ...period })} />
                   </div>
 
 

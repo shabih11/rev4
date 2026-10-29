@@ -65,3 +65,17 @@ export function weeklyActivity(reviews: ReviewSummary[], now = new Date()) {
 export function monthlyEmployeeOrder(a: { monthReviewsCount?: number; name: string; id: string }, b: { monthReviewsCount?: number; name: string; id: string }) {
   return (b.monthReviewsCount || 0) - (a.monthReviewsCount || 0) || a.name.localeCompare(b.name, 'ar') || a.id.localeCompare(b.id);
 }
+
+/** Count each linked review once per employee, including ties in the selected period. */
+export function periodReviewLeaders(reviews: ReviewSummary[], start: number, end: number) {
+  const counts = new Map<string, number>();
+  const seen = new Set<string>();
+  for (const review of reviews) {
+    const date = reviewTimestamp({ date: review.date });
+    if (seen.has(review.id) || date < start || date > end) continue;
+    seen.add(review.id);
+    for (const id of new Set(review.linkedEmployeeIds)) counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  const count = Math.max(0, ...counts.values());
+  return { ids: [...counts].filter(([, value]) => value === count).map(([id]) => id), count };
+}

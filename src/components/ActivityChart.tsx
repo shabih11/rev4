@@ -4,7 +4,7 @@ import type { ReviewSummary } from '../context/DataContext';
 import { weeklyActivity, newestFirst, reviewTimestamp } from '../lib/employeeActivity';
 import { formatDateTime, toEnglishNumerals, formatDate } from '../lib/formatDate';
 
-export function ActivityChart({ reviews, subject = 'employee' }: { reviews: (ReviewSummary & { comment?: string })[]; subject?: 'employee' | 'branch' }) {
+export function ActivityChart({ reviews, subject = 'employee', onPeriodSelect }: { reviews: (ReviewSummary & { comment?: string })[]; subject?: 'employee' | 'branch'; onPeriodSelect?: (period: { start: number; end: number }) => void }) {
   const branch = subject === 'branch';
   const positiveColor = branch ? '#0d9488' : '#16a34a';
   const negativeColor = branch ? '#7c3aed' : '#ef4444';
@@ -12,6 +12,10 @@ export function ActivityChart({ reviews, subject = 'employee' }: { reviews: (Rev
   const negativeText = branch ? 'text-violet-700' : 'text-red-600';
   const weeks = weeklyActivity(reviews);
   const [selected, setSelected] = useState<number | null>(null);
+  const selectPeriod = (index: number) => {
+    setSelected(index);
+    onPeriodSelect?.({ start: weeks[index].start.getTime(), end: weeks[index].end.getTime() });
+  };
   const gradient = useId().replace(/:/g, '');
   const max = Math.max(1, ...weeks.flatMap(week => [week.positive, week.negative]));
   const x = (index: number) => 40 + index * 520 / Math.max(1, weeks.length - 1);
@@ -24,7 +28,7 @@ export function ActivityChart({ reviews, subject = 'employee' }: { reviews: (Rev
     return date >= active.start.getTime() && date <= active.end.getTime();
   }).sort(newestFirst);
   return <section className="bg-white p-4 rounded-2xl border shadow-sm space-y-4" aria-label={branch ? 'نشاط الفرع الأسبوعي خلال آخر ثلاثة أشهر' : 'نشاط الموظفة الأسبوعي خلال آخر ثلاثة أشهر'}>
-    <div><h4 className="font-bold text-gray-800">{branch ? 'نشاط الفرع خلال آخر ثلاثة أشهر' : 'نشاطي خلال آخر ثلاثة أشهر'}</h4><p className="text-xs text-gray-500 mt-1">{branch ? 'عدد تقييمات الفرع لكل أسبوع؛ اختاري أسبوعًا لعرض الأعداد فقط' : 'عدد التقييمات المرتبطة بالموظفة لكل أسبوع'}</p></div>
+    <div><h4 className="font-bold text-gray-800">{branch ? 'نشاط الفرع خلال آخر ثلاثة أشهر' : 'نشاطي خلال آخر ثلاثة أشهر'}</h4>{!branch && <p className="text-xs text-gray-500 mt-1">عدد التقييمات المرتبطة بالموظفة لكل أسبوع</p>}</div>
     <div className="flex flex-wrap gap-4 text-xs"><span className={positiveText}>━ التقييمات الإيجابية</span><span className={negativeText}>┄ التقييمات السلبية</span></div>
     <svg viewBox="0 0 600 245" className="w-full" role="group" aria-label="منحنى أسبوعي للتقييمات الإيجابية والسلبية" style={{ direction: 'ltr' }}>
       <defs><linearGradient id={gradient} x1="0" y1="0" x2="0" y2="1"><stop stopColor={positiveColor} stopOpacity=".3"/><stop offset="1" stopColor={positiveColor} stopOpacity="0"/></linearGradient></defs>
@@ -32,10 +36,10 @@ export function ActivityChart({ reviews, subject = 'employee' }: { reviews: (Rev
       <polygon points={`40,205 ${line('positive')} 560,205`} fill={`url(#${gradient})`}/>
       <polyline points={line('negative')} fill="none" stroke={negativeColor} strokeWidth="2" strokeDasharray="5 4"/>
       <polyline points={line('positive')} fill="none" stroke={positiveColor} strokeWidth="2.5"/>
-      {weeks.map((week, index) => <g key={index} role="button" tabIndex={0} aria-pressed={selected === index} aria-label={`${format(week.start)}: ${week.positive} إيجابي، ${week.negative} سلبي`} onClick={() => setSelected(index)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setSelected(index); } }} className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700">
-        <rect x={x(index) - 12} y="25" width="24" height="190" fill="transparent" onClick={() => setSelected(index)} className="cursor-pointer"><title>{format(week.start)}: {week.positive} إيجابي، {week.negative} سلبي</title></rect>
-        <circle cx={x(index)} cy={y(week.positive)} r={selected === index ? 5 : 3} fill={positiveColor} onClick={() => setSelected(index)} className="cursor-pointer"/>
-        <circle cx={x(index)} cy={y(week.negative)} r={selected === index ? 5 : 3} fill={negativeColor} onClick={() => setSelected(index)} className="cursor-pointer"/>
+      {weeks.map((week, index) => <g key={index} role="button" tabIndex={0} aria-pressed={selected === index} aria-label={`${format(week.start)}: ${week.positive} إيجابي، ${week.negative} سلبي`} onClick={() => selectPeriod(index)} onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectPeriod(index); } }} className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700">
+        <rect x={x(index) - 12} y="25" width="24" height="190" fill="transparent" className="cursor-pointer"><title>{format(week.start)}: {week.positive} إيجابي، {week.negative} سلبي</title></rect>
+        <circle cx={x(index)} cy={y(week.positive)} r={selected === index ? 5 : 3} fill={positiveColor} className="cursor-pointer"/>
+        <circle cx={x(index)} cy={y(week.negative)} r={selected === index ? 5 : 3} fill={negativeColor} className="cursor-pointer"/>
         {(index === 0 || index === weeks.length - 1 || index % 4 === 0) && <text x={x(index)} y="230" textAnchor="middle" fontSize="10" fill="#6b7280">{format(week.start)}</text>}
       </g>)}
     </svg>
