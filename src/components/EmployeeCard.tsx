@@ -3,7 +3,7 @@ import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { shiftReviewCounts } from '../lib/shiftReviewCounts';
 import { employeeReviewBranches } from '../lib/employeeBranches';
 import { gemTheme } from '../lib/gems';
-import { EmployeeAvatar, BalanceGrowth, Overtaken } from './EmployeeFeatures';
+import { EmployeeAvatar, BalanceGrowth } from './EmployeeFeatures';
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShiftReviewCounts } from './ShiftReviewCounts';
@@ -114,22 +114,10 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
         >
           {/* Header */}
           <div className="glass-modal-header p-4 sm:p-6 flex justify-between items-center sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-              <EmployeeAvatar employee={employee} className="w-16 h-16 rounded-full border-2 border-white/80 shadow-sm shrink-0 bg-white/60" />
-              <div>
-                <EmployeeIdentity employee={employee} className="text-xl sm:text-2xl" />
-                <Overtaken employee={employee} /><p className="text-xs">رصيد الشهر: {employee.monthReviewsCount || 0} <BalanceGrowth employee={employee} /></p>
-                <div className="flex gap-2 mt-1 flex-wrap">
-                  <button onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط" className="glass-modal-control text-[10px] sm:text-xs px-2 py-1 rounded-md">النقاط: {employee.points != null ? employee.points.toFixed(1) : '0.0'}</button>
-                  <p className="glass-modal-control text-[10px] sm:text-xs px-2 py-1 rounded-md">إجمالي التقييمات: {employee.reviewsCount ?? 0}</p>
-                </div>
-                {favoritePartnerName && (
-                  <p className="glass-modal-control text-[10px] sm:text-xs mt-2 font-medium w-fit px-2 py-1 rounded-full">
-                    شريكتي المفضلة: {favoritePartnerName}
-                  </p>
-                )}
-              </div>
-            </div>
+            <h2 className="min-w-0 flex flex-wrap items-baseline gap-x-2 text-xl sm:text-2xl">
+              <span className="font-extrabold break-words">{employee.name}</span>
+              <span className="text-base sm:text-xl font-medium break-words">({employee.branch})</span>
+            </h2>
             <button 
               onClick={onClose}
               className="glass-modal-control p-2 rounded-full transition-colors self-start shrink-0"
