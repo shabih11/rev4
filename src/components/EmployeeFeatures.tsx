@@ -1,12 +1,13 @@
 import { TrendingUp } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { dailyProgress, employeeTier } from '../lib/employeeFeatures';
+import { rewardTier } from '../lib/employeeRewards';
 import type { UserAccount } from '../lib/mockData';
 import { TierAward } from './TierAward';
 import { AvatarImage } from './AvatarImage';
 export function TierBadge({ employee }: { employee: UserAccount }) {
-  const { features } = useData();
-  const tier = features ? employeeTier(employee.points, features.settings) : 'bronze';
+  const { features, resultsMode } = useData();
+  const tier = features ? resultsMode && features.settings.tiers ? rewardTier(employee.points, features.settings.rounding === true) : employeeTier(employee.points, features.settings) : 'bronze';
   if (tier === 'bronze' || employee.role !== 'employee') return null;
   return <TierAward gold={tier === 'gold'} />;
 }

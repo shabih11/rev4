@@ -4,6 +4,7 @@ import { useRecordScope } from '../hooks/useRecordScope';
 import { formatDate } from '../lib/formatDate';
 import { employeeQualityPoints, qualityDeductions } from '../lib/employeeQuality';
 import { employeeTier } from '../lib/employeeFeatures';
+import { rewardTier } from '../lib/employeeRewards';
 import type { UserAccount } from '../lib/mockData';
 import { Award, ChevronDown } from 'lucide-react';
 
@@ -20,7 +21,8 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
   const deductions = qualityDeductions(user, reviewSummaries, timeline, resultsDate);
   const periodLabel = resultsMode ? 'الشهر الماضي' : 'الشهر الحالي';
   const reasons = { review: 'رصيد تقييم سلبي', complaint: 'شكوى مؤكدة', safety: 'حادث سلامة', 'review-balance': 'رصيد جودة التقييمات المسجل', 'conduct-balance': 'رصيد الشكاوى المؤكدة وحوادث السلامة المسجل' };
-  const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
+  const roundedPoints = resultsMode && features?.settings.rounding === true ? Math.ceil(user.points) : user.points;
+  const tier = features ? resultsMode && features.settings.tiers ? rewardTier(user.points, features.settings.rounding === true) : employeeTier(user.points, features.settings) : 'bronze';
   return <section aria-label="نتائجي" aria-busy={!ready && !error} className="px-6 mb-8">
     {!ready || error ? <div className="rounded-2xl border bg-white p-6">
       {error ? <p role="alert" className="text-red-700">تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p> : <p role="status">جارٍ تحميل نتائجك…</p>}
@@ -28,7 +30,8 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
       <summary className="list-none cursor-pointer flex items-center justify-between gap-3 p-6 sm:p-8 rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
         <div>
           <h2 className="text-gray-500 font-bold mb-1">نقاط {periodLabel}</h2>
-          <p className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</p>
+          <p className="text-5xl font-extrabold text-gray-800">{roundedPoints.toFixed(1)}</p>
+          {roundedPoints !== user.points && <p className="mt-2 text-xs text-slate-500">{user.points.toFixed(2)} قبل نظام الجبر</p>}
         </div>
         <div className="flex items-center gap-3">
           <div className={`w-16 h-16 flex items-center justify-center ${tier === 'bronze' ? 'bg-blue-100 rounded-full text-blue-500' : ''}`}>

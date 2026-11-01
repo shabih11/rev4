@@ -11,6 +11,7 @@ const switches = [
   ['balanceGrowth', 'زيادة رصيد التقييمات', 'عرض الزيادة اليومية باللون الأخضر بجانب الرصيد.'],
   ['tiers', 'شارات الفئات', 'خبيرة للفئة الفضية ومتميزة للفئة الذهبية.'],
   ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
+  ['rounding', 'نظام الجبر', 'جبر نقاط الفئة إلى العدد الصحيح الأعلى، ودمج جبر المكافأة للعشرة الأعلى مع الزيادة الجماعية. يتوقف الجبر عند سقف زيادة ٢٠ ريال، إلا عند الحاجة لضمان الحد الأدنى ١٠٠ ريال للمستحقات.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
@@ -28,12 +29,12 @@ function SettingsForm({ initial }: { initial: FeatureSettings }) {
     setBusy(true); setMessage('');
     const { error } = await supabase.rpc('save_employee_features', { requested: settings, expected: initial });
     setBusy(false);
-    setMessage(error ? 'تعذر الحفظ. تحققي من الصلاحيات والاتصال، أو حدّثي الصفحة إذا عدّل مدير آخر الإعدادات.' : 'تم حفظ الميزات لجميع الموظفات.');
+    setMessage(error ? error.code === '22023' && settings.rounding !== undefined ? 'تعذر حفظ نظام الجبر؛ تأكدي من تطبيق تحديث إعدادات المكافآت في قاعدة البيانات.' : 'تعذر الحفظ. تحققي من الصلاحيات والاتصال، أو حدّثي الصفحة إذا عدّل مدير آخر الإعدادات.' : 'تم حفظ الميزات لجميع الموظفات.');
     if (!error) window.dispatchEvent(new Event('rev4-cache-changed'));
   }}>
     <div><p className="text-sm font-bold text-purple-700">مساحة التميّز</p><h2 className="text-2xl font-black mt-1">الميزات الإضافية</h2><p className="text-slate-600 mt-2">تحكّمي بتجربة الموظفات. تُطبّق الإعدادات على جميع الفروع.</p></div>
     <div className="grid md:grid-cols-2 gap-4">{switches.map(([key, title, description]) => <label key={key} className="flex gap-4 items-start rounded-2xl border border-slate-200 bg-slate-50 p-5 cursor-pointer">
-      <input type="checkbox" role="switch" checked={settings[key]} onChange={event => setSettings({ ...settings, [key]: event.target.checked })} className="mt-1 w-5 h-5 accent-indigo-700" />
+      <input type="checkbox" role="switch" checked={settings[key] ?? false} onChange={event => setSettings({ ...settings, [key]: event.target.checked })} className="mt-1 w-5 h-5 accent-indigo-700" />
       <span><span className="block font-bold text-slate-900">{title}</span><span className="block text-sm text-slate-600 mt-2 leading-6">{description}</span></span>
     </label>)}</div>
     <fieldset className="rounded-2xl border p-5 space-y-4"><legend className="font-bold px-2">حدود الفئات حسب نقاط الشهر من 11</legend>
@@ -43,6 +44,7 @@ function SettingsForm({ initial }: { initial: FeatureSettings }) {
       </div>
       <div className="grid sm:grid-cols-3 gap-3 text-sm"><p className="rounded-xl bg-orange-50 text-orange-950 p-4">Bronze · أقل من {settings.silverAt}</p><p className="rounded-xl bg-slate-100 text-slate-900 p-4">Silver · من {settings.silverAt} إلى أقل من {settings.goldAt}</p><p className="rounded-xl bg-amber-50 text-amber-950 p-4">Gold · {settings.goldAt} فأكثر</p></div>
     </fieldset>
+    <p className="text-sm text-slate-600">مكافآت النتائج: الذهبية من ١١ نقطة × ١٤ ريال، والفضية من ٨ نقاط × ١٠ ريالات لكل رصيد تقييم فعلي. يُحسب الحد الأدنى والزيادة الجماعية من جميع المستحقات في الشهر، بما في ذلك من خارج منصة الأوائل السبع.</p>
     <p className="text-sm text-slate-600">المقارنة مع بداية آخر يوم وصلت فيه تقييمات بتوقيت الرياض؛ تبقى التقدمات ظاهرة حتى وصول تحديث يوم جديد.</p>
     {message && <p role="status" className="text-sm font-bold text-indigo-900">{message}</p>}
     <button disabled={busy} className="action-primary">{busy ? 'جارٍ الحفظ…' : 'حفظ الميزات'}</button>

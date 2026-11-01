@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ShiftReviewCounts } from './ShiftReviewCounts';
 import { favoritePartner, newestFirst } from '../lib/employeeActivity';
+import { calculateEmployeeRewards } from '../lib/employeeRewards';
 import type { UserAccount } from '../lib/mockData';
 import { X, CalendarClock, Star, Clock, Award } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -79,6 +80,8 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const latestShiftSummary = latestShift ? `${formatDateTime(latestShift.date)} ${arabicReviewCount(shiftReviewCounts(latestShift, employee.id, reviews).total)}`.replace(/[0-9]/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]) : 'لا توجد شفتات مسجلة';
 
   const partner = favoritePartner(employee.id, reviewSummaries, resultsDate);
+  const reward = resultsMode && features ? calculateEmployeeRewards(users.filter(user => user.role === 'employee'), features.settings.rounding === true).rewards[employee.id] : null;
+  const roundedPoints = reward?.qualifyingPoints ?? employee.points;
   const favoritePartnerName = users.find(user => user.id === partner.id)?.name || '';
 
   const totalHours = Math.round(employeeHours[employee.id] ?? employeeShifts.reduce((total, shift) => {
@@ -224,7 +227,13 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <EmployeeIdentity employee={employee} showCoverageBranch={showCoverageBranch} className="items-start text-lg sm:text-2xl" />
                   <dl className="space-y-3 text-sm">
                     <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
-                    <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{employee.points.toFixed(1)}</button></dd></div>
+                    <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{roundedPoints.toFixed(1)}</button></dd></div>
+                    {reward && <>
+                      <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>
+                      <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA')} ريال</dd>
+                        {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">{reward.base.toLocaleString('ar-SA')} ريال قبل الجبر + {reward.increase.toLocaleString('ar-SA')} ريال زيادة{reward.minimumOverride ? '؛ لتأمين الحد الأدنى ١٠٠ ريال.' : '.'}</p>}
+                      </div>
+                    </>}
                     <div><dt className="text-xs text-slate-500">إجمالي التقييمات</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.reviewsCount ?? 0)}</dd></div>
                     {favoritePartnerName && <div><dt className="text-xs text-slate-500">شريكتي المفضلة</dt><dd className="font-bold break-words">{favoritePartnerName}</dd></div>}
                   </dl>
@@ -241,8 +250,9 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                       <p className="text-blue-100 text-sm">من إجمالي 11 نقطة</p>
                     </div>
                   </div>
-                  <p className="text-4xl font-extrabold">{employee.points?.toFixed(1)}</p>
+                  <p className="text-4xl font-extrabold">{roundedPoints?.toFixed(1)}</p>
                 </div>
+                {roundedPoints !== employee.points && <p className="text-sm text-slate-600">النقاط الفعلية {employee.points.toFixed(2)}؛ بعد نظام الجبر {roundedPoints.toFixed(0)} لتحديد فئة المكافأة.</p>}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">

@@ -18,6 +18,14 @@ test('invalid thresholds and malformed flags are rejected', () => {
   assert.equal(validFeatureSettings(enabled), true);
   for (const change of [{ silverAt: 11 }, { goldAt: 12 }, { silverAt: 0 }, { silverAt: NaN }, { tiers: 'true' }, { goldAt: null }]) assert.equal(validFeatureSettings({ ...enabled, ...change }), false);
 });
+
+test('rounding is optional for older servers and must be a boolean when present', () => {
+  const { rounding: _rounding, ...legacy } = enabled;
+  assert.equal(validFeatureSettings(legacy), true);
+  assert.equal(validFeatureSettings({ ...legacy, rounding: true }), true);
+  assert.equal(validFeatureSettings({ ...legacy, rounding: false }), true);
+  for (const rounding of ['true', null, 1]) assert.equal(validFeatureSettings({ ...legacy, rounding }), false);
+});
 test('daily comparison uses leaderboard tie-breaks and ignores employees without a baseline', () => {
   const employees = [{ id: 'a', name: 'A', monthReviewsCount: 5.4 }, { id: 'b', name: 'B', monthReviewsCount: 5 }, { id: 'c', name: 'C', monthReviewsCount: 5.4 }, { id: 'd', name: 'D', monthReviewsCount: 4 }, { id: 'new', name: 'New', monthReviewsCount: 0 }];
   const state = { baseline: { a: 4, b: 5, c: 6, d: 4 }, settings: enabled };

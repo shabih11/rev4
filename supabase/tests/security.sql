@@ -92,6 +92,16 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 do $$ begin if public.authorize_employee_account('verify-employee')<>'00000000-0000-4000-8000-000000000003'::uuid then raise exception 'Admin employee account action denied'; end if; end $$;
 select public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":8,"goldAt":11}',(select data from public.employee_feature_settings where id=1));
+select public.save_employee_features((select data||'{"rounding":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin
+ if (select data->'rounding' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Rounding flag was not saved'; end if;
+ begin perform public.save_employee_features((select data||'{"rounding":"true"}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'String rounding accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.save_employee_features((select data||'{"rounding":null}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'Null rounding accepted'; exception when invalid_parameter_value then null; end;
+end $$;
+-- Older clients must not silently disable the flag when omitting it.
+select public.save_employee_features((select data-'rounding' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin if (select data->'rounding' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Legacy save reset rounding'; end if; end $$;
+select public.save_employee_features((select data||'{"rounding":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
 do $$ begin
  begin perform public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":11,"goldAt":8}',(select data from public.employee_feature_settings where id=1)); raise exception 'Invalid thresholds accepted'; exception when invalid_parameter_value then null; end;
  begin perform public.save_employee_features((select data from public.employee_feature_settings where id=1),'{}'); raise exception 'Feature conflict accepted'; exception when serialization_failure then null; end;

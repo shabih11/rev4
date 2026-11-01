@@ -21,6 +21,8 @@ import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
+import { ResultsPodium } from '../components/ResultsPodium';
+import { calculateEmployeeRewards } from '../lib/employeeRewards';
 import { formatTimestamp, isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
@@ -51,14 +53,17 @@ export const Leaderboard: React.FC = () => {
   const allEmployeesSorted = useMemo(() => {
     return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
   }, [users]);
+  const rewardSummary = useMemo(() => features ? calculateEmployeeRewards(allEmployeesSorted, features.settings.rounding === true) : null, [allEmployeesSorted, features]);
 
   const [praisePeriod, setPraisePeriod] = useState(() => praiseCycle());
   useEffect(() => {
+    if (resultsMode) return;
     const timer = window.setTimeout(() => setPraisePeriod(praiseCycle()), Math.max(0, nextPraiseCycle(praisePeriod) - Date.now()) + 50);
     return () => window.clearTimeout(timer);
-  }, [praisePeriod]);
+  }, [praisePeriod, resultsMode]);
 
   const slidesData = useMemo(() => {
+    if (resultsMode) return [];
     // 1. Top 10 Employees
     const sorted = allEmployeesSorted.slice(0, 10);
 
@@ -190,18 +195,22 @@ export const Leaderboard: React.FC = () => {
       </header>;
 
   if (!summaryReady) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
-  if (slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
+  if (!resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
     <div
       data-motion="full"
-      data-gem-theme={activeSlide.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
-      data-tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
-      className="recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y"
+      data-gem-theme={!resultsMode && activeSlide?.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
+      data-tier={!resultsMode && activeSlide?.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
+      className={resultsMode ? 'results-page' : 'recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y'}
       dir="rtl"
     >
 
       {navigation}
+      {resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate} rounding={features?.settings.rounding === true}
+        renderAvatar={employee => <EmployeeAvatar employee={employee} />}
+        renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
+      /> : <>
       <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
         onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
       <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />
@@ -386,6 +395,7 @@ export const Leaderboard: React.FC = () => {
           ))}
         </Swiper>
       </div>
+      </>}
 
       {/* All Employees Modal */}
       <AnimatePresence>
