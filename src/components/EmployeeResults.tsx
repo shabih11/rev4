@@ -51,9 +51,9 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
         </div>)}
       </dl>
       {quality < 6 && <div className="px-4 pb-4 sm:px-6 sm:pb-6 text-sm text-slate-600" aria-label="أسباب نقص الجودة">
-        <p className="font-bold mb-2">نقص {(6 - quality).toLocaleString('ar-SA', { maximumFractionDigits: 2 })} من ٦ نقاط</p>
+        <p className="font-bold mb-2">نقص {(6 - quality).toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 })} من 6 نقاط</p>
         {!recordsReady ? <p role="status">جارٍ تحميل أسباب النقص…</p> : syncError ? <p role="alert">تعذر تحميل تفاصيل أسباب النقص.</p> : <ul className="space-y-1">
-          {deductions.map((deduction, index) => <li key={index}>نقص {deduction.amount.toLocaleString('ar-SA', { maximumFractionDigits: 2 })} بسبب {reasons[deduction.kind]}{deduction.date ? ` في تاريخ ${formatDate(deduction.date).replace(/[0-9]/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)])}` : '؛ تفاصيل التاريخ غير متاحة أو لا تتطابق مع الرصيد المسجل.'}</li>)}
+          {deductions.map((deduction, index) => <li key={index}>نقص {deduction.amount.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 })} بسبب {reasons[deduction.kind]}{deduction.date ? ` في تاريخ ${formatDate(deduction.date)}` : '؛ تفاصيل التاريخ غير متاحة أو لا تتطابق مع الرصيد المسجل.'}</li>)}
         </ul>}
       </div>}
 

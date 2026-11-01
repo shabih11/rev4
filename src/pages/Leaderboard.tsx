@@ -301,7 +301,7 @@ export const Leaderboard: React.FC = () => {
               {activeSlide.type === 'praised_employee' && (
                 <>
                   <EmployeeIdentity showCoverageBranch employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
-                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA')} تقييم آخر ١٠ ايام</p>
+                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA-u-nu-latn')} تقييم آخر 10 ايام</p>
 
                 </>
               )}
@@ -426,7 +426,7 @@ export const Leaderboard: React.FC = () => {
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1 min-w-0 space-y-1">
-                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA')}.</bdi>{' '}{emp.name}</>}/>
+                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{emp.name}</>}/>
                         <Overtaken employee={emp} />
                         {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
                           آخر دخول: {!employeeSignIns ? 'جارٍ التحميل…' : employeeSignIns.error ? 'تعذر التحميل' : employeeSignIns.data?.[emp.id] === null ? 'لم تسجل دخولًا بعد' : employeeSignIns.data?.[emp.id] ? formatTimestamp(Date.parse(employeeSignIns.data[emp.id]!)) : 'غير متاح'}
@@ -435,7 +435,7 @@ export const Leaderboard: React.FC = () => {
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
                         <p className="text-[10px] text-gray-400">رصيد الشهر</p>
-                        {resultsMode ? <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary?.rewards[emp.id] ? `${rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA')} ريال` : 'المكافأة غير متاحة'}</p> : <BalanceGrowth employee={emp} />}
+                        {resultsMode ? <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary?.rewards[emp.id] ? `${rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال` : 'المكافأة غير متاحة'}</p> : <BalanceGrowth employee={emp} />}
                       </div>
                     </button>
                   </EmployeeCard>

@@ -493,7 +493,7 @@ export const SystemAdminDashboard: React.FC = () => {
                                 <div>
                                   <EmployeeIdentity employee={emp} className="text-sm text-gray-800"/>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    <span className="text-green-600 font-bold">{emp.stats.positive.toFixed(1)}</span> إيجابي | <span className="text-blue-700 font-bold">{employeeQualityPoints(emp.stats).toFixed(1)}</span> جودة من ٦
+                                    <span className="text-green-600 font-bold">{emp.stats.positive.toFixed(1)}</span> إيجابي | <span className="text-blue-700 font-bold">{employeeQualityPoints(emp.stats).toFixed(1)}</span> جودة من 6
                                   </p>
                                 </div>
                               </div>
@@ -718,9 +718,9 @@ export const SystemAdminDashboard: React.FC = () => {
 
                           </div>
                           <div className="min-w-0 space-y-2">
-                            <p className="text-sm font-bold text-slate-600">رصيد جودة التقييمات (من ٢)</p>
+                            <p className="text-sm font-bold text-slate-600">رصيد جودة التقييمات (من 2)</p>
 
-                          <input aria-label="رصيد جودة التقييمات من ٢" type="number" step="0.5" defaultValue={emp.stats.negative}
+                          <input aria-label="رصيد جودة التقييمات من 2" type="number" step="0.5" defaultValue={emp.stats.negative}
                             onBlur={(e) => handleUpdateStats(emp.id, 'negative', parseFloat(e.target.value) || 0)}
                             className="w-full p-1 border rounded text-center focus:bg-white text-red-600 font-bold text-xs" />
 

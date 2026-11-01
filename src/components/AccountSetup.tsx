@@ -23,8 +23,8 @@ export function AccountSetup() {
         if (!statusReady || busy) return;
         setError('');
         const normalized = normalizeUsername(username);
-        if (!validUsername(normalized)) { setError('اسم المستخدم من ٣ إلى ٣٢ خانة: حروف إنجليزية وأرقام ونقطة أو شرطة فقط.'); return; }
-        if (mustChangePassword && (password.trim().length < 8 || password.length > 128)) { setError('كلمة المرور الجديدة من ٨ إلى ١٢٨ خانة.'); return; }
+        if (!validUsername(normalized)) { setError('اسم المستخدم من 3 إلى 32 خانة: حروف إنجليزية وأرقام ونقطة أو شرطة فقط.'); return; }
+        if (mustChangePassword && (password.trim().length < 8 || password.length > 128)) { setError('كلمة المرور الجديدة من 8 إلى 128 خانة.'); return; }
         if (mustChangePassword && password !== confirmation) { setError('كلمتا المرور غير متطابقتين.'); return; }
         setBusy(true);
         const result = await completeAccountSetup(normalized, mustChangePassword ? password : undefined);

@@ -77,7 +77,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const employeeShifts = timeline.filter(t => t.type === 'shift' && t.employees?.some(e => isEmpMatch(e.id, e.name))).sort(newestFirst);
 
   const latestShift = employeeShifts[0];
-  const latestShiftSummary = latestShift ? `${formatDateTime(latestShift.date)} ${arabicReviewCount(shiftReviewCounts(latestShift, employee.id, reviews).total)}`.replace(/[0-9]/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]) : 'لا توجد شفتات مسجلة';
+  const latestShiftSummary = latestShift ? `${formatDateTime(latestShift.date)} ${arabicReviewCount(shiftReviewCounts(latestShift, employee.id, reviews).total)}` : 'لا توجد شفتات مسجلة';
 
   const partner = favoritePartner(employee.id, reviewSummaries, resultsDate);
   const reward = resultsMode && features ? calculateEmployeeRewards(users.filter(user => user.role === 'employee'), features.settings.rounding === true).rewards[employee.id] : null;
@@ -230,8 +230,8 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{roundedPoints.toFixed(1)}</button></dd></div>
                     {reward && <>
                       <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>
-                      <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA')} ريال</dd>
-                        {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">{reward.base.toLocaleString('ar-SA')} ريال قبل الجبر + {reward.increase.toLocaleString('ar-SA')} ريال زيادة.</p>}
+                      <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA-u-nu-latn')} ريال</dd>
+                        {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">{reward.base.toLocaleString('ar-SA-u-nu-latn')} ريال قبل الجبر + {reward.increase.toLocaleString('ar-SA-u-nu-latn')} ريال زيادة.</p>}
                       </div>
                     </>}
                     <div><dt className="text-xs text-slate-500">إجمالي التقييمات</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.reviewsCount ?? 0)}</dd></div>
@@ -266,7 +266,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col justify-between">
                     <div>
                       <p className="text-gray-500 text-sm font-bold mb-1">الجودة</p>
-                      <p className="text-xs text-gray-400">من أصل ٦ نقاط</p>
+                      <p className="text-xs text-gray-400">من أصل 6 نقاط</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600 mt-2">{employeeQualityPoints(employee.stats).toFixed(1)}</p>
                   </div>

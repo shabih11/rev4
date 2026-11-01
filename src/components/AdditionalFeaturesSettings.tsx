@@ -11,7 +11,7 @@ const switches = [
   ['balanceGrowth', 'زيادة رصيد التقييمات', 'عرض الزيادة اليومية باللون الأخضر بجانب الرصيد.'],
   ['tiers', 'شارات الفئات', 'خبيرة للفئة الفضية ومتميزة للفئة الذهبية.'],
   ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
-  ['rounding', 'نظام الجبر', 'جبر نقاط الفئة إلى العدد الصحيح الأعلى، ودمج زيادة المكافأة مع الزيادة الجماعية لاستهداف ١٠٠ ريال للمستحقات. المكافأة دائمًا من مضاعفات العشرة، ولا تتجاوز الزيادة ٢٠ ريال حتى إن كانت أقل من زيادة غيرها أو تعذّر بلوغ ١٠٠ ريال.'],
+  ['rounding', 'نظام الجبر', 'جبر نقاط الفئة إلى العدد الصحيح الأعلى، ودمج زيادة المكافأة مع الزيادة الجماعية لاستهداف 100 ريال للمستحقات. المكافأة دائمًا من مضاعفات العشرة، ولا تتجاوز الزيادة 20 ريال حتى إن كانت أقل من زيادة غيرها أو تعذّر بلوغ 100 ريال.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
@@ -44,7 +44,7 @@ function SettingsForm({ initial }: { initial: FeatureSettings }) {
       </div>
       <div className="grid sm:grid-cols-3 gap-3 text-sm"><p className="rounded-xl bg-orange-50 text-orange-950 p-4">Bronze · أقل من {settings.silverAt}</p><p className="rounded-xl bg-slate-100 text-slate-900 p-4">Silver · من {settings.silverAt} إلى أقل من {settings.goldAt}</p><p className="rounded-xl bg-amber-50 text-amber-950 p-4">Gold · {settings.goldAt} فأكثر</p></div>
     </fieldset>
-    <p className="text-sm text-slate-600">مكافآت النتائج: الذهبية من ١١ نقطة × ١٤ ريال، والفضية من ٨ نقاط × ١٠ ريالات لكل رصيد تقييم فعلي. يُحسب الحد الأدنى والزيادة الجماعية من جميع المستحقات في الشهر، بما في ذلك من خارج منصة الأوائل السبع.</p>
+    <p className="text-sm text-slate-600">مكافآت النتائج: الذهبية من 11 نقطة × 14 ريال، والفضية من 8 نقاط × 10 ريالات لكل رصيد تقييم فعلي. يُحسب الحد الأدنى والزيادة الجماعية من جميع المستحقات في الشهر، بما في ذلك من خارج منصة الأوائل السبع.</p>
     <p className="text-sm text-slate-600">المقارنة مع بداية آخر يوم وصلت فيه تقييمات بتوقيت الرياض؛ تبقى التقدمات ظاهرة حتى وصول تحديث يوم جديد.</p>
     {message && <p role="status" className="text-sm font-bold text-indigo-900">{message}</p>}
     <button disabled={busy} className="action-primary">{busy ? 'جارٍ الحفظ…' : 'حفظ الميزات'}</button>

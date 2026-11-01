@@ -143,8 +143,8 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
       node.removeEventListener('click', click, true); node.removeEventListener('keydown', key);
     };
   }, [fit]);
-  const monthLabel = period.toLocaleDateString('ar-SA-u-ca-gregory', { timeZone: 'Asia/Riyadh', month: 'long' });
-  const money = (value: number) => value.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
+  const monthLabel = period.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { timeZone: 'Asia/Riyadh', month: 'long' });
+  const money = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 
   return <main className="results-podium" aria-label="منصة الأوائل السبع" dir="rtl">
     <div className="results-spotlights" aria-hidden="true"><i /><i /><i /><i /></div>
@@ -153,7 +153,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
       <span className="results-podium-eyebrow"><Trophy size={17} aria-hidden="true" /> نتائج {monthLabel}</span>
       <h1>منصة الأوائل</h1>
     </header>
-    <p id="results-podium-help" className="sr-only">قرّبي بإصبعين أو بعجلة الفأرة، واسحبي لقراءة التفاصيل. بلوحة المفاتيح استخدمي + و- للتقريب و٠ لإظهار الكل.</p>
+    <p id="results-podium-help" className="sr-only">قرّبي بإصبعين أو بعجلة الفأرة، واسحبي لقراءة التفاصيل. بلوحة المفاتيح استخدمي + و- للتقريب و0 لإظهار الكل.</p>
     <div ref={viewport} className="results-podium-viewport" style={{ height: Math.max(240, podiumHeight * fit + 32) }} tabIndex={0} role="region" aria-label="منصة ترتيب قابلة للتكبير والتمرير" aria-describedby="results-podium-help">
       <div className="results-podium-scroll-space" style={{ width: Math.max(width, podiumWidth * scale + 24), height: podiumHeight * scale + 32 }}>
         <ol className="results-podium-scene" style={{ transform: `scale(${scale})` }} aria-label="ترتيب الأوائل حسب رصيد التقييمات">
@@ -161,7 +161,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
             const employee = employees[position.rank - 1];
             const reward = employee ? rewards?.[employee.id] : undefined;
             const front = <div className="results-platform-front" data-tier={reward?.tier || 'bronze'}>
-              <span className="results-platform-name" style={{ fontSize: employee ? Math.max(8, Math.min(13, 225 / (employee.name.length + 3))) : undefined }}><bdi dir="ltr">{position.rank.toLocaleString('ar-SA')}.</bdi>{' '}{employee?.name || 'لا توجد موظفة'}</span>
+              <span className="results-platform-name" style={{ fontSize: employee ? Math.max(8, Math.min(13, 225 / (employee.name.length + 2))) : undefined }}><bdi dir="ltr">{position.rank.toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{employee?.name || 'لا توجد موظفة'}</span>
               <span className="results-platform-branch" style={{ fontSize: employee ? Math.max(8, Math.min(11, 210 / employee.branch.length)) : undefined }}>{employee?.branch || '—'}</span>
               <span className="results-platform-reward">{employee ? reward ? `${money(reward.total)} ريال` : 'المكافأة غير متاحة' : '—'}</span>
             </div>;
