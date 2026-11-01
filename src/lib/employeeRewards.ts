@@ -12,7 +12,6 @@ export interface EmployeeReward {
   base: number;
   total: number;
   increase: number;
-  minimumOverride: boolean;
 }
 
 // Reward categories use the agreed monthly points out of eleven, independently
@@ -40,9 +39,10 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     if (rounding && cents > 0) {
       // Combine the shared uplift before rounding, rather than adding two bonuses.
       const rounded = Math.ceil((cents + commonCents) / 1000) * 1000;
-      const capped = cents + 2000;
-      // The user explicitly gives the 100-riyal minimum priority over the cap.
-      total = Math.max(10000, Math.min(rounded, capped));
+      // Every final reward must be a multiple of ten, even if that means a
+      // smaller uplift. The 20-riyal increase cap also limits the 100-riyal target.
+      const capped = Math.floor((cents + 2000) / 1000) * 1000;
+      total = Math.min(rounded, capped);
     }
     rewards[employee.id] = {
       tier,
@@ -50,7 +50,6 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
       base: cents / 100,
       total: total / 100,
       increase: (total - cents) / 100,
-      minimumOverride: total - cents > 2000,
     };
   }
   return { rewards, commonIncrease: commonCents / 100 };

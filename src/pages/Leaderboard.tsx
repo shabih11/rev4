@@ -207,7 +207,7 @@ export const Leaderboard: React.FC = () => {
     >
 
       {navigation}
-      {resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate} rounding={features?.settings.rounding === true}
+      {resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
         renderAvatar={employee => <EmployeeAvatar employee={employee} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
       /> : <>
@@ -424,10 +424,9 @@ export const Leaderboard: React.FC = () => {
                 {allEmployeesSorted.map((emp, idx) => (
                   <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
                       <div className="flex-1 min-w-0 space-y-1">
-                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800"/>
+                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA')}.</bdi>{' '}{emp.name}</>}/>
                         <Overtaken employee={emp} />
                         {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
                           آخر دخول: {!employeeSignIns ? 'جارٍ التحميل…' : employeeSignIns.error ? 'تعذر التحميل' : employeeSignIns.data?.[emp.id] === null ? 'لم تسجل دخولًا بعد' : employeeSignIns.data?.[emp.id] ? formatTimestamp(Date.parse(employeeSignIns.data[emp.id]!)) : 'غير متاح'}
@@ -435,7 +434,8 @@ export const Leaderboard: React.FC = () => {
                       </div>
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
-                        <p className="text-[10px] text-gray-400">رصيد الشهر</p><BalanceGrowth employee={emp} />
+                        <p className="text-[10px] text-gray-400">رصيد الشهر</p>
+                        {resultsMode ? <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary?.rewards[emp.id] ? `${rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA')} ريال` : 'المكافأة غير متاحة'}</p> : <BalanceGrowth employee={emp} />}
                       </div>
                     </button>
                   </EmployeeCard>

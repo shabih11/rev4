@@ -42,24 +42,34 @@ test('minimum uses all recipients, including employees outside the first seven; 
   assert.equal(rewards.bronze.total, 0);
   assert.equal(rewards.zero.total, 0);
 });
-test('minimum takes priority over the cap; other recipients retain the full capped uplift', () => {
+test('the cap takes priority over the minimum; unequal increases still end in whole tens', () => {
   const { rewards } = calculateEmployeeRewards([employee('low', 7.1, 7.1), employee('high', 11, 11)], true);
   assert.equal(rewards.low.base, 71);
-  assert.equal(rewards.low.total, 100);
-  assert.equal(rewards.low.minimumOverride, true);
-  assert.equal(rewards.high.total, 174);
-  assert.equal(rewards.high.increase, 20);
-  assert.equal(rewards.high.minimumOverride, false);
+  assert.equal(rewards.low.total, 90);
+  assert.equal(rewards.low.increase, 19);
+  assert.equal(rewards.high.total, 170);
+  assert.equal(rewards.high.increase, 16);
 });
-test('all valid payouts satisfy the minimum and cap; rounding to tens stops at the cap', () => {
+test('every rounded payout is a multiple of ten with an increase no greater than twenty', () => {
   const employees = Array.from({ length: 250 }, (_, i) => employee(String(i), i % 2 ? 8 : 11, (i + 1) / 10));
   const { rewards } = calculateEmployeeRewards(employees, true);
   for (const reward of Object.values(rewards)) {
-    assert.ok(reward.total >= 100);
-    assert.ok(reward.total % 10 === 0 || reward.increase === 20);
-    assert.ok(reward.increase <= 20 || reward.total === 100);
+    assert.equal(reward.total % 10, 0);
+    assert.ok(reward.increase <= 20);
     assert.ok(reward.total >= reward.base);
   }
+});
+test('a cap with decimal cents is rounded down to a whole ten, never exposed as the final reward', () => {
+  const { rewards } = calculateEmployeeRewards([employee('low', 7.1, 7.1), employee('decimal', 8, 33.22)], true);
+  assert.equal(rewards.decimal.base, 332.2);
+  assert.equal(rewards.decimal.total, 350);
+  assert.equal(rewards.decimal.increase, 17.8);
+});
+test('the 100-riyal target is reached only when compatible with the cap and whole tens', () => {
+  const { rewards } = calculateEmployeeRewards([employee('below', 8, 7.99), employee('edge', 8, 8), employee('above', 8, 8.01)], true);
+  assert.equal(rewards.below.total, 90);
+  assert.equal(rewards.edge.total, 100);
+  assert.equal(rewards.above.total, 100);
 });
 test('invalid or absent balances and invalid points never generate a reward or distort the shared minimum', () => {
   const employees = [employee('a', NaN, 10), employee('b', 12, 10), employee('c', 8, NaN), employee('d', 8, -1), employee('e', 8, undefined), employee('f', 8, Infinity)];
