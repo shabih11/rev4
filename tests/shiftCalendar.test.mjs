@@ -50,3 +50,10 @@ test('personal current-month calendar keeps day buttons but hides month navigati
  assert.match(html,/bg-emerald-700/);
  assert.match(html,/>1<\/span>/);
 });
+
+test('results calendar opens the reference month in Riyadh rather than the current month',()=>{
+ const html=renderToStaticMarkup(createElement(ShiftCalendar,{shifts:[{id:'last',date:'31-10-2026',time:'09:00',employees:[{id:'e'}]}],onSelect(){},initialDate:new Date('2026-10-31T20:59:59.999Z'),highlightEmployeeId:'e',showMonthNavigation:false}));
+ assert.match(html,/bg-emerald-700/);
+ assert.match(html,/>31<\/span>/);
+ assert.doesNotMatch(html,/الشهر السابق|الشهر التالي/);
+});

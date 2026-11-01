@@ -5,13 +5,13 @@ import type { CloudSession } from '../lib/cloudSync';
 import type { UserAccount } from '../lib/mockData';
 import { isCoverageEmployee, latestCoverageBranches, type ShiftBranchRecord } from '../lib/employeeBranches';
 
-export function useCoverageBranches(users: UserAccount[], session: CloudSession, revision: string, enabled: boolean) {
+export function useCoverageBranches(users: UserAccount[], session: CloudSession, revision: string, enabled: boolean, cutoff?: string) {
   const idsKey = JSON.stringify(users.filter(user => user.role === 'employee' && isCoverageEmployee(user)).map(user => user.id).sort());
   const namespace = readNamespace(session);
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
   const [result, setResult] = useState<{ key: string; identity: string; branches: Record<string, string>; error: string | null }>();
-  const identity = `${namespace}|${idsKey}`;
-  const key = `${namespace}|coverage-branches|${revision}|${minute}|${idsKey}`;
+  const identity = `${namespace}|${idsKey}|${cutoff || 'live'}`;
+  const key = `${namespace}|coverage-branches|${revision}|${minute}|${idsKey}|${cutoff || 'live'}`;
   useEffect(() => {
     if (!enabled || idsKey === '[]') return;
     const timer = window.setInterval(() => setMinute(Math.floor(Date.now() / 60000)), 60000);
@@ -22,7 +22,7 @@ export function useCoverageBranches(users: UserAccount[], session: CloudSession,
     let active = true;
     const ids: string[] = JSON.parse(idsKey);
     if (!ids.length) { setResult({ key, identity, branches: {}, error: null }); return; }
-    const now = Date.now();
+    const now = cutoff ? Date.parse(cutoff) : Date.now();
     void cachedRows<ShiftBranchRecord>(key, async () => {
       const rows: ShiftBranchRecord[] = [];
       for (let start = 0; ; start += 500) {
@@ -37,6 +37,6 @@ export function useCoverageBranches(users: UserAccount[], session: CloudSession,
       .catch(() => { if (active) setResult(previous => ({ key, identity, branches: previous?.identity === identity ? previous.branches : {}, error: 'تعذر التحقق من آخر فرع لالموظفات المتنقلات. ستُعاد المحاولة تلقائياً.' })); });
     // The cache shares in-flight reads; cancelling here would break another subscriber (including StrictMode).
     return () => { active = false; };
-  }, [key, identity, idsKey, enabled, session.account]);
+  }, [key, identity, idsKey, enabled, session.account, cutoff]);
   return { branches: enabled && result?.identity === identity ? result.branches : {}, ready: enabled && result?.key === key && !result.error, error: result?.key === key ? result.error : null };
 }

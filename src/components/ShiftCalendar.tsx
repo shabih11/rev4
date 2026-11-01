@@ -3,8 +3,13 @@ import type { TimelineEvent } from '../context/DataContext';
 import { timeMinutes } from '../lib/formatDate';
 import { reviewTimestamp } from '../lib/employeeActivity';
 
-export function ShiftCalendar({ shifts, onSelect, unlinkedReviewDates = [], highlightEmployeeId, showMonthNavigation = true }: { shifts: TimelineEvent[]; onSelect: (date: string) => void; unlinkedReviewDates?: string[]; highlightEmployeeId?: string; showMonthNavigation?: boolean }) {
-  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+export function ShiftCalendar({ shifts, onSelect, unlinkedReviewDates = [], highlightEmployeeId, showMonthNavigation = true, initialDate }: { shifts: TimelineEvent[]; onSelect: (date: string) => void; unlinkedReviewDates?: string[]; highlightEmployeeId?: string; showMonthNavigation?: boolean; initialDate?: Date }) {
+  const [month, setMonth] = useState(() => {
+    if (!initialDate) return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const parts = new Intl.DateTimeFormat('en', { timeZone: 'Asia/Riyadh', year: 'numeric', month: 'numeric' }).formatToParts(initialDate);
+    const part = (type: string) => Number(parts.find(item => item.type === type)?.value);
+    return new Date(part('year'), part('month') - 1, 1);
+  });
   const unlinkedDays = new Set(unlinkedReviewDates.map(date => reviewTimestamp({ date })));
   const count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   return <section className="bg-white p-5 sm:p-7 rounded-3xl shadow-sm border border-slate-200/80 space-y-6" dir="rtl">

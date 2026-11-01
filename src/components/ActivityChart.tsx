@@ -3,14 +3,16 @@ import { useId, useState } from 'react';
 import type { ReviewSummary } from '../context/DataContext';
 import { weeklyActivity, newestFirst, reviewTimestamp } from '../lib/employeeActivity';
 import { formatDateTime, toEnglishNumerals, formatDate } from '../lib/formatDate';
+import { useData } from '../context/DataContext';
 
 export function ActivityChart({ reviews, subject = 'employee', onPeriodSelect }: { reviews: (ReviewSummary & { comment?: string })[]; subject?: 'employee' | 'branch'; onPeriodSelect?: (period: { start: number; end: number }) => void }) {
+  const { resultsDate } = useData();
   const branch = subject === 'branch';
   const positiveColor = branch ? '#0d9488' : '#16a34a';
   const negativeColor = branch ? '#7c3aed' : '#ef4444';
   const positiveText = branch ? 'text-teal-700' : 'text-green-700';
   const negativeText = branch ? 'text-violet-700' : 'text-red-600';
-  const weeks = weeklyActivity(reviews);
+  const weeks = weeklyActivity(reviews, resultsDate);
   const hasNegativeReviews = weeks.some(week => week.negative > 0);
   const [selected, setSelected] = useState<number | null>(null);
   const selectPeriod = (index: number) => {
@@ -23,7 +25,7 @@ export function ActivityChart({ reviews, subject = 'employee', onPeriodSelect }:
   const y = (count: number) => 205 - count * 165 / max;
   const line = (key: 'negative' | 'positive') => weeks.map((week, index) => `${x(index)},${y(week[key])}`).join(' ');
   const format = (date: Date) => formatDate(`${date.getUTCDate()}-${date.getUTCMonth() + 1}-${date.getUTCFullYear()}`);
-  const active = weeks[selected ?? weeks.length - 1];
+  const active = weeks[selected ?? weeks.length - 1] || weeks[weeks.length - 1];
   const selectedReviews = branch || selected === null ? [] : reviews.filter(review => {
     const date = reviewTimestamp({ date: review.date });
     return date >= active.start.getTime() && date <= active.end.getTime();

@@ -12,7 +12,7 @@ import { timeMinutes, toEnglishNumerals } from '../lib/formatDate';
 import { stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
 import { combineRecordScopes, type RecordDemand } from '../lib/cloudReadPlan';
-import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
+import { isInCurrentMonth, isPositiveReview, recordsThroughDate, previousMonthEnd } from '../lib/reviewPeriod';
 
 export interface CustomerReview {
   id: string;
@@ -48,6 +48,9 @@ export interface TimelineEvent {
 }
 
 interface DataContextType {
+  resultsMode: boolean;
+  resultsDate: Date;
+  setResultsMode: (enabled: boolean) => void;
   coverageBranchError: string | null;
   coverageBranches: Record<string, string>;
   features: FeatureState | null;
@@ -93,6 +96,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const session = useCloudSession();
+  const [resultsOwner, setResultsOwner] = useState<string | null>(null);
+  const resultsMode = Boolean(session.uid && resultsOwner === session.uid);
+  const setResultsMode = (enabled: boolean) => setResultsOwner(enabled ? session.uid : null);
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+  const resultsDate = React.useMemo(() => resultsMode ? previousMonthEnd(new Date(`${today}T12:00:00+03:00`)) : new Date(`${today}T12:00:00+03:00`), [resultsMode, today]);
   const [recordDemands, setRecordDemands] = useState<Record<string, { uid: string | null; demand: RecordDemand }>>({});
   const requestRecords = useCallback((id: string, demand: RecordDemand | null) => {
     setRecordDemands(previous => {
@@ -116,13 +124,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const legacyReady = legacyRequested && legacyDirectory.ready && legacyReviews.ready && legacyNotes.ready;
   const userCloud = useCloudList<UserAccount>('users', readSession, daily.ready && demands.some(d => d.users) ? { all: true } : null);
   const reviewCloud = useCloudList<CustomerReview>('reviews', readSession, daily.ready ? reviewScope : null);
-  const reviewSignals = { rows: daily.data?.reviews || legacyReviews.rows };
-  const noteSignals = { rows: daily.data?.notes || legacyNotes.rows };
+  const allReviewSignals = daily.data?.reviews || legacyReviews.rows;
+  const allNoteSignals = daily.data?.notes || legacyNotes.rows;
+  const reviewSignals = { rows: React.useMemo(() => resultsMode ? recordsThroughDate(allReviewSignals, resultsDate) : allReviewSignals, [allReviewSignals, resultsMode, resultsDate]) };
+  const noteSignals = { rows: React.useMemo(() => resultsMode ? recordsThroughDate(allNoteSignals, resultsDate) : allNoteSignals, [allNoteSignals, resultsMode, resultsDate]) };
   const timelineCloud = useCloudList<TimelineEvent>('timeline', readSession, daily.ready ? timelineScope : null);
   type BranchRecord = { id: string; name: string; start: string; end: string; googleApi?: string; nextDayTime?: string };
   const branchCloud = useCloudList<BranchRecord>('branches', readSession, daily.ready ? { all: true } : null);
   const users = userCloud.rows.length ? userCloud.rows : (daily.data?.directory || legacyDirectory.rows).map(u => u.id === session.account?.id ? session.account : { ...u, email: '' });
-  const coverageBranches = useCoverageBranches(users, session, daily.revision, daily.ready);
+  const coverageBranches = useCoverageBranches(users, session, daily.revision, daily.ready, resultsMode ? resultsDate.toISOString() : undefined);
   const setUsers = userCloud.change;
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
   const timeline = timelineCloud.rows, setTimeline = timelineCloud.change;
@@ -331,7 +341,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const empReviews = reviewSignals.rows.filter(r => r.linkedEmployeeIds.includes(unifiedUser.id));
       const empTimeline = noteSignals.rows.filter(t => t.employees?.some(e => e.id === unifiedUser.id));
       
-      const now = new Date();
+      const now = resultsDate;
       const currentMonthReviews = empReviews.filter(review => isInCurrentMonth(review.date, now));
       const currentMonthTimeline = empTimeline.filter(event => isInCurrentMonth(event.date, now));
 
@@ -391,19 +401,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       };
     });
-  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady]);
+  }, [users, reviewSignals.rows, noteSignals.rows, daily.data, legacyReady, resultsDate]);
 
   const disabledIds = new Set(daily.data?.disabledEmployeeIds || []);
   const activeUsers = enrichedUsers.filter(user => !disabledIds.has(user.id));
   const disabledEmployees = session.account?.role === 'admin' ? enrichedUsers.filter(user => disabledIds.has(user.id)) : [];
   const featureState = React.useMemo(() => {
     const disabled = new Set(daily.data?.disabledEmployeeIds || []);
-    const state = comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee' && !disabled.has(user.id)), reviewSignals.rows);
+    const state = comparisonFromRecords(daily.data?.features || null, enrichedUsers.filter(user => user.role === 'employee' && !disabled.has(user.id)), reviewSignals.rows, resultsDate);
     if (!state?.store) return state;
     return { ...state, store: { ...state.store, collections: state.store.collections.map(collection => ({
       ...collection, variants: collection.variants.map(variant => variant.ownerId && disabled.has(variant.ownerId) ? { ...variant, ownerName: null } : variant),
     })) } };
-  }, [daily.data, enrichedUsers, reviewSignals.rows]);
+  }, [daily.data, enrichedUsers, reviewSignals.rows, resultsDate]);
 
   const clearData = (branch?: string, startDate?: string, endDate?: string) => {
     if (!reviewScope?.all || !timelineScope?.all || !reviewCloud.ready || !timelineCloud.ready) {
@@ -450,22 +460,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetReviewsToInjected = resetUsersToRoster;
 
   const sanitizedReviews = React.useMemo(() => {
-    return reviews.map(r => ({ ...r, comment: stripReviewTranslation(r.comment) }));
-  }, [reviews]);
+    return (resultsMode ? recordsThroughDate(reviews, resultsDate) : reviews).map(r => ({ ...r, comment: stripReviewTranslation(r.comment) }));
+  }, [reviews, resultsMode, resultsDate]);
+  // Keep complete cloud rows for writes; the cutoff only changes the displayed projection.
+  const displayedTimeline = React.useMemo(() => resultsMode ? recordsThroughDate(timeline, resultsDate) : timeline, [timeline, resultsMode, resultsDate]);
 
   return (
     <DataContext.Provider value={{ 
+      resultsMode, resultsDate, setResultsMode,
       coverageBranchError: coverageBranches.error, coverageBranches: coverageBranches.branches,
       features: featureState,
       requestRecords,
       users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, transferEmployee, mergeEmployees, branchSettings, updateBranchSettings,
-      timeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
+      timeline: displayedTimeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
       reviewSummaries: reviewSignals.rows, recordsReady: (Boolean(reviewScope || timelineScope) || demands.some(d => d.users)) && userCloud.ready && reviewCloud.ready && timelineCloud.ready,
-      summaryReady: Boolean(daily.data) || legacyReady, summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: daily.data?.hours || {},
+      summaryReady: Boolean(daily.data) || legacyReady, summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: resultsMode ? {} : daily.data?.hours || {},
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
     }}>
       {children}

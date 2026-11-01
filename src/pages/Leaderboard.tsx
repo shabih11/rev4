@@ -16,7 +16,7 @@ import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut } from 'lucide-react';
+import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, CalendarCheck } from 'lucide-react';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -38,7 +38,7 @@ export const Leaderboard: React.FC = () => {
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
-  const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount } = useData();
+  const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
   const users = useMemo(() => directoryUsers.map(employee => leaderboardEmployee(employee, coverageBranches)), [directoryUsers, coverageBranches]);
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -66,7 +66,7 @@ export const Leaderboard: React.FC = () => {
 
     // 2. Partnerships (Best per branch)
     const branchReviewsMap: Record<string, typeof reviews> = {};
-    reviews.filter(review => isInCurrentMonth(review.date) && isPositiveReview(review.rating)).forEach(r => {
+    reviews.filter(review => isInCurrentMonth(review.date, resultsDate) && isPositiveReview(review.rating)).forEach(r => {
       if (!branchReviewsMap[r.branch]) branchReviewsMap[r.branch] = [];
       branchReviewsMap[r.branch].push(r);
     });
@@ -105,7 +105,7 @@ export const Leaderboard: React.FC = () => {
     });
 
     // 3. Most Active Branch (Last 4 days)
-    const recentReviews = reviews.filter(r => isWithinLastDays(r.date, 4));
+    const recentReviews = reviews.filter(r => isWithinLastDays(r.date, 4, resultsDate));
     let mostActiveBranch = '';
     let maxBranchCount = 0;
     const branchCounts: Record<string, number> = {};
@@ -139,15 +139,15 @@ export const Leaderboard: React.FC = () => {
       sData.push({ type: 'active_employee', employee: mostActiveEmployee, count: maxEmpCount });
     }
 
-    const praise = praisedEmployee(reviews, allEmployeesSorted, praisePeriod);
+    const praise = praisedEmployee(reviews, allEmployeesSorted, resultsMode ? praiseCycle(resultsDate.getTime()) : praisePeriod);
     const mostPraisedEmployee = users.find(employee => employee.id === praise.id);
     if (mostPraisedEmployee && praise.count > 0) {
-      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: recentPraiseCount(reviews, mostPraisedEmployee.id) });
+      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: recentPraiseCount(reviews, mostPraisedEmployee.id, resultsDate.getTime()) });
     }
 
     const order = { praised_employee: 0, active_employee: 1, active_branch: 2, employee: 3, partnership: 4 };
     return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
-  }, [allEmployeesSorted, users, reviews, praisePeriod]);
+  }, [allEmployeesSorted, users, reviews, praisePeriod, resultsMode, resultsDate]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slidesData[activeIndex] || slidesData[0];
@@ -172,7 +172,7 @@ export const Leaderboard: React.FC = () => {
     if (modalOpen) autoplay.stop();
     else autoplay.start();
   }, [modalOpen]);
-  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
+  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries, resultsDate) : { id: '', count: 0 };
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
@@ -184,6 +184,7 @@ export const Leaderboard: React.FC = () => {
           }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>}
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
+          <button type="button" aria-pressed={resultsMode} onClick={() => setResultsMode(!resultsMode)}><CalendarCheck size={16} aria-hidden="true" />النتائج</button>
         </nav>
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
       </header>;
@@ -464,7 +465,7 @@ export const Leaderboard: React.FC = () => {
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
                 {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !summaryReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
                 {summaryReady && branches.map(branchName => {
-                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date));
+                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date, resultsDate));
                   const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));
 
                   const empPositiveReviewCounts: Record<string, number> = {};
@@ -525,10 +526,10 @@ export const Leaderboard: React.FC = () => {
       {(() => {
         if (!modalBranchName) return null;
         const branchActivityReviews = reviewSummaries.filter(review => review.branch === modalBranchName);
-        const latestPeriod = weeklyActivity(branchActivityReviews).at(-1)!;
+        const latestPeriod = weeklyActivity(branchActivityReviews, resultsDate).at(-1)!;
         const period = selectedBranchPeriod?.branch === modalBranchName ? selectedBranchPeriod : { start: latestPeriod.start.getTime(), end: latestPeriod.end.getTime() };
         const periodLeaders = periodReviewLeaders(branchActivityReviews, period.start, period.end);
-        const branchReviews = branchActivityReviews.filter(review => isInCurrentMonth(review.date));
+        const branchReviews = branchActivityReviews.filter(review => isInCurrentMonth(review.date, resultsDate));
 
         let shiningStar = { name: 'لا يوجد', count: 0 };
         let bestPartnership = { names: 'لا يوجد', count: 0 };

@@ -56,7 +56,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
 
 const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void; showCoverageBranch: boolean }> = ({ employee, onClose, showCoverageBranch }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'summary' | 'points'>('summary');
-  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount } = useData();
+  const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount, resultsMode, resultsDate } = useData();
   useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
   const multipleReviewBranches = employeeReviewBranches(reviewSummaries, employee.id).length > 1;
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
@@ -78,7 +78,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const latestShift = employeeShifts[0];
   const latestShiftSummary = latestShift ? `${formatDateTime(latestShift.date)} ${arabicReviewCount(shiftReviewCounts(latestShift, employee.id, reviews).total)}`.replace(/[0-9]/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]) : 'لا توجد شفتات مسجلة';
 
-  const partner = favoritePartner(employee.id, reviewSummaries);
+  const partner = favoritePartner(employee.id, reviewSummaries, resultsDate);
   const favoritePartnerName = users.find(user => user.id === partner.id)?.name || '';
 
   const totalHours = Math.round(employeeHours[employee.id] ?? employeeShifts.reduce((total, shift) => {
@@ -237,7 +237,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <div className="flex items-center gap-3">
                     <Award size={28} className="text-yellow-300" />
                     <div>
-                      <p className="font-bold text-xl">نقاط الشهر الحالي</p>
+                      <p className="font-bold text-xl">{resultsMode ? 'نقاط الشهر الماضي' : 'نقاط الشهر الحالي'}</p>
                       <p className="text-blue-100 text-sm">من إجمالي 11 نقطة</p>
                     </div>
                   </div>

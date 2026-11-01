@@ -20,7 +20,7 @@ export function AdministrationPhone() {
 
 export function MissingShiftRequest({ currentMonthOnly = false }: { currentMonthOnly?: boolean }) {
   const { user } = useAuth();
-  const { timeline, addTimelineEvent, recordsReady, syncError } = useData();
+  const { timeline, addTimelineEvent, recordsReady, syncError, resultsDate } = useData();
   useRecordScope({ timeline: { branches: [user?.branch || ''] } });
   const shifts = { rows: timeline.filter(event => event.type === 'shift' && event.branch === user?.branch), ready: recordsReady, error: syncError };
   const [selected, setSelected] = useState('');
@@ -41,7 +41,7 @@ export function MissingShiftRequest({ currentMonthOnly = false }: { currentMonth
   }
   return <div className="space-y-4">
     {!currentMonthOnly && <p className="text-sm text-gray-500">متاح لاخر ثلاثة ايام</p>}
-    {shifts.error || syncError ? <p role="alert">تعذر تحميل الشفتات والطلبات</p> : !shifts.ready || !recordsReady ? <p role="status">جارٍ تحميل الشفتات والطلبات…</p> : <ShiftCalendar shifts={shifts.rows} highlightEmployeeId={user.id} showMonthNavigation={!currentMonthOnly} onSelect={setSelected} />}
+    {shifts.error || syncError ? <p role="alert">تعذر تحميل الشفتات والطلبات</p> : !shifts.ready || !recordsReady ? <p role="status">جارٍ تحميل الشفتات والطلبات…</p> : <ShiftCalendar initialDate={resultsDate} shifts={shifts.rows} highlightEmployeeId={user.id} showMonthNavigation={!currentMonthOnly} onSelect={setSelected} />}
     {selected && <div role="dialog" aria-label={`شفتات ${selected}`} className="relative bg-white rounded-3xl shadow-xl border p-5 after:absolute after:-top-3 after:right-8 after:border-x-[12px] after:border-x-transparent after:border-b-[12px] after:border-b-white">
       <button aria-label="إغلاق تفاصيل اليوم" onClick={() => setSelected('')} className="float-left">✕</button><h3 className="font-bold mb-3">{selected}</h3>
       {(['first','second'] as const).map(slot => {

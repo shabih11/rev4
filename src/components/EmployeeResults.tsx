@@ -14,10 +14,11 @@ interface EmployeeResultsProps {
 }
 
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
-  const { features, reviewSummaries, timeline, recordsReady, syncError } = useData();
+  const { features, reviewSummaries, timeline, recordsReady, syncError, resultsMode, resultsDate } = useData();
   useRecordScope({ timeline: { employeeIds: [user.id] } });
   const quality = employeeQualityPoints(user.stats);
-  const deductions = qualityDeductions(user, reviewSummaries, timeline);
+  const deductions = qualityDeductions(user, reviewSummaries, timeline, resultsDate);
+  const periodLabel = resultsMode ? 'الشهر الماضي' : 'الشهر الحالي';
   const reasons = { review: 'رصيد تقييم سلبي', complaint: 'شكوى مؤكدة', safety: 'حادث سلامة', 'review-balance': 'رصيد جودة التقييمات المسجل', 'conduct-balance': 'رصيد الشكاوى المؤكدة وحوادث السلامة المسجل' };
   const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
   return <section aria-label="نتائجي" aria-busy={!ready && !error} className="px-6 mb-8">
@@ -26,7 +27,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
     </div> : <details className="group bg-white rounded-3xl shadow-sm border border-slate-100">
       <summary className="list-none cursor-pointer flex items-center justify-between gap-3 p-6 sm:p-8 rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
         <div>
-          <h2 className="text-gray-500 font-bold mb-1">نقاط الشهر الحالي</h2>
+          <h2 className="text-gray-500 font-bold mb-1">نقاط {periodLabel}</h2>
           <p className="text-5xl font-extrabold text-gray-800">{user.points.toFixed(1)}</p>
         </div>
         <div className="flex items-center gap-3">
@@ -36,7 +37,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
           <ChevronDown size={20} aria-hidden="true" className="text-slate-500 transition-transform group-open:rotate-180" />
         </div>
       </summary>
-      <dl aria-label="تفاصيل نقاط الشهر الحالي" className="grid grid-cols-2 gap-3 border-t border-slate-100 p-4 sm:p-6">
+      <dl aria-label={`تفاصيل نقاط ${periodLabel}`} className="grid grid-cols-2 gap-3 border-t border-slate-100 p-4 sm:p-6">
         {[
           ['رصيد التقييمات', String(user.monthReviewsCount ?? 0), 'text-amber-700'],
           ['نقاط الإيجابية', user.stats.positive.toFixed(1), 'text-green-700'],
