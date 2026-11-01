@@ -228,7 +228,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   <dl className="space-y-3 text-sm">
                     <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
                     <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{roundedPoints.toFixed(1)}</button></dd></div>
-                    {reward && <>
+                    {reward && reward.total > 0 && <>
                       <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>
                       <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA-u-nu-latn')} ريال</dd>
                         {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">{reward.base.toLocaleString('ar-SA-u-nu-latn')} ريال قبل الجبر + {reward.increase.toLocaleString('ar-SA-u-nu-latn')} ريال زيادة.</p>}

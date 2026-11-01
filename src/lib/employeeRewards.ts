@@ -27,7 +27,7 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     const tier = rewardTier(employee.points, rounding);
     const balance = employee.monthReviewsCount;
     const rate = tier === 'gold' ? 14 : tier === 'silver' ? 10 : 0;
-    const cents = balance !== undefined && Number.isFinite(balance) && balance > 0 ? Math.round(balance * rate * 100) : 0;
+    const cents = balance !== undefined && Number.isFinite(balance) && balance >= 7.1 ? Math.round(balance * rate * 100) : 0;
     return { employee, tier, cents: Number.isSafeInteger(cents) ? cents : 0 };
   });
   const eligible = bases.filter(item => item.cents > 0);
@@ -39,11 +39,12 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     if (rounding && cents > 0) {
       // Combine the shared uplift before rounding, rather than adding two bonuses.
       const rounded = Math.ceil((cents + commonCents) / 1000) * 1000;
-      // Every final reward must be a multiple of ten, even if that means a
-      // smaller uplift. The 20-riyal increase cap also limits the 100-riyal target.
+      // Preserve whole tens and the increase cap for the shared uplift.
       const capped = Math.floor((cents + 2000) / 1000) * 1000;
       total = Math.min(rounded, capped);
     }
+    // The minimum is unconditional for recipients; it is the sole cap exception.
+    if (cents > 0) total = Math.max(10000, total);
     rewards[employee.id] = {
       tier,
       qualifyingPoints: Number.isFinite(employee.points) ? (rounding ? Math.ceil(employee.points) : employee.points) : 0,

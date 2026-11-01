@@ -435,7 +435,7 @@ export const Leaderboard: React.FC = () => {
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
                         <p className="text-[10px] text-gray-400">رصيد الشهر</p>
-                        {resultsMode ? <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary?.rewards[emp.id] ? `${rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال` : 'المكافأة غير متاحة'}</p> : <BalanceGrowth employee={emp} />}
+                        {resultsMode ? rewardSummary ? (rewardSummary.rewards[emp.id]?.total > 0 && <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال</p>) : <p className="mt-1 text-xs text-slate-500">المكافأة غير متاحة</p> : <BalanceGrowth employee={emp} />}
                       </div>
                     </button>
                   </EmployeeCard>

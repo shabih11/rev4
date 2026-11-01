@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Trophy } from 'lucide-react';
+import { ConfettiBurst } from './ConfettiBurst';
 import type { UserAccount } from '../lib/mockData';
 import type { EmployeeReward } from '../lib/employeeRewards';
 import { podiumHeight, podiumWidth, zoomPodiumAtPoint } from '../lib/podiumZoom';
@@ -22,14 +23,6 @@ const positions = [
   { rank: 2, x: 676, y: 120 }, { rank: 4, x: 845, y: 60 },
   { rank: 6, x: 1014, y: 0 },
 ];
-const confetti = Array.from({ length: 84 }, (_, index) => ({
-  x: 6 + ((index * 47) % 88),
-  drift: ((index * 31) % 241) - 120,
-  rise: 180 + ((index * 53) % 220),
-  turn: 180 + ((index * 73) % 540),
-  color: ['#ee5a95', '#37cdb4', '#eab953', '#8b80e8', '#6cbce0'][index % 5],
-}));
-
 export function ResultsPodium({ employees, rewards, period, renderAvatar, renderEmployee }: Props) {
   const viewport = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
@@ -148,7 +141,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
 
   return <main className="results-podium" aria-label="منصة الأوائل السبع" dir="rtl">
     <div className="results-spotlights" aria-hidden="true"><i /><i /><i /><i /></div>
-    {celebrating && <div className="results-confetti" aria-hidden="true">{confetti.map((piece, index) => <i key={index} style={{ '--piece-x': `${piece.x}%`, '--piece-drift': `${piece.drift}px`, '--piece-rise': `${-piece.rise}px`, '--piece-turn': `${piece.turn}deg`, '--piece-color': piece.color } as CSSProperties} />)}</div>}
+    {celebrating && <ConfettiBurst />}
     <header className="results-podium-heading">
       <span className="results-podium-eyebrow"><Trophy size={17} aria-hidden="true" /> نتائج {monthLabel}</span>
       <h1>منصة الأوائل</h1>
@@ -163,7 +156,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
             const front = <div className="results-platform-front" data-tier={reward?.tier || 'bronze'}>
               <span className="results-platform-name" style={{ fontSize: employee ? Math.max(8, Math.min(13, 225 / (employee.name.length + 2))) : undefined }}><bdi dir="ltr">{position.rank.toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{employee?.name || 'لا توجد موظفة'}</span>
               <span className="results-platform-branch" style={{ fontSize: employee ? Math.max(8, Math.min(11, 210 / employee.branch.length)) : undefined }}>{employee?.branch || '—'}</span>
-              <span className="results-platform-reward">{employee ? reward ? `${money(reward.total)} ريال` : 'المكافأة غير متاحة' : '—'}</span>
+              {employee && (!reward || reward.total > 0) && <span className="results-platform-reward">{reward ? `${money(reward.total)} ريال` : 'المكافأة غير متاحة'}</span>}
             </div>;
             return <li key={position.rank} className="results-platform" style={{ left: position.x, top: position.y, zIndex: position.y + 1 }} data-rank={position.rank}>
               <div className="results-platform-avatar">{employee && renderAvatar(employee)}</div>
