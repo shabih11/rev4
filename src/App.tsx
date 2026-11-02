@@ -8,6 +8,7 @@ import { useData } from './context/DataContext';
 import { useAuth } from './context/AuthContext';
 import { AccountSetup } from './components/AccountSetup';
 import { requireAccountSetup } from './lib/accountSetupConfig';
+import { usePagePresence } from './hooks/usePagePresence';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth();
@@ -19,6 +20,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   const { syncError, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  usePagePresence(currentAccount);
   const periodKey = resultsMode ? resultsDate.toISOString() : 'current';
   return (
     <div>

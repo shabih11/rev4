@@ -248,4 +248,64 @@ do $$ begin
 end $$;
 reset role;
 select 'Read-only viewer and employee transfers verified' as display_verification;
+
+-- Page presence is independent of authentication times and shared summaries.
+select set_config('rev4.presence_test_version',(select version::text from public.app_state where id=1),true);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+select public.record_employee_page_presence();
+do $$ begin
+ begin perform public.get_employee_last_presence(); raise exception 'Employee read presence'; exception when insufficient_privilege then null; end;
+ begin perform 1 from private.employee_page_presence; raise exception 'Direct presence read allowed'; exception when insufficient_privilege then null; end;
+ begin perform public.record_employee_page_presence('verify-other',clock_timestamp()); raise exception 'Client supplied presence identity/time'; exception when undefined_function then null; end;
+end $$;
+reset role;
+do $$ begin
+ if not exists(select 1 from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003' and last_seen_at between clock_timestamp()-interval '15 seconds' and clock_timestamp()) then raise exception 'Presence not recorded with server time'; end if;
+end $$;
+select set_config('rev4.presence_test_first',(select last_seen_at::text from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003'),true);
+set local role authenticated;
+select public.record_employee_page_presence();
+reset role;
+do $$ begin
+ if (select last_seen_at from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003') is distinct from current_setting('rev4.presence_test_first')::timestamptz then raise exception 'Duplicate heartbeat was not throttled'; end if;
+end $$;
+update private.employee_page_presence set last_seen_at=clock_timestamp()-interval '2 minutes' where user_id='00000000-0000-4000-8000-000000000003';
+set local role authenticated;
+select public.record_employee_page_presence();
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_employee_last_presence();
+ if result->>'verify-employee' is null or (result->>'verify-employee')::timestamptz < clock_timestamp()-interval '15 seconds' then raise exception 'Presence did not refresh'; end if;
+ if result->'verify-sign-in-unlinked' is distinct from 'null'::jsonb then raise exception 'Unseen employee invented presence'; end if;
+ if result ? 'verify-admin' or result ? 'verify-manager' then raise exception 'Non-employee presence exposed'; end if;
+ if public.get_read_model()::text like '%last_seen_at%' then raise exception 'Shared summary exposed presence'; end if;
+ begin perform public.record_employee_page_presence(); raise exception 'Admin recorded employee presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+ if (select version::text from public.app_state where id=1) is distinct from current_setting('rev4.presence_test_version') then raise exception 'Presence invalidated shared read caches'; end if;
+end $$;
+set local role authenticated;
+do $$ declare suffix text; begin
+ foreach suffix in array array['2','5','99'] loop
+  perform set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-'||lpad(suffix,12,'0'),'role','authenticated')::text,true);
+  begin perform public.get_employee_last_presence(); raise exception 'Non-admin read presence'; exception when insufficient_privilege then null; end;
+  begin perform public.record_employee_page_presence(); raise exception 'Non-employee recorded presence'; exception when insufficient_privilege then null; end;
+ end loop;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid in ('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ begin begin perform public.record_employee_page_presence(); raise exception 'Disabled employee recorded presence'; exception when insufficient_privilege then null; end; end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin begin perform public.get_employee_last_presence(); raise exception 'Disabled admin read presence'; exception when insufficient_privilege then null; end; end $$;
+set local role anon;
+do $$ begin
+ begin perform public.get_employee_last_presence(); raise exception 'Anonymous read presence'; exception when insufficient_privilege then null; end;
+ begin perform public.record_employee_page_presence(); raise exception 'Anonymous recorded presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'Page presence, privacy, server timestamps, throttling and role guards verified' as presence_verification;
 rollback;

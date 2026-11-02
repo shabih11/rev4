@@ -1,5 +1,5 @@
 import { leaderboardEmployee } from '../lib/employeeBranches';
-import { useEmployeeSignIns } from '../hooks/useEmployeeSignIns';
+import { useEmployeePresence } from '../hooks/useEmployeePresence';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { CrystalPlatform } from '../components/CrystalPlatform';
 import { praiseCycle, nextPraiseCycle, praisedEmployee, recentPraiseCount } from '../lib/praisedEmployee';
@@ -45,7 +45,7 @@ export const Leaderboard: React.FC = () => {
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
-  const employeeSignIns = useEmployeeSignIns(showAllEmployeesModal, currentAccount);
+  const employeePresence = useEmployeePresence(showAllEmployeesModal, currentAccount);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
   const [selectedBranchPeriod, setSelectedBranchPeriod] = useState<{ branch: string; start: number; end: number } | null>(null);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
@@ -429,7 +429,7 @@ export const Leaderboard: React.FC = () => {
                         <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{emp.name}</>}/>
                         <Overtaken employee={emp} />
                         {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
-                          آخر دخول: {!employeeSignIns ? 'جارٍ التحميل…' : employeeSignIns.error ? 'تعذر التحميل' : employeeSignIns.data?.[emp.id] === null ? 'لم تسجل دخولًا بعد' : employeeSignIns.data?.[emp.id] ? formatTimestamp(Date.parse(employeeSignIns.data[emp.id]!)) : 'غير متاح'}
+                          آخر حضور: {!employeePresence ? 'جارٍ التحميل…' : employeePresence.error ? 'تعذر التحميل' : employeePresence.data?.[emp.id] === null ? 'لم يُسجل حضور بعد' : employeePresence.data?.[emp.id] ? formatTimestamp(Date.parse(employeePresence.data[emp.id]!)) : 'غير متاح'}
                         </p>}
                       </div>
                       <div className="text-center shrink-0">
