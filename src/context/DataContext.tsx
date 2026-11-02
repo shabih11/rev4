@@ -1,3 +1,4 @@
+import { normalizeFridayShift } from '../lib/shiftSchedule';
 import { comparisonFromRecords } from '../lib/employeeFeatures';
 import { isCoverageEmployee } from '../lib/employeeBranches';
 import { useCoverageBranches } from '../hooks/useCoverageBranches';
@@ -174,7 +175,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addTimelineEvent = (event: Omit<TimelineEvent, 'id'>) => {
     if (!timelineScope || !timelineCloud.ready) { window.alert('انتظري اكتمال تحميل الشفتات قبل الحفظ'); return; }
     // PostgreSQL validates the shift and links reviews in the same transaction.
-    setTimeline(previous => [{ ...event, id: crypto.randomUUID() }, ...previous]);
+    setTimeline(previous => [normalizeFridayShift({ ...event, id: crypto.randomUUID() }), ...previous]);
   };
 
   const updateTimelineEvent = (id: string, updates: Partial<TimelineEvent>) => {
@@ -191,7 +192,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     for (const employee of request.employees) if (!employees.some(item => item.id === employee.id)) employees.push(employee);
     const shift: TimelineEvent = existing ? { ...existing, employees } : { id: crypto.randomUUID(), branch: request.branch, type: 'shift', title: first ? 'الشفت الأول' : 'الشفت الثاني', date: request.date, time, endTime, employees };
     // write_rows and the existing relinking trigger save the decision, shift and review links atomically.
-    setTimeline(previous => [shift, ...previous.filter(event => event.id !== shift.id).map(event => event.id === id ? { ...event, requestStatus: 'accepted' as const } : event)]);
+    setTimeline(previous => [normalizeFridayShift(shift), ...previous.filter(event => event.id !== shift.id).map(event => event.id === id ? { ...event, requestStatus: 'accepted' as const } : event)]);
   };
 
   const deleteTimelineEvent = (id: string) => {
@@ -327,7 +328,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const commitShifts = (shifts: TimelineEvent[], batchId?: string) => {
     if (!timelineCloud.ready) { window.alert('انتظري اكتمال تحميل الشفتات'); return; }
-    setTimeline(previous => [...shifts.map(shift => ({ ...shift, batchId: batchId || shift.batchId })), ...previous]);
+    setTimeline(previous => [...shifts.map(shift => normalizeFridayShift({ ...shift, batchId: batchId || shift.batchId })), ...previous]);
   };
 
   const enrichedUsers = React.useMemo(() => {

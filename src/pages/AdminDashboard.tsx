@@ -1,3 +1,4 @@
+import { shiftWeekday } from '../lib/shiftSchedule';
 import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { BranchEmployees } from '../components/BranchEmployees';
 import { ShiftCalendar } from '../components/ShiftCalendar';
@@ -157,8 +158,10 @@ export const AdminDashboard: React.FC = () => {
   }, [shift2Emps, users]);
 
   const branchHours = useMemo(() => {
-    return getBranchHours(user?.branch);
-  }, [user?.branch]);
+    const hours = getBranchHours(user?.branch);
+    const weekday = selectedDayDate?.getDay();
+    return { ...hours, open: weekday === 5 ? '14:00' : hours.open, nextDay: weekday === 4 ? '14:00' : hours.nextDay };
+  }, [user?.branch, selectedDayDate]);
 
   // Format date helper: DD-MM-YYYY
   const formatDayKey = useCallback((date: Date) => {
@@ -317,7 +320,7 @@ export const AdminDashboard: React.FC = () => {
                 <strong>{r.employees?.filter(e => users.some(user => user.id === e.id)).map(e => e.name).join('، ')} — {r.date} — الشفت {r.requestedShift === 'first' ? 'الأول' : 'الثاني'}</strong>
                 {r.requestStatus === 'pending' ? <div className="flex gap-3 mt-3">
                   <button disabled={!recordsReady} className="bg-emerald-600 text-white rounded-xl p-2" onClick={() => {
-                    acceptShiftRequest(r.id, r.requestedShift === 'first' ? branchHours.open : '16:00', r.requestedShift === 'first' ? '16:00' : branchHours.nextDay);
+                    acceptShiftRequest(r.id, r.requestedShift === 'first' ? (shiftWeekday(r.date) === 5 ? '14:00' : getBranchHours(user?.branch).open) : '16:00', r.requestedShift === 'first' ? '16:00' : (shiftWeekday(r.date) === 4 ? '14:00' : getBranchHours(user?.branch).nextDay));
                   }}>شفت مفقود — قبول وإضافة</button>
                   <button disabled={!recordsReady} className="bg-red-50 text-red-700 rounded-xl p-2" onClick={() => updateTimelineEvent(r.id, { requestStatus: 'rejected', rejectedAt: Date.now() })}>الطلب غير صحيح — رفض</button>
                 </div> : <p>{r.requestStatus === 'accepted' ? 'تم قبول الطلب' : 'تم رفض الطلب'}</p>}

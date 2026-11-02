@@ -1,9 +1,11 @@
+import { normalizeFridayShift } from './shiftSchedule';
 import type { ReviewSummary, TimelineEvent } from '../context/DataContext';
 import { timeMinutes, toEnglishNumerals } from './formatDate';
 import { reviewTimestamp } from './employeeActivity';
 
 export type ShiftReview = ReviewSummary & { linkedShiftId?: string };
 export function shiftReviewCounts(shift: TimelineEvent, employeeId: string, reviews: ShiftReview[]) {
+  shift = normalizeFridayShift(shift);
   const date = reviewTimestamp({ date: shift.date });
   const startMinutes = timeMinutes(shift.time);
   const endMinutes = timeMinutes(shift.endTime || '00:00');

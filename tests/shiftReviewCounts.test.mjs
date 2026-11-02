@@ -23,3 +23,18 @@ test('unlinked historical reviews use the complete overnight interval with an ex
  assert.equal(shiftReviewCounts(shift,'e',[base,{...base,id:'2',time:'02:00'},{...base,id:'3',date:'30-10-2026'}]).total,1);
  assert.equal(shiftReviewCounts(shift,'e',[]).total,0);
 });
+
+test('Thursday second shift includes Friday 13:59 and excludes Friday 14:00 in all branches',()=>{
+ for (const branch of ['جاليري','القصر','المملكة','شرق','ذافيو','سلام']) {
+  const shift={id:'thu',type:'shift',branch,date:'29-10-2026',time:'16:00',endTime:'07:00',endDate:'30-10-2026'};
+  const base={branch,rating:'5',linkedEmployeeIds:['e']};
+  const reviews=[{...base,id:'before',date:'29-10-2026',time:'15:59'},
+   {...base,id:'start',date:'29-10-2026',time:'16:00'},
+   {...base,id:'midnight',date:'30-10-2026',time:'00:00'},
+   {...base,id:'last',date:'30-10-2026',time:'13:59'},
+   {...base,id:'end',date:'30-10-2026',time:'14:00'}];
+  assert.equal(shiftReviewCounts(shift,'e',reviews).total,3);
+  const friday={...shift,id:'fri',date:'30-10-2026',time:'07:00',endTime:'16:00',endDate:undefined};
+  assert.equal(shiftReviewCounts(friday,'e',reviews).total,1);
+ }
+});

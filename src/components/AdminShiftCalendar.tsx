@@ -1,3 +1,4 @@
+import { normalizeFridayShift } from '../lib/shiftSchedule';
 import { useState } from 'react';
 import { useData, type TimelineEvent } from '../context/DataContext';
 import { ShiftCalendar } from './ShiftCalendar';
@@ -12,7 +13,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
   const [employeeIds, setEmployeeIds] = useState<string[]>([]);
   const [draft, setDraft] = useState<Omit<TimelineEvent, 'id'> | null>(null);
   const [error, setError] = useState('');
-  const shifts = timeline.filter(shift => shift.type === 'shift' && shift.branch === branch);
+  const shifts = timeline.filter(shift => shift.type === 'shift' && shift.branch === branch).map(normalizeFridayShift);
   const dayShifts = shifts.filter(shift => shift.date === selectedDate)
     .sort((a, b) => (timeMinutes(a.time) ?? 0) - (timeMinutes(b.time) ?? 0));
   const dayReviews = selectedDate ? reviews.filter(review => review.branch === branch &&
@@ -28,8 +29,8 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
     const settings = branchSettings[branch];
     const opening = settings?.nextDayTime || settings?.end || '10:00';
     const boundary = settings?.start || '16:00';
-    setDraft({ branch, type: 'shift', title: first ? 'الشفت الأول' : 'الشفت الثاني',
-      date: selectedDate!, time: first ? opening : boundary, endTime: first ? boundary : opening });
+    setDraft(normalizeFridayShift({ branch, type: 'shift' as const, title: first ? 'الشفت الأول' : 'الشفت الثاني',
+      date: selectedDate!, time: first ? opening : boundary, endTime: first ? boundary : opening }));
     setEditingId('new');
     setEmployeeIds([]);
     setError('');
@@ -50,7 +51,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
       if (dayShifts.some(item => shiftName(item.time) === shiftName(shift.time))) {
         setError('هذا الشفت مسجل بالفعل؛ عدّلي موظفاته من البطاقة الموجودة.'); return;
       }
-      addTimelineEvent({ ...shift, title: shiftName(shift.time), employees: members });
+      addTimelineEvent(normalizeFridayShift({ ...shift, title: shiftName(shift.time), employees: members }));
       setDraft(null);
     } else {
       updateTimelineEvent(editingId!, { employees: members });
