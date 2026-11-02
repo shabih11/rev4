@@ -147,7 +147,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
       <h1>منصة الأوائل</h1>
     </header>
     <p id="results-podium-help" className="sr-only">قرّبي بإصبعين أو بعجلة الفأرة، واسحبي لقراءة التفاصيل. بلوحة المفاتيح استخدمي + و- للتقريب و0 لإظهار الكل.</p>
-    <div ref={viewport} className="results-podium-viewport" style={{ height: Math.max(240, podiumHeight * fit + 32) }} tabIndex={0} role="region" aria-label="منصة ترتيب قابلة للتكبير والتمرير" aria-describedby="results-podium-help">
+    <div ref={viewport} className="results-podium-viewport" style={{ height: Math.max(240, podiumHeight * scale + 32) }} tabIndex={0} role="region" aria-label="منصة ترتيب قابلة للتكبير والتمرير" aria-describedby="results-podium-help">
       <div className="results-podium-scroll-space" style={{ width: Math.max(width, podiumWidth * scale + 24), height: podiumHeight * scale + 32 }}>
         <ol className="results-podium-scene" style={{ transform: `scale(${scale})` }} aria-label="ترتيب الأوائل حسب رصيد التقييمات">
           {[...positions].sort((a, b) => a.rank - b.rank).map(position => {

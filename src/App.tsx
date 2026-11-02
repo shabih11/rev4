@@ -19,15 +19,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  const { syncError, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  const { syncError, currentAccount, resultsMode, resultsDate } = useData();
   usePagePresence(currentAccount);
   const periodKey = resultsMode ? resultsDate.toISOString() : 'current';
   return (
     <div>
-    {currentAccount && resultsMode && <div dir="rtl" className="flex flex-wrap items-center justify-center gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-      <p role="status">عرض النتائج حتى {resultsDate.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { timeZone: 'Asia/Riyadh', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-      <button type="button" onClick={() => setResultsMode(false)} className="rounded-lg border border-amber-300 bg-white px-3 py-2 font-bold hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-700">العودة للبيانات الحالية</button>
-    </div>}
     {currentAccount && syncError && <div role="alert" dir="rtl" className={`px-4 py-2 text-sm text-center ${syncError ? "bg-red-100 text-red-900" : "bg-emerald-50 text-emerald-900"}`}>{syncError}</div>}
     <HashRouter>
       <Suspense fallback={<PageLoading />}><Routes>
