@@ -15,7 +15,7 @@ test('disabled rounding uses actual balances and rates while preserving the 100-
   assert.equal(rewards.s.increase, 15);
 });
 test('rounding changes category points only, preserving the actual review balance', () => {
-  const { rewards } = calculateEmployeeRewards([employee('s', 7.1, 15.4), employee('g', 10.1, 11)], true);
+  const { rewards } = calculateEmployeeRewards([employee('s', 8, 15.4), employee('g', 10.1, 11)], true);
   assert.equal(rewards.s.tier, 'silver');
   assert.equal(rewards.s.qualifyingPoints, 8);
   assert.equal(rewards.s.base, 154);
@@ -25,6 +25,19 @@ test('rounding changes category points only, preserving the actual review balanc
   assert.equal(rewardTier(7, true), 'bronze');
   assert.equal(rewardTier(7.1, false), 'bronze');
   assert.equal(rewardTier(8, false), 'silver');
+});
+test('eight actual points are mandatory before rounding can grant silver or a reward', () => {
+  for (const rounding of [false, true]) {
+    for (const points of [0, 7, 7.1, 7.9, 7.99, 7.999999]) {
+      assert.equal(rewardTier(points, rounding), 'bronze');
+      const { rewards, commonIncrease } = calculateEmployeeRewards([employee('below', points, 20)], rounding);
+      assert.equal(rewards.below.tier, 'bronze');
+      assert.equal(rewards.below.qualifyingPoints, points);
+      assert.equal(rewards.below.total, 0);
+      assert.equal(commonIncrease, 0);
+    }
+    assert.equal(rewardTier(8, rounding), 'silver');
+  }
 });
 test('shared uplift is merged before rounding: 85 becomes 100 and 154 becomes 170, not 175 or 180', () => {
   const { rewards, commonIncrease } = calculateEmployeeRewards([employee('low', 8, 8.5), employee('high', 11, 11)], true);
@@ -44,7 +57,7 @@ test('minimum uses all recipients, including employees outside the first seven; 
   assert.equal(rewards.zero.total, 0);
 });
 test('every recipient receives at least 100; other uplifts remain capped and in whole tens', () => {
-  const { rewards } = calculateEmployeeRewards([employee('low', 7.1, 7.1), employee('high', 11, 11)], true);
+  const { rewards } = calculateEmployeeRewards([employee('low', 8, 7.1), employee('high', 11, 11)], true);
   assert.equal(rewards.low.base, 71);
   assert.equal(rewards.low.total, 100);
   assert.equal(rewards.low.increase, 29);
@@ -63,7 +76,7 @@ test('rounded recipients get whole tens and at least 100; only the minimum can e
   }
 });
 test('a cap with decimal cents is rounded down to a whole ten, never exposed as the final reward', () => {
-  const { rewards } = calculateEmployeeRewards([employee('low', 7.1, 7.1), employee('decimal', 8, 33.22)], true);
+  const { rewards } = calculateEmployeeRewards([employee('low', 8, 7.1), employee('decimal', 8, 33.22)], true);
   assert.equal(rewards.decimal.base, 332.2);
   assert.equal(rewards.decimal.total, 350);
   assert.equal(rewards.decimal.increase, 17.8);

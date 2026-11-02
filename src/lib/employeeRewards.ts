@@ -17,7 +17,8 @@ export interface EmployeeReward {
 // Reward categories use the agreed monthly points out of eleven, independently
 // of whether decorative tier badges are enabled.
 export function rewardTier(points: number, rounding: boolean): Tier {
-  if (!Number.isFinite(points) || points < 0 || points > 11) return 'bronze';
+  if (!Number.isFinite(points) || points < 8 || points > 11) return 'bronze';
+  // The actual eight-point minimum takes precedence over rounding.
   const qualifying = rounding ? Math.ceil(points) : points;
   return qualifying >= 11 ? 'gold' : qualifying >= 8 ? 'silver' : 'bronze';
 }
@@ -47,7 +48,7 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     if (cents > 0) total = Math.max(10000, total);
     rewards[employee.id] = {
       tier,
-      qualifyingPoints: Number.isFinite(employee.points) ? (rounding ? Math.ceil(employee.points) : employee.points) : 0,
+      qualifyingPoints: Number.isFinite(employee.points) ? (rounding && employee.points >= 8 ? Math.ceil(employee.points) : employee.points) : 0,
       base: cents / 100,
       total: total / 100,
       increase: (total - cents) / 100,

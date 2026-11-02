@@ -18,7 +18,7 @@ export interface FeatureState {
 }
 export const defaultFeatures: FeatureSettings = { competition: false, balanceGrowth: false, tiers: false, avatars: false, rounding: false, silverAt: 8, goldAt: 11 };
 export function employeeTier(points: number, settings: FeatureSettings): Tier {
-  if (!settings.tiers || !Number.isFinite(points)) return 'bronze';
+  if (!settings.tiers || !Number.isFinite(points) || points < 8) return 'bronze';
   return points >= settings.goldAt ? 'gold' : points >= settings.silverAt ? 'silver' : 'bronze';
 }
 export function validFeatureSettings(value: FeatureSettings) {

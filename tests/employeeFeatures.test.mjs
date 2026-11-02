@@ -14,6 +14,14 @@ test('tier boundaries and disabled tiers preserve bronze', () => {
   assert.equal(employeeTier(NaN, enabled), 'bronze');
   assert.equal(employeeTier(9, { ...enabled, silverAt: 9, goldAt: 10 }), 'silver');
 });
+test('the actual eight-point minimum overrides lower configured badge thresholds', () => {
+  for (const rounding of [false, true]) {
+    const settings = { ...enabled, rounding, silverAt: 7, goldAt: 7.5 };
+    assert.equal(employeeTier(7.99, settings), 'bronze');
+    assert.equal(employeeTier(7.99, { ...enabled, rounding }), 'bronze');
+    assert.equal(employeeTier(8, { ...enabled, rounding }), 'silver');
+  }
+});
 test('invalid thresholds and malformed flags are rejected', () => {
   assert.equal(validFeatureSettings(enabled), true);
   for (const change of [{ silverAt: 11 }, { goldAt: 12 }, { silverAt: 0 }, { silverAt: NaN }, { tiers: 'true' }, { goldAt: null }]) assert.equal(validFeatureSettings({ ...enabled, ...change }), false);
