@@ -3,7 +3,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 const source = ts.transpileModule(readFileSync(new URL('../src/lib/employeeFeatures.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { defaultFeatures, employeeTier, validFeatureSettings, dailyProgress, comparisonFromRecords, riyadhDay } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { defaultFeatures, employeeTier, validFeatureSettings, dailyProgress: progressAtDate, comparisonFromRecords, riyadhDay } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const dailyProgress = (employee, employees, state, now = new Date('2026-10-24T12:00:00Z')) => progressAtDate(employee, employees, state, now);
 const enabled = { ...defaultFeatures, tiers: true };
 test('tier boundaries and disabled tiers preserve bronze', () => {
   assert.equal(employeeTier(7.99, enabled), 'bronze');
@@ -111,4 +112,26 @@ test('new month resets prior-month progress and negative review activity advance
   const nextMonth = comparisonFromRecords(today, [{ ...employees[0], monthReviewsCount: 0 }], reviews, new Date('2026-10-31T21:01:00Z'));
   assert.equal(nextMonth.baselineDay, '2026-11-01');
   assert.deepEqual(nextMonth.baseline, { a: 0 });
+});
+
+test('overtakes are hidden for the first three Riyadh days while balance growth remains visible', () => {
+  const employees = [{ id: 'a', name: 'A', monthReviewsCount: 3 }, { id: 'b', name: 'B', monthReviewsCount: 2 }];
+  const state = { settings: enabled, baseline: { a: 1, b: 2 } };
+  for (const date of ['2026-10-31T21:00:00Z', '2026-11-02T12:00:00Z', '2026-11-03T20:59:59Z']) {
+    assert.deepEqual(dailyProgress(employees[0], employees, state, new Date(date)), { growth: 2, rankGain: 0, overtaken: [] });
+  }
+  assert.deepEqual(dailyProgress(employees[0], employees, state, new Date('2026-11-03T21:00:00Z')), { growth: 2, rankGain: 1, overtaken: ['B'] });
+});
+test('zero or absent review balances never inflate the overtaken names or count', () => {
+  const employees = [
+    { id: 'z', name: 'Z', monthReviewsCount: 3 },
+    { id: 'a', name: 'A', monthReviewsCount: 0 },
+    { id: 'b', name: 'B' },
+    { id: 'c', name: 'C', monthReviewsCount: 2 },
+    { id: 'd', name: 'D', monthReviewsCount: 1 },
+  ];
+  const state = { settings: enabled, baseline: { z: 0, a: 0, b: 0, c: 2, d: 0 } };
+  assert.deepEqual(dailyProgress(employees[0], employees, state), { growth: 3, rankGain: 1, overtaken: ['C'] });
+  const zeroOnly = [employees[0], employees[1], employees[2]];
+  assert.deepEqual(dailyProgress(employees[0], zeroOnly, state), { growth: 3, rankGain: 0, overtaken: [] });
 });

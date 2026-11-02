@@ -81,7 +81,7 @@ export function comparisonFromRecords(state: FeatureState | null, employees: Ran
   return { ...state, baseline, baselineDay: comparisonDay, comparisonSource: 'records' };
 }
 const order = (a: RankedEmployee, b: RankedEmployee) => (b.monthReviewsCount || 0) - (a.monthReviewsCount || 0) || a.name.localeCompare(b.name, 'ar') || a.id.localeCompare(b.id);
-export function dailyProgress(employee: RankedEmployee, employees: RankedEmployee[], state: FeatureState | null) {
+export function dailyProgress(employee: RankedEmployee, employees: RankedEmployee[], state: FeatureState | null, now = new Date()) {
   const before = state?.baseline[employee.id];
   const empty = { growth: 0, rankGain: 0, overtaken: [] as string[] };
   if (before == null || !state) return empty;
@@ -92,9 +92,14 @@ export function dailyProgress(employee: RankedEmployee, employees: RankedEmploye
   const currentIndex = current.findIndex(other => other.id === employee.id);
   if (previousIndex < 0 || currentIndex < 0) return empty;
   const previousRanks = new Map(previous.map((other, index) => [other.id, index]));
+  const showOvertakes = Number(riyadhDay(now).slice(-2)) > 3;
+  const overtaken = showOvertakes ? current.slice(currentIndex + 1).filter(other =>
+    (other.monthReviewsCount || 0) > 0 && state.baseline[other.id] > 0 &&
+    previousRanks.get(other.id)! < previousIndex
+  ).map(other => other.name) : [];
   return {
     growth: Math.round(((employee.monthReviewsCount || 0) - before) * 10) / 10,
-    rankGain: Math.max(0, previousIndex - currentIndex),
-    overtaken: current.slice(currentIndex + 1).filter(other => previousRanks.get(other.id)! < previousIndex).map(other => other.name),
+    rankGain: Math.min(Math.max(0, previousIndex - currentIndex), overtaken.length),
+    overtaken,
   };
 }

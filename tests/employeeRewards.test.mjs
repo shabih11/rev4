@@ -26,18 +26,31 @@ test('rounding changes category points only, preserving the actual review balanc
   assert.equal(rewardTier(7.1, false), 'bronze');
   assert.equal(rewardTier(8, false), 'silver');
 });
-test('eight actual points are mandatory before rounding can grant silver or a reward', () => {
-  for (const rounding of [false, true]) {
-    for (const points of [0, 7, 7.1, 7.9, 7.99, 7.999999]) {
+test('rounding can grant the minimum reward below eight actual points without a silver badge', () => {
+  for (const points of [7.1, 7.5, 7.9, 7.99, 7.999999]) {
+    for (const rounding of [false, true]) {
       assert.equal(rewardTier(points, rounding), 'bronze');
-      const { rewards, commonIncrease } = calculateEmployeeRewards([employee('below', points, 20)], rounding);
+      const { rewards } = calculateEmployeeRewards([employee('below', points, 7.5)], rounding);
       assert.equal(rewards.below.tier, 'bronze');
-      assert.equal(rewards.below.qualifyingPoints, points);
-      assert.equal(rewards.below.total, 0);
-      assert.equal(commonIncrease, 0);
+      assert.equal(rewards.below.qualifyingPoints, rounding ? 8 : points);
+      assert.equal(rewards.below.base, rounding ? 75 : 0);
+      assert.equal(rewards.below.total, rounding ? 100 : 0);
     }
-    assert.equal(rewardTier(8, rounding), 'silver');
   }
+  for (const points of [0, 7]) {
+    assert.equal(calculateEmployeeRewards([employee('below', points, 7.5)], true).rewards.below.total, 0);
+  }
+  assert.equal(rewardTier(8, true), 'silver');
+});
+test('rounded recipients below eight retain the review-balance minimum and shared uplift rules', () => {
+  const { rewards, commonIncrease } = calculateEmployeeRewards([
+    employee('below-balance', 7.5, 7), employee('minimum', 7.5, 7.5), employee('gold', 11, 11),
+  ], true);
+  assert.equal(rewards['below-balance'].total, 0);
+  assert.equal(rewards.minimum.tier, 'bronze');
+  assert.equal(rewards.minimum.total, 100);
+  assert.equal(commonIncrease, 25);
+  assert.equal(rewards.gold.total, 170);
 });
 test('shared uplift is merged before rounding: 85 becomes 100 and 154 becomes 170, not 175 or 180', () => {
   const { rewards, commonIncrease } = calculateEmployeeRewards([employee('low', 8, 8.5), employee('high', 11, 11)], true);
