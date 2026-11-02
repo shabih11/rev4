@@ -231,7 +231,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     {reward && reward.total > 0 && <>
                       <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>
                       <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA-u-nu-latn')} ريال</dd>
-                        {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">{reward.base.toLocaleString('ar-SA-u-nu-latn')} ريال قبل الجبر + {reward.increase.toLocaleString('ar-SA-u-nu-latn')} ريال زيادة.</p>}
+                        {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">المكافأة الاساسية ({reward.base.toLocaleString('ar-SA-u-nu-latn')}) ريال</p>}
                       </div>
                     </>}
                     <div><dt className="text-xs text-slate-500">إجمالي التقييمات</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.reviewsCount ?? 0)}</dd></div>
