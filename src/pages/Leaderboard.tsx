@@ -1,3 +1,4 @@
+import { ResultProblemReport } from '../components/ResultProblemReport';
 import { leaderboardEmployee } from '../lib/employeeBranches';
 import { useEmployeePresence } from '../hooks/useEmployeePresence';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
@@ -217,6 +218,7 @@ export const Leaderboard: React.FC = () => {
     >
 
       {navigation}
+      {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /></div>}
       {seaMode ? <Suspense fallback={<PageLoading />}><SeaMission /></Suspense> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
         renderAvatar={employee => <EmployeeAvatar employee={employee} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}

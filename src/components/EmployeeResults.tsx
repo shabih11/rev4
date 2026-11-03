@@ -7,6 +7,7 @@ import { employeeTier } from '../lib/employeeFeatures';
 import { rewardTier } from '../lib/employeeRewards';
 import type { UserAccount } from '../lib/mockData';
 import { Award, ChevronDown } from 'lucide-react';
+import { ResultProblemReport } from './ResultProblemReport';
 
 interface EmployeeResultsProps {
   user: UserAccount;
@@ -58,5 +59,6 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
       </div>}
 
     </details>}
+    <div className="mt-4"><ResultProblemReport /></div>
   </section>;
 }
