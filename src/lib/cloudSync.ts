@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
+import { getMyAccount, accountAccessMessages } from './accountAccess';
 import type { UserAccount } from './mockData';
 import { cachedRows, invalidateRows, readNamespace, stableJSON } from './browserReadCache';
 import { type RecordScope } from './cloudReadPlan';
@@ -18,16 +19,16 @@ export function useCloudSession(): CloudSession {
       try {
         const { data: verified, error: userError } = await supabase.auth.getUser();
         if (userError || verified.user?.id !== uid) throw new Error('invalid-session');
-        const { data, error } = await supabase.rpc('get_my_account').abortSignal(AbortSignal.timeout(15000));
-        if (error || !data || !['admin','manager','employee','viewer'].includes(data.role) || typeof data.id !== 'string') throw new Error('invalid-access');
+        const { account: data, error } = await getMyAccount(supabase, signature);
+        if (error || !data) throw new Error(error || 'denied');
         if (stopped || current !== epoch || uid !== activeUid) return;
         const next = readNamespace({ uid, account: data });
         if (namespace && next !== namespace) purge();
         namespace = next;
         setSession({ account: data as UserAccount, uid, ready: true, error: null });
-      } catch {
+      } catch (error) {
         if (stopped || current !== epoch || uid !== activeUid) return;
-        purge(); setSession({ account: null, uid, ready: true, error: 'الحساب غير مخوّل أو تعذر التحقق من صلاحياته. تواصلي مع الإدارة.' });
+        purge(); setSession({ account: null, uid, ready: true, error: accountAccessMessages[error instanceof Error && error.message === 'denied' ? 'denied' : 'unavailable'] });
       }
     };
     const accountChanged = () => { if (activeUid) { purge(); void verify(activeUid); } };
@@ -116,7 +117,7 @@ export function useCloudList<T extends { id: string }>(name: Source, session: Cl
       if (writingIdentity === currentIdentity.current) await invalidateRows(namespace);
     })().catch((error: { code?: string }) => {
       if (writingIdentity !== currentIdentity.current) return;
-      setWriteError(error?.code === '40001' ? 'تغيرت البيانات؛ لم يُطبق التعديل القديم وتتم مزامنة النسخة الحالية.' : 'لم يُحفظ التعديل. تحققي من الاتصال والصلاحيات وصحة البيانات.');
+      setWriteError(['PT409', '40001'].includes(error?.code || '') ? 'تغيرت البيانات؛ لم يُطبق التعديل القديم وتتم مزامنة النسخة الحالية.' : 'لم يُحفظ التعديل. تحققي من الاتصال والصلاحيات وصحة البيانات.');
       void invalidateRows(namespace);
     }).finally(() => setPending(x => Math.max(0, x - 1)));
   };

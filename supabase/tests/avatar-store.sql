@@ -33,7 +33,7 @@ select set_config('shop.v3',public.add_avatar_variant(current_setting('shop.coll
 select set_config('shop.v4',public.add_avatar_variant(current_setting('shop.collection')::uuid,'Four','10000000-0000-4000-8000-000000000014.webp')::text,true);
 do $$ declare cleanup_policy text; permitted boolean; begin
  begin perform public.add_avatar_variant(current_setting('shop.collection')::uuid,'Missing','10000000-0000-4000-8000-000000000099.webp'); raise exception 'Missing upload accepted'; exception when invalid_parameter_value then null; end;
- begin perform public.save_avatar_collection(current_setting('shop.collection')::uuid,'Stale',9,true,'{}'); raise exception 'Admin conflict accepted'; exception when serialization_failure then null; end;
+ begin perform public.save_avatar_collection(current_setting('shop.collection')::uuid,'Stale',9,true,'{}'); raise exception 'Admin conflict accepted'; exception when sqlstate 'PT409' then null; end;
  -- Supabase forbids direct SQL deletion from Storage. Evaluate the deployed cleanup policy without deleting an object.
  select pg_get_expr(polqual,polrelid) into cleanup_policy from pg_policy where polrelid='storage.objects'::regclass and polname='avatar_art_cleanup';
  if cleanup_policy is null then raise exception 'Artwork cleanup policy missing'; end if;
@@ -48,7 +48,7 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 do $$ begin
  if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>5 then raise exception 'Cumulative currency incorrect'; end if;
- begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,0); raise exception 'Client changed price'; exception when serialization_failure then null; end;
+ begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,0); raise exception 'Client changed price'; exception when sqlstate 'PT409' then null; end;
  begin perform public.save_avatar_collection(null,'Denied',0,true); raise exception 'Employee edits catalog'; exception when insufficient_privilege then null; end;
  begin insert into public.avatar_purchases(variant_id,profile_id,price_paid) values(current_setting('shop.v1')::uuid,'shop-test-a',0); raise exception 'Direct purchase bypass'; exception when insufficient_privilege then null; end;
  begin insert into storage.objects(bucket_id,name) values('avatar-store','10000000-0000-4000-8000-000000000099.webp'); raise exception 'Employee uploads artwork'; exception when insufficient_privilege then null; end;

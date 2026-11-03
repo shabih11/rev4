@@ -36,7 +36,7 @@ export function MysteryStore({ employee }: { employee: UserAccount }) {
       const purchase = request.current; if (busy || !purchase) return; setBusy(true); setMessage('');
       try {
         const { data, error } = await supabase.rpc('purchase_mystery_box', { request_id: purchase.id, expected_price: purchase.price });
-        if (error) { if (error.code === '40001' || error.code === '22023' || error.code === '42501') request.current = null; throw error; }
+        if (error) { if (['PT409', '40001', '22023', '42501'].includes(error.code)) request.current = null; throw error; }
         if (typeof data !== 'string' || !Object.hasOwn(gems, data)) throw new Error('Invalid response');
         setRevealed(data as Gem); request.current = null; setConfirm(false); refresh();
       } catch { setMessage('لم يتأكد فتح الصندوق. تحققي من الاتصال وأعيدي المحاولة.'); setConfirm(false); refresh(); }

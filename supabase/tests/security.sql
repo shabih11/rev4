@@ -26,7 +26,7 @@ do $$ begin
  begin insert into public.user_access(uid,profile_id,role) values('00000000-0000-4000-8000-000000000002','verify-other','admin'); raise exception 'Manager can grant roles'; exception when insufficient_privilege then null; end;
  begin perform public.write_rows('timeline','[{"id":"verify-invalid-member","before":null,"after":{"id":"verify-invalid-member","branch":"verify-branch-a","type":"shift","title":"Verification","date":"21-10-2026","time":"14:00","endTime":"16:00","employees":[{"id":"verify-other","name":"Verification"}]}}]'); raise exception 'Cross-branch membership accepted'; exception when foreign_key_violation then null; end;
  begin perform public.write_rows('timeline','[{"id":"verify-overlap","before":null,"after":{"id":"verify-overlap","branch":"verify-branch-a","type":"shift","title":"Verification","date":"21-10-2026","time":"17:00","endTime":"18:00","employees":[{"id":"verify-employee","name":"Verification"}]}}]'); raise exception 'Overlapping shift accepted'; exception when exclusion_violation then null; end;
- begin perform public.write_rows('timeline','[{"id":"verify-shift","before":null,"after":null}]'); raise exception 'Old write accepted'; exception when serialization_failure then null; end;
+ begin perform public.write_rows('timeline','[{"id":"verify-shift","before":null,"after":null}]'); raise exception 'Old write accepted'; exception when sqlstate 'PT409' then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated","user_metadata":{"role":"admin"}}',true);
 do $$ begin
@@ -39,6 +39,8 @@ end $$;
 select public.rename_me('Updated verification','Verification');
 do $$ begin
  if (select data->>'name' from public.profiles where id='verify-employee')<>'Updated verification' then raise exception 'Own name update failed'; end if;
+ begin perform public.rename_me('Stale verification','Verification'); raise exception 'Stale name accepted'; exception when sqlstate 'PT409' then null; end;
+ if (select data->>'name' from public.profiles where id='verify-employee')<>'Updated verification' then raise exception 'Stale rename changed profile'; end if;
  begin perform public.merge_employees('verify-employee','verify-other','Verification','verify-branch-a'); raise exception 'Employee can merge identities'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
@@ -104,7 +106,7 @@ do $$ begin if (select data->'rounding' from public.employee_feature_settings wh
 select public.save_employee_features((select data||'{"rounding":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
 do $$ begin
  begin perform public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":11,"goldAt":8}',(select data from public.employee_feature_settings where id=1)); raise exception 'Invalid thresholds accepted'; exception when invalid_parameter_value then null; end;
- begin perform public.save_employee_features((select data from public.employee_feature_settings where id=1),'{}'); raise exception 'Feature conflict accepted'; exception when serialization_failure then null; end;
+ begin perform public.save_employee_features((select data from public.employee_feature_settings where id=1),'{}'); raise exception 'Feature conflict accepted'; exception when sqlstate 'PT409' then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 do $$ begin
@@ -224,7 +226,7 @@ select public.transfer_employee('verify-employee','verify-branch-b','verify-bran
 do $$ begin
  if (select branch from public.profiles where id='verify-employee') is distinct from 'verify-branch-b' or (select branch from public.user_access where profile_id='verify-employee') is distinct from 'verify-branch-b' then raise exception 'Transfer profile/access diverged'; end if;
  if not exists(select 1 from public.timeline_events where id='verify-shift' and 'verify-employee'=any(employee_ids)) then raise exception 'Transfer lost shift history'; end if;
- begin perform public.transfer_employee('verify-employee','verify-branch-a','verify-branch-a',false); raise exception 'Stale transfer accepted'; exception when serialization_failure then null; end;
+ begin perform public.transfer_employee('verify-employee','verify-branch-a','verify-branch-a',false); raise exception 'Stale transfer accepted'; exception when sqlstate 'PT409' then null; end;
  begin perform public.transfer_employee('verify-employee','invalid','verify-branch-b',false); raise exception 'Invalid target branch accepted'; exception when invalid_parameter_value then null; end;
 end $$;
 -- Keep a legacy assignment deliberately: it must not grant a second current branch.

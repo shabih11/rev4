@@ -10,7 +10,7 @@ select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-00000000
 select set_config('magic.expected',(select public.get_avatar_store()#>'{magic,settings}')::text,true);
 select public.save_magic_settings('{"boxes":true,"themes":false,"price":60}',current_setting('magic.expected')::jsonb);
 do $$ begin
- begin perform public.save_magic_settings('{"boxes":true,"themes":false,"price":60}','{}'::jsonb); raise exception 'Stale config accepted'; exception when serialization_failure then null; end;
+ begin perform public.save_magic_settings('{"boxes":true,"themes":false,"price":60}','{}'::jsonb); raise exception 'Stale config accepted'; exception when sqlstate 'PT409' then null; end;
  begin perform public.save_magic_settings('{"boxes":true,"themes":true,"price":-1}',public.get_avatar_store()#>'{magic,settings}'); raise exception 'Negative price accepted'; exception when invalid_parameter_value then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
@@ -21,7 +21,7 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 do $$ declare first_gem text; begin
  begin perform public.save_magic_settings('{"boxes":true,"themes":true,"price":0}',public.get_avatar_store()#>'{magic,settings}'); raise exception 'Employee configured boxes'; exception when insufficient_privilege then null; end;
- begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',0); raise exception 'Client price accepted'; exception when serialization_failure then null; end;
+ begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',0); raise exception 'Client price accepted'; exception when sqlstate 'PT409' then null; end;
  first_gem:=public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',60);
  if first_gem is null or first_gem<>all(array['amber','pearl','emerald','sapphire','rose','amethyst']) then raise exception 'Unknown jewel'; end if;
  if public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',60)<>first_gem then raise exception 'Retry changed jewel'; end if;

@@ -2,6 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { requireAccountSetup } from '../lib/accountSetupConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeLoginEmail, normalizeLoginPassword, loginErrorMessage } from '../lib/loginInput';
+import { getMyAccount, accountAccessMessages } from '../lib/accountAccess';
 import type { UserAccount } from '../lib/mockData';
 import { useData } from './DataContext';
 interface AuthContextType {
@@ -20,9 +21,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       const identifier = normalizeLoginEmail(email);
+      let accessToken = '';
       if (identifier.includes('@')) {
-        const { error } = await supabase.auth.signInWithPassword({ email: identifier, password: normalizeLoginPassword(password) });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: identifier, password: normalizeLoginPassword(password) });
         if (error) throw error;
+        accessToken = data.session?.access_token || '';
       } else {
         const { data, error } = await supabase.functions.invoke('account-login', { body: { username: identifier, password: normalizeLoginPassword(password) } });
         if (error || typeof data?.access_token !== 'string' || typeof data?.refresh_token !== 'string') {
@@ -32,11 +35,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const { error: sessionError } = await supabase.auth.setSession({ access_token: data.access_token, refresh_token: data.refresh_token });
         if (sessionError) throw sessionError;
+        accessToken = data.access_token;
       }
-      const { data: account, error: accessError } = await supabase.rpc('get_my_account');
-      if (accessError || !account) {
-        await supabase.auth.signOut({ scope: 'local' });
-        return { success: false, error: 'الحساب غير مخوّل للدخول. تواصلي مع الإدارة.' };
+      const { error: accessError } = await getMyAccount(supabase, accessToken);
+      if (accessError) {
+        if (accessError === 'denied') await supabase.auth.signOut({ scope: 'local' });
+        return { success: false, error: accountAccessMessages[accessError] };
       }
       return { success: true };
     } catch (error) {
