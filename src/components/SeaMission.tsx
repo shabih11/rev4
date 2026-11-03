@@ -1,15 +1,13 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Building2, CalendarDays, Check, Clock3, Coins, Sailboat, Star, Vault, Waves } from 'lucide-react';
+import { Building2, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { seaBranchName, seaMission, seaOpening, SEA_BRANCHES, SEA_MISSION, type SeaBranch } from '../lib/seaMission';
-import { formatTime } from '../lib/formatDate';
+import { seaBranchName, seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
 import island from '../assets/sea/island.webp';
 import boat from '../assets/sea/boat.webp';
 import './SeaMission.css';
 
 const number = (value: number) => value.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
 const shortDate = (timestamp: number) => new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', calendar: 'gregory', day: 'numeric', month: 'long' }).format(timestamp);
-const time = (timestamp: number) => formatTime(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(timestamp));
 const statusLabels: Record<SeaBranch['status'], string> = { waiting: 'لم تبدأ', sailing: 'مستمر', sunk: 'غرق', arrived: 'وصل', unverified: 'قيد التحقق' };
 type SeaReview = Parameters<typeof seaMission>[0][number];
 
@@ -19,23 +17,11 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
   const branch = mission.branches.find(branch => branch.name === selected) || mission.branches[0];
   const afloat = mission.branches.filter(branch => branch.status !== 'sunk');
   const sunk = mission.branches.filter(branch => branch.status === 'sunk');
-  const day = branch.failedDay || branch.current;
-  const count = day?.count ?? 0;
   const columns = afloat.length > 4 ? 3 : Math.max(1, afloat.length);
   const currentProgress = Math.max(...afloat.map(branch => branch.progress), 0);
 
   return <main className="sea-mission" id="sea-mission-content">
-    <div className="sea-heading">
-      <h1><Waves aria-hidden="true" />مهمة البحر<Waves aria-hidden="true" /></h1>
-      <p className="sea-dates"><CalendarDays size={16} aria-hidden="true" />٥–٣٠ نوفمبر ٢٠٢٦</p>
-    </div>
-
-    <dl className="sea-metrics">
-      <div><Vault aria-hidden="true" /><dt>الغنيمة</dt><dd>{number(SEA_MISSION.reward)} <span>ريال</span></dd></div>
-      <div><Sailboat aria-hidden="true" /><dt>{mission.finished ? 'فروع وصلت' : 'فروع مستمرة'}</dt><dd>{number(mission.remaining)}</dd></div>
-      <div><Coins aria-hidden="true" /><dt>{mission.finished && !mission.uncertain ? 'حصة الفرع' : 'حصة الفرع المتوقعة'}</dt><dd>{mission.share === null ? '—' : <>{number(mission.share)} <span>ريال</span></>}</dd></div>
-    </dl>
-
+    <h1 className="sr-only">مهمة البحر</h1>
     <section className="sea-map" aria-label="رحلة الفروع إلى الجزيرة" style={{ '--fleet-columns': columns, '--fleet-progress': currentProgress, '--fleet-rows': Math.ceil(afloat.length / columns), '--wrecks': sunk.length } as CSSProperties}>
       <div className="sea-island" aria-hidden="true"><span>٣٠ نوفمبر</span><img src={island} alt="" width="850" height="567" /></div>
       <div className="sea-timeline" aria-hidden="true"><span>٥ نوفمبر</span><span>{!mission.started ? 'تنطلق قريبًا' : mission.finished ? 'نهاية الرحلة' : shortDate(now)}</span><span>٣٠ نوفمبر</span></div>
@@ -63,16 +49,6 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
       <span className="sea-start" aria-hidden="true">البداية · ٥ نوفمبر</span>
     </section>
 
-    <section className="sea-selected" aria-labelledby="sea-selected-name">
-      <div className="sea-selected-heading"><Building2 aria-hidden="true" /><h2 id="sea-selected-name">فرع {branch.name}</h2><span className={`sea-status sea-status-${branch.status}`}>{branch.status === 'sailing' || branch.status === 'arrived' ? <Check size={15} aria-hidden="true" /> : null}{statusLabels[branch.status]}</span></div>
-      {branch.status === 'waiting' ? <p className="sea-selected-message">تبدأ ٥ نوفمبر، {time(branch.days[0].start)}</p>
-        : branch.status === 'unverified' ? <p className="sea-selected-message">يلزم التحقق من أوقات التقييمات.</p>
-        : branch.status === 'arrived' ? <p className="sea-selected-message">اكتملت الرحلة</p>
-        : <>
-          <div className="sea-daily"><div><strong>{branch.status === 'sunk' ? shortDate(day!.start) : 'تقييمات اليوم'} · {number(count)} من ٢</strong><p>{branch.status === 'sunk' ? 'لم يكتمل الهدف' : count >= 2 ? 'اكتمل هدف اليوم' : count === 1 ? 'باقي تقييم واحد' : 'باقي تقييمان'}</p></div><div className="sea-stars" aria-hidden="true"><Star fill={count >= 1 ? 'currentColor' : 'none'} /><Star fill={count >= 2 ? 'currentColor' : 'none'} /></div></div>
-          {branch.status === 'sailing' && day && <p className="sea-deadline"><Clock3 size={14} aria-hidden="true" />حتى الافتتاح القادم · {time(day.end)}</p>}
-        </>}
-    </section>
   </main>;
 }
 
