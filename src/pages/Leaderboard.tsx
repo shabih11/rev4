@@ -9,14 +9,15 @@ import { employeeTier } from '../lib/employeeFeatures';
 import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
-import { PageLoading } from '../components/Brand';
-import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import { Brand, PageLoading } from '../components/Brand';
+import React, { lazy, Suspense, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, CalendarCheck } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, CalendarCheck, Waves } from 'lucide-react';
+import '../components/SeaMission.css';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -35,12 +36,19 @@ type SlideData =
   | { type: 'active_employee'; employee: UserAccount; count: number }
   | { type: 'praised_employee'; employee: UserAccount; count: number };
 
+const SeaMission = lazy(() => import('../components/SeaMission').then(module => ({ default: module.SeaMission })));
+
 export const Leaderboard: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const seaMode = searchParams.get('view') === 'sea';
   const { logout } = useAuth();
   const [logoutError, setLogoutError] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
   const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  useEffect(() => {
+    if (seaMode && resultsMode) setResultsMode(false);
+  }, [seaMode, resultsMode, setResultsMode]);
   const users = useMemo(() => directoryUsers.map(employee => leaderboardEmployee(employee, coverageBranches)), [directoryUsers, coverageBranches]);
   const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
@@ -174,40 +182,42 @@ export const Leaderboard: React.FC = () => {
   useEffect(() => {
     const autoplay = swiperRef.current?.swiper?.autoplay;
     if (!autoplay) return;
-    if (modalOpen) autoplay.stop();
+    if (modalOpen || seaMode) autoplay.stop();
     else autoplay.start();
-  }, [modalOpen]);
+  }, [modalOpen, seaMode]);
   const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries, resultsDate) : { id: '', count: 0 };
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
   const navigation = <header className="recognition-header relative z-30">
-        <nav className="recognition-header-actions" aria-label="التنقل">
+        {seaMode && <Link to="/" aria-label="الرئيسية"><Brand compact /></Link>}
+        <nav className="recognition-header-actions sea-navigation" aria-label="التنقل">
           {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
             setLoggingOut(true); setLogoutError('');
             try { await logout(); } catch { setLogoutError('تعذر تسجيل الخروج؛ أعيدي المحاولة.'); } finally { setLoggingOut(false); }
           }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>}
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
-          <button type="button" aria-pressed={resultsMode} onClick={() => setResultsMode(!resultsMode)}><CalendarCheck size={16} aria-hidden="true" />النتائج</button>
+          <button type="button" aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><CalendarCheck size={16} aria-hidden="true" />النتائج</button>
+          <Link to="/?view=sea" aria-current={seaMode ? 'page' : undefined} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
         </nav>
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
       </header>;
 
   if (!summaryReady) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
-  if (!resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
+  if (!seaMode && !resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
     <div
       data-motion="full"
-      data-gem-theme={!resultsMode && activeSlide?.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
-      data-tier={!resultsMode && activeSlide?.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
-      className={resultsMode ? 'results-page' : 'recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y'}
+      data-gem-theme={!seaMode && !resultsMode && activeSlide?.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
+      data-tier={!seaMode && !resultsMode && activeSlide?.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
+      className={seaMode ? 'sea-page font-alexandria' : resultsMode ? 'results-page' : 'recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y'}
       dir="rtl"
     >
 
       {navigation}
-      {resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
+      {seaMode ? <Suspense fallback={<PageLoading />}><SeaMission /></Suspense> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
         renderAvatar={employee => <EmployeeAvatar employee={employee} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
       /> : <>

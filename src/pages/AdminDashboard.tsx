@@ -1,3 +1,4 @@
+import { getBranchHours } from '../lib/branchHours';
 import { shiftWeekday } from '../lib/shiftSchedule';
 import { belongsToBranch, isCoverageEmployee } from '../lib/employeeBranches';
 import { BranchEmployees } from '../components/BranchEmployees';
@@ -10,27 +11,6 @@ import { useRecordScope } from '../hooks/useRecordScope';
 import { formatTime, timeMinutes } from '../lib/formatDate';
 import { UserProfileTab } from '../components/UserProfileTab';
 import employeeImg from '../assets/employee.png';
-
-// Fixed branch opening hours per specifications
-const BRANCH_HOURS: Record<string, { open: string; nextDay: string; label: string }> = {
-  'جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (2 مساءً)' },
-  'الرياض جاليري': { open: '14:00', nextDay: '14:00', label: 'الرياض جاليري (2 مساءً)' },
-  'القصر': { open: '14:00', nextDay: '14:00', label: 'القصر مول (2 مساءً)' },
-  'القصر مول': { open: '14:00', nextDay: '14:00', label: 'القصر مول (2 مساءً)' },
-  'المملكة': { open: '10:00', nextDay: '10:00', label: 'المملكة (10 صباحاً)' },
-  'شرق': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (7 صباحاً)' },
-  'شرق بلازا': { open: '07:00', nextDay: '07:00', label: 'شرق بلازا (7 صباحاً)' },
-  'ذافيو': { open: '12:00', nextDay: '12:00', label: 'ذافيو (12 مساءً)' },
-  'سلام': { open: '10:00', nextDay: '10:00', label: 'سلام (10 صباحاً)' },
-};
-
-function getBranchHours(branchName?: string) {
-  if (!branchName) return { open: '14:00', nextDay: '14:00', label: '2 مساءً' };
-  for (const [key, val] of Object.entries(BRANCH_HOURS)) {
-    if (branchName.includes(key) || key.includes(branchName)) return val;
-  }
-  return { open: '14:00', nextDay: '14:00', label: '2 مساءً' };
-}
 
 // Rules for editable months: current month anytime; previous month only within 2 days from the end of that month
 function checkMonthEditable(year: number, month: number, refDate: Date = new Date()): { editable: boolean; reason?: string; type: 'current' | 'previous_grace' | 'locked' } {
