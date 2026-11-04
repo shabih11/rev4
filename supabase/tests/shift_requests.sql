@@ -11,7 +11,7 @@ insert into public.user_access(uid,profile_id,role,branch) values
  ('20000000-0000-4000-8000-000000000001','request-admin','admin',null),
  ('20000000-0000-4000-8000-000000000002','request-manager','manager','جاليري'),
  ('20000000-0000-4000-8000-000000000003','request-employee','employee','جاليري');
-insert into public.reviews(id,data) values ('request-review',jsonb_build_object('id','request-review','branch','جاليري','rating','5','date',to_char(now() at time zone 'Asia/Riyadh','DD-MM-YYYY'),'time','11:00','linkedEmployeeIds','[]'::jsonb));
+insert into public.reviews(id,data) values ('request-review',jsonb_build_object('id','request-review','branch','جاليري','rating','5','date',to_char(now() at time zone 'Asia/Riyadh','DD-MM-YYYY'),'time',case when extract(isodow from now() at time zone 'Asia/Riyadh')=5 then '15:00' else '11:00' end,'linkedEmployeeIds','[]'::jsonb));
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 do $$ declare draft jsonb; yesterday jsonb; touched integer; begin

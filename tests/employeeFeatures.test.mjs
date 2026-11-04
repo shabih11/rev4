@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const source = ts.transpileModule(readFileSync(new URL('../src/lib/employeeFeatures.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { defaultFeatures, employeeTier, validFeatureSettings, dailyProgress: progressAtDate, comparisonFromRecords, riyadhDay } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { defaultFeatures, employeeTier, validFeatureSettings, dailyProgress: progressAtDate, comparisonFromRecords, riyadhDay } = await import(moduleUrl('employeeFeatures'));
 const dailyProgress = (employee, employees, state, now = new Date('2026-10-24T12:00:00Z')) => progressAtDate(employee, employees, state, now);
 const enabled = { ...defaultFeatures, tiers: true };
 test('tier boundaries and disabled tiers preserve bronze', () => {

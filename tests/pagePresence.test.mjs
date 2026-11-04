@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const code = ts.transpileModule(readFileSync(new URL('../src/lib/pagePresence.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { startPagePresence } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const { startPagePresence } = await import(moduleUrl('pagePresence'));
 
 class Page extends EventTarget {
   visibilityState = 'visible';

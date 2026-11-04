@@ -1,11 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import ts from 'typescript';
-const code = ts.transpileModule(readFileSync(new URL('../src/lib/cloudReadPlan.ts', import.meta.url), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const { combineRecordScopes, recordFilters } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const { combineRecordScopes, recordFilters } = await import(moduleUrl('cloudReadPlan'));
 const admin = { id: 'test-admin', branch: 'test-branch', role: 'admin' };
 
 test('no open detail screen produces no detail query; empty input never causes a full scan', () => {

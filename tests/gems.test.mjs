@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const source = ts.transpileModule(readFileSync(new URL('../src/lib/gems.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { gemTheme } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { gemTheme } = await import(moduleUrl('gems'));
 test('visitor theme follows the displayed employee and independent theme switch', () => {
  const state = { settings: { themes: true, boxes: false, price: 50 }, equipped: { a: 'emerald', b: 'rose' } };
  assert.equal(gemTheme(state, 'a'), 'emerald');

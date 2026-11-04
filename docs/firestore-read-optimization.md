@@ -1,3 +1,5 @@
+> مرجع تاريخي لنسخة Firebase؛ التشغيل الحالي يستخدم Supabase. راجع [سير الإصدار](production-workflow.md).
+
 > وثيقة تاريخية من نسخة Firebase. التشغيل الحالي موثق في [عمليات Supabase](supabase-operations.md).
 
 # مراجعة تقليل قراءات Firestore

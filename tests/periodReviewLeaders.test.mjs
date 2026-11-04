@@ -1,14 +1,6 @@
-import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const cache=new Map();
-function moduleUrl(name) {
- if(cache.has(name))return cache.get(name);
- let code=ts.transpileModule(readFileSync(new URL(`../src/lib/${name}.ts`,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
- code=code.replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${moduleUrl(path.slice(2))}'`);
- const url='data:text/javascript;base64,'+Buffer.from(code).toString('base64');cache.set(name,url);return url;
-}
+import { moduleUrl } from './helpers/typescript.mjs';
 const {periodReviewLeaders}=await import(moduleUrl('employeeActivity'));
 const start=Date.UTC(2026,9,11),end=Date.UTC(2026,9,17);
 const review=(id,date,ids)=>({id,date,linkedEmployeeIds:ids,rating:'5',branch:'a',time:'10:00'});

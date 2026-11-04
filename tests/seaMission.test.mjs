@@ -1,16 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
 
-const cache = new Map();
-function moduleUrl(name) {
-  if (cache.has(name)) return cache.get(name);
-  let code = ts.transpileModule(readFileSync(new URL(`../src/lib/${name}.ts`, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-  code = code.replace(/from '(\.\/[^']+)'/g, (_, path) => `from '${moduleUrl(path.slice(2))}'`);
-  const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
-  cache.set(name, url); return url;
-}
+import { moduleUrl } from './helpers/typescript.mjs';
 const { seaMission, seaForegroundBerths, seaBerths, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
 let id = 0;

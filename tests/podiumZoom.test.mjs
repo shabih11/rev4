@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const code = ts.transpileModule(readFileSync(new URL('../src/lib/podiumZoom.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { zoomPodiumAtPoint } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const { zoomPodiumAtPoint } = await import(moduleUrl('podiumZoom'));
 const anchor = { width: 390, fit: 0.3, zoom: 1, nextZoom: 2, scrollLeft: 0, scrollTop: 0, x: 195, y: 100 };
 const close = (actual, expected) => assert.ok(Math.abs(actual - expected) < 0.00001, `${actual} != ${expected}`);
 

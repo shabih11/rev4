@@ -1,19 +1,10 @@
-import React, { createContext, useContext } from 'react';
+import type React from 'react';
+import { AuthContext } from './AuthContext';
 import { requireAccountSetup } from '../lib/accountSetupConfig';
 import { supabase } from '../lib/supabase';
 import { normalizeLoginEmail, normalizeLoginPassword, loginErrorMessage } from '../lib/loginInput';
 import { getMyAccount, accountAccessMessages } from '../lib/accountAccess';
-import type { UserAccount } from '../lib/mockData';
 import { useData } from './DataContext';
-interface AuthContextType {
-  user: UserAccount | null; ready: boolean;
-  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => Promise<void>;
-  completeAccountSetup: (username: string, password?: string) => Promise<{ success: boolean; error?: string }>;
-  updateName: (name: string) => Promise<{ success: boolean; error?: string }>;
-  changePassword: (newPass: string) => Promise<{ success: boolean; error?: string }>;
-}
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentAccount, authReady, users } = useData();
   const directoryEntry = users.find(account => account.id === currentAccount?.id);
@@ -84,9 +75,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch { return { success: false, error: 'تعذر تغيير كلمة المرور. تحققي من متطلبات كلمة المرور وصلاحية الجلسة.' }; }
   };
   return <AuthContext.Provider value={{ user, ready: authReady, login, logout, changePassword, updateName, completeAccountSetup }}>{children}</AuthContext.Provider>;
-};
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
-  return context;
 };

@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const source=ts.transpileModule(readFileSync(new URL('../src/lib/polygonScenery.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
-const {sceneryOffset,goldBetweenSlides,polygonFill,makeSceneryMesh}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {sceneryOffset,goldBetweenSlides,polygonFill,makeSceneryMesh}=await import(moduleUrl('polygonScenery'));
 test('panorama moves continuously across slide boundaries and extends beyond last viewport',()=>{
  assert.equal(sceneryOffset(1)-sceneryOffset(.5),210);
  assert.ok(Math.abs(sceneryOffset(1.0001)-sceneryOffset(.9999))<.1);

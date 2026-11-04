@@ -1,14 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import ts from 'typescript';
-const modules=new Map();
-function moduleUrl(name) {
- if(modules.has(name))return modules.get(name);
- let code=ts.transpileModule(readFileSync(new URL(`../src/lib/${name}.ts`,import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.ESNext}}).outputText;
- code=code.replace(/from '(\.\/[^']+)'/g,(_,path)=>`from '${moduleUrl(path.slice(2))}'`);
- const url='data:text/javascript;base64,'+Buffer.from(code).toString('base64');modules.set(name,url);return url;
-}
+import { moduleUrl } from './helpers/typescript.mjs';
 const {employeeQualityPoints,qualityDeductions}=await import(moduleUrl('employeeQuality'));
 
 test('quality combines the existing two-point review credit and four-point conduct credit',()=>{

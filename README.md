@@ -7,9 +7,8 @@
 ```sh
 npm ci
 npm run dev
-npm run lint
-npm test
-npm run build
+npm run verify
+npm run test:browser
 ```
 
 المتطلبات: Node.js 24. إعداد Supabase العام موجود في `src/lib/supabase.ts`، ويمكن تجاوزه بمتغيري `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY`. لا تضع مفاتيح إدارة أو Windsor في متغيرات `VITE_*`.
@@ -30,4 +29,4 @@ GitHub Actions يجلب Windsor باستخدام سر `WINDSOR_API_KEY` المو
 
 ## النشر
 
-هذا الفرع مستقل: `codex/supabase-production`. فحوصه لا تنشر الموقع الحي. GitHub Pages ينشر من `main` فقط بعد اعتماد التغيير. الموقع الحالي: [rev4](https://shabih11.github.io/rev4/).
+الهدف الافتراضي للتحديثات هو `main`. يشغّل GitHub Pages فحوص lint واختبارات Node وChromium والبناء واختبارات SQL في بيئة معزولة قبل السماح بالنشر. لا تُنشر هجرات قاعدة البيانات أو Edge Functions تلقائيًا. راجع [سير الإصدار](docs/production-workflow.md) و[دليل الاختبارات](docs/testing.md). الموقع الحالي: [rev4](https://shabih11.github.io/rev4/).
