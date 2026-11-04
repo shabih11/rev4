@@ -11,7 +11,7 @@ function moduleUrl(name) {
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   cache.set(name, url); return url;
 }
-const { seaMission, seaOpening, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
+const { seaMission, seaOpening, seaJourneyProgress, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
 let id = 0;
 function review(branch, stamp, rating = '5') {
@@ -102,4 +102,25 @@ test('late synchronization recomputes from review occurrence time without alteri
   assert.equal(branch(rows.slice(0, 1), now).status, 'sunk');
   assert.equal(branch(rows, now).status, 'sailing');
   assert.equal(JSON.stringify(rows), original);
+});
+
+test('island starts far away, advances once per business day and is nearest on November 30', () => {
+  assert.equal(seaJourneyProgress(instant('2026-11-04T23:59:59')), 0);
+  assert.equal(seaJourneyProgress(seaOpening('شرق', 5)), 0);
+  assert.equal(seaJourneyProgress(seaOpening('شرق', 6) - 1), 0);
+  assert.equal(seaJourneyProgress(seaOpening('شرق', 6)), 1 / 25);
+  assert.equal(seaJourneyProgress(seaOpening('شرق', 6) + 3600000), 1 / 25);
+  for (let day = 7; day <= 30; day++) {
+    assert.equal(seaJourneyProgress(seaOpening('شرق', day)), (day - 5) / 25);
+  }
+  assert.equal(seaJourneyProgress(instant('2026-12-10T20:00:00')), 1);
+});
+
+test('island approach follows competition dates independently of branch elimination', () => {
+  const now = seaOpening('جاليري', 20);
+  const sunk = seaMission([], now);
+  const surviving = seaMission(SEA_BRANCHES.flatMap(name => completedDays(name, 5, 20)), now);
+  assert.equal(sunk.remaining, 0);
+  assert.equal(sunk.journeyProgress, 15 / 25);
+  assert.equal(sunk.journeyProgress, surviving.journeyProgress);
 });

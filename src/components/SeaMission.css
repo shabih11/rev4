@@ -1,113 +1,168 @@
-.sea-page { min-height:100dvh; color:#142b54; background:radial-gradient(ellipse at 20% 5%,#d7ecff 0,transparent 40%),#eff7ff; }
-.sea-page .recognition-header { width:100%; background:#ffffffed; border-bottom:1px solid #fff; box-shadow:0 6px 24px #265b9b0d; gap:1rem; padding:.8rem clamp(.75rem,3vw,2.5rem); }
+.sea-page {
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  color:#142b54;
+  background:#b8eaff;
+}
+.sea-page .recognition-header {
+  flex-shrink:0;
+  width:100%;
+  background:#ffffffed;
+  border-bottom:1px solid #e4f1fa;
+  box-shadow:none;
+  gap:1rem;
+  padding:.8rem clamp(.75rem,3vw,2.5rem);
+}
 .sea-page .recognition-header .brand { flex-shrink:0; }
 .sea-page .recognition-header .brand__logo { width:7.5rem; }
-.sea-navigation > a[aria-current="page"] { color:#fff; background:linear-gradient(#488aff,#0950e5); border:1px solid #ffffff9c; box-shadow:inset 0 2px 4px #fff5,0 5px 12px #2459e030; }
-.sea-navigation > a[aria-current="page"]::before { display:none; }
-.sea-mission { width:min(100%,1440px); margin:auto; padding:1.75rem clamp(.75rem,3vw,2.5rem) 2rem; }
-.sea-heading { text-align:center; margin-bottom:1.4rem; }
-.sea-heading h1 { display:flex; align-items:center; justify-content:center; gap:1rem; font-size:clamp(2rem,1.1rem + 3vw,3.75rem); font-weight:900; line-height:1.4; }
-.sea-heading h1 > svg { width:1em; height:1em; color:#62b8f7; stroke-width:2; }
-.sea-dates { display:inline-flex; align-items:center; gap:.6rem; border-radius:2rem; padding:.4rem 1.25rem; margin-top:.5rem; font-size:.85rem; background:#dcecff; color:#2c4f80; font-weight:600; }
-.sea-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-bottom:1.2rem; }
-.sea-metrics > div { position:relative; display:grid; grid-template-columns:1fr auto; align-content:center; background:#ffffffef; border:1px solid white; box-shadow:0 6px 18px #2465ad12; border-radius:1.5rem; padding:1.25rem 1.4rem; }
-.sea-metrics svg { grid-column:2; grid-row:1 / 3; align-self:center; background:#e7f1ff; color:#2459e0; width:3.2rem; height:3.2rem; padding:.7rem; border-radius:50%; margin-inline-start:.5rem; }
-.sea-metrics dt { grid-column:1; grid-row:2; font-size:.8rem; font-weight:600; padding-top:.35rem; }
-.sea-metrics dd { grid-column:1; grid-row:1; color:#1453db; font-size:clamp(1.3rem,1rem + 1.1vw,2rem); font-weight:900; white-space:nowrap; }
-.sea-metrics dd span { font-size:.7em; }
-.sea-map { position:relative; direction:ltr; isolation:isolate; min-height:520px; background:#99dff9 url('../assets/sea/ocean.webp') center / cover; border:2px solid #fff; border-radius:1.7rem; overflow:hidden; box-shadow:0 8px 30px #2a76ba0e; }
-.sea-map::before { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(#e5f5ff8c,#cceaff40); }
-.sea-island { position:absolute; width:30%; max-width:390px; left:-2%; top:30%; pointer-events:none; }
-.sea-island > span { position:absolute; top:-1.5rem; left:50%; transform:translateX(-50%); color:#142b54; font-weight:800; white-space:nowrap; }
-.sea-island img { width:100%; height:auto; aspect-ratio:850/567; }
-.sea-timeline { position:absolute; top:2rem; left:13%; right:9%; display:flex; flex-direction:row-reverse; justify-content:space-between; border-bottom:2px dashed #488bdf; padding-bottom:1rem; font-size:.85rem; font-weight:800; }
-.sea-timeline span { position:relative; direction:rtl; }
-.sea-timeline span::after { content:''; position:absolute; width:12px; height:12px; border:2px solid #2459e0; background:white; border-radius:50%; left:50%; bottom:-1.45rem; }
-.sea-fleet,.sea-wrecks { list-style:none; margin:0; padding:0; }
-.sea-fleet > li,.sea-wrecks > li { position:absolute; top:calc(115px + var(--lane)*59px); left:28%; right:2%; height:50px; }
-.sea-fleet > li::before { content:''; position:absolute; top:25px; left:0; right:2%; border-top:2px dashed #ffffffdf; }
-.sea-vessel { position:absolute; left:0; right:0; height:100%; min-height:48px; width:100%; color:#142b54; border-radius:1rem; }
-.sea-vessel > img { position:absolute; left:calc(73% - var(--progress)*65%); top:-1.9rem; width:5rem; height:5rem; object-fit:contain; transform:translateX(-50%); filter:drop-shadow(0 4px 3px #327cbe33); }
-.sea-branch-label { position:absolute; right:0; width:26%; max-width:10rem; min-height:46px; display:flex; align-items:center; justify-content:space-between; flex-direction:row-reverse; gap:.5rem; background:linear-gradient(#fff,#eaf6ff); border:1px solid #fff; border-radius:1rem; box-shadow:0 3px 7px #26619d14; padding:.45rem .65rem; font-size:.8rem; font-weight:800; }
-.sea-branch-label > span:first-child { display:flex; flex-direction:row-reverse; align-items:center; gap:.3rem; }
-.sea-count { background:#d9edff; color:#1552c6; border-radius:2rem; padding:.2rem .4rem; font-size:.65rem; direction:rtl; white-space:nowrap; }
-.sea-count-complete { background:#d4f5df; color:#166d38; }
-.sea-vessel[aria-pressed="true"] .sea-branch-label { border-color:#2459e0; box-shadow:0 0 0 2px #2459e01f; }
-.sea-vessel:focus-visible,.sea-wrecks button:focus-visible { outline:3px solid #154ec6; outline-offset:4px; }
-.sea-wrecks button { position:absolute; inset:0; width:100%; min-height:44px; color:#475975; }
-.sea-wrecks img { position:absolute; width:5rem; height:5rem; object-fit:contain; left:calc(73% - var(--progress)*65%); top:-2.7rem; transform:translateX(-50%) rotate(-18deg); filter:grayscale(1); clip-path:inset(55% 0 0); opacity:.8; }
-.sea-wrecks button > span { position:absolute; right:0; display:flex; align-items:center; justify-content:center; flex-direction:row-reverse; gap:.4rem; padding:.5rem .75rem; background:#e6eef5eb; border:1px solid #ffffff85; border-radius:1rem; font-size:.75rem; direction:ltr; }
-.sea-wrecks button > span > span { direction:rtl; }
-.sea-wrecks button[aria-pressed="true"] > span { border-color:#526783; }
-.sea-start { position:absolute; right:1.5rem; bottom:1rem; font-size:.8rem; font-weight:800; direction:rtl; background:#f2f9ffdb; padding:.4rem .8rem; border-radius:2rem; }
-.sea-empty { position:absolute; top:45%; left:0; right:0; text-align:center; font-weight:800; direction:rtl; }
-.sea-selected { margin-top:1.2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; border:1px solid #fff; border-radius:1.5rem; background:#fffffff2; padding:1.25rem 1.5rem; box-shadow:0 6px 18px #2465ad12; }
-.sea-selected-heading { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
-.sea-selected-heading > svg { width:2.5rem; height:2.5rem; border-radius:50%; color:#2459e0; background:#e5f0ff; padding:.6rem; }
-.sea-selected h2 { font-size:1.3rem; font-weight:900; }
-.sea-status { display:inline-flex; align-items:center; gap:.3rem; color:#526580; background:#edf2f7; padding:.3rem .8rem; border-radius:2rem; font-size:.75rem; font-weight:800; }
-.sea-status-sailing,.sea-status-arrived { background:#dbf7e1; color:#196a37; }
-.sea-status-unverified { background:#fff1cc; color:#875500; }
-.sea-daily { display:flex; align-items:center; justify-content:center; gap:1.5rem; background:#e9f3ff; padding:.6rem 1.2rem; border-radius:1.2rem; }
-.sea-daily strong { font-size:.95rem; font-weight:800; }
-.sea-daily p { color:#516481; font-size:.8rem; margin-top:.25rem; }
-.sea-stars { display:flex; gap:.3rem; color:#2459e0; }
-.sea-deadline,.sea-selected-message { display:flex; align-items:center; gap:.4rem; font-size:.75rem; color:#50627c; }
-.sea-error { padding:2rem; border-radius:1.5rem; background:white; color:#9f2929; }
-
-@media (max-width:900px) and (min-width:761px) {
-  .sea-branch-label { width:32%; }
-  .sea-vessel > img,.sea-wrecks img { left:calc(59% - var(--progress)*54%); }
+.sea-navigation > a[aria-current="page"] {
+  color:#fff;
+  background:linear-gradient(#488aff,#0950e5);
+  border:1px solid #ffffff9c;
+  box-shadow:inset 0 2px 4px #fff5,0 5px 12px #2459e030;
 }
+.sea-navigation > a[aria-current="page"]::before { display:none; }
+.sea-mission { display:flex; flex:1; width:100%; min-width:0; margin:0; padding:0; }
+.sea-map {
+  position:relative;
+  flex:1;
+  min-width:0;
+  min-height:38rem;
+  direction:ltr;
+  isolation:isolate;
+  overflow:hidden;
+  background:#8edcf3 url('../assets/sea/ocean-distance.webp') center / 100% 100% no-repeat;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+}
+.sea-island {
+  position:absolute;
+  z-index:1;
+  width:min(76%,440px);
+  left:50%;
+  top:21.5%;
+  transform-origin:50% 100%;
+  transform:translate(-50%,-100%) translateY(calc(var(--journey-progress)*clamp(140px,20dvh,200px))) scale(calc(.09 + var(--journey-progress)*.91));
+  pointer-events:none;
+}
+.sea-island img { display:block; width:100%; height:auto; aspect-ratio:850/567; }
+.sea-timeline {
+  position:absolute;
+  z-index:2;
+  top:1rem;
+  left:50%;
+  transform:translateX(-50%);
+  padding:.35rem .85rem;
+  border-radius:2rem;
+  color:#274b70;
+  background:#f2fbffe6;
+  font-size:.75rem;
+  font-weight:700;
+  direction:rtl;
+  white-space:nowrap;
+}
+.sea-fleet,.sea-wrecks { list-style:none; margin:0; padding:0; }
+.sea-fleet > li,.sea-wrecks > li {
+  position:absolute;
+  z-index:3;
+  left:var(--berth-x);
+  top:58%;
+  transform:translateX(-50%);
+  width:min(14%,10rem);
+}
+.sea-vessel,.sea-wrecks button {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:100%;
+  min-height:44px;
+  color:#142b54;
+  border-radius:.8rem;
+}
+.sea-vessel > img {
+  display:block;
+  width:clamp(80px,8vw,128px);
+  height:auto;
+  aspect-ratio:3/4;
+  object-fit:contain;
+}
+.sea-branch-label {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:.25rem;
+  width:100%;
+  max-width:8.5rem;
+  min-height:48px;
+  padding:.4rem .5rem;
+  border:1px solid #ffffffd9;
+  border-radius:.85rem;
+  background:#f9fdfff0;
+  color:#142b54;
+  font-size:.8rem;
+  font-weight:800;
+  direction:rtl;
+}
+.sea-branch-label > span:first-child { display:flex; align-items:center; gap:.35rem; }
+.sea-count { display:inline-flex; align-items:center; gap:.25rem; background:#dceeff; color:#154bab; border-radius:2rem; padding:.15rem .55rem; font-size:.65rem; white-space:nowrap; }
+.sea-count-complete { background:#dcf7e4; color:#176c39; }
+.sea-vessel[aria-pressed="true"] .sea-branch-label { border-color:#2459e0; box-shadow:0 0 0 1px #2459e02b; }
+.sea-vessel:focus-visible,.sea-wrecks button:focus-visible { outline:3px solid #154ec6; outline-offset:4px; }
+.sea-wrecks img {
+  display:block;
+  width:clamp(80px,8vw,128px);
+  height:auto;
+  aspect-ratio:3/4;
+  object-fit:contain;
+  transform:rotate(-18deg);
+  filter:grayscale(1);
+  clip-path:inset(55% 0 0);
+  opacity:.8;
+}
+.sea-wrecks button > span {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:.25rem .4rem;
+  width:100%;
+  min-height:48px;
+  padding:.4rem .5rem;
+  border:1px solid #ffffffba;
+  border-radius:.85rem;
+  background:#e8f1f7ed;
+  color:#475975;
+  direction:rtl;
+  font-size:.75rem;
+}
+.sea-wrecks button > span > span { width:100%; font-size:.65rem; }
+.sea-wrecks button[aria-pressed="true"] > span { border-color:#526783; }
+.sea-start { position:absolute; bottom:1rem; left:50%; transform:translateX(-50%); color:#2b5775; background:#f2fbffdb; padding:.3rem .8rem; border-radius:2rem; font-size:.7rem; font-weight:700; direction:rtl; white-space:nowrap; }
+.sea-empty { position:absolute; top:44%; left:0; right:0; text-align:center; font-size:.8rem; font-weight:700; direction:rtl; }
+.sea-error { align-self:flex-start; margin:1rem; padding:1rem; border-radius:.8rem; background:white; color:#9f2929; }
+
 @media (max-width:760px) {
-  .recognition-header .sea-navigation { width:100%; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem; }
+  .recognition-header .sea-navigation { display:grid; width:100%; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem; }
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
   .sea-page .recognition-header { flex-direction:column; align-items:stretch; gap:.5rem; padding:.6rem .65rem; }
   .sea-page .recognition-header > a { align-self:flex-start; }
-  .sea-page .recognition-header .brand { align-self:flex-start; }
   .sea-page .recognition-header .brand__logo { width:6.8rem; }
-  .sea-mission { padding:1rem .65rem 1.25rem; }
-  .sea-heading { margin-bottom:1rem; }
-  .sea-heading h1 { gap:.6rem; font-size:clamp(1.9rem,1.2rem + 3vw,2.7rem); }
-  .sea-dates { font-size:.7rem; padding:.35rem 1rem; }
-  .sea-metrics { gap:.4rem; margin-bottom:.75rem; }
-  .sea-metrics > div { padding:.8rem .25rem; display:flex; flex-direction:column; align-items:center; border-radius:1.1rem; text-align:center; gap:.15rem; }
-  .sea-metrics svg { display:none; }
-  .sea-metrics dt { order:1; padding:0; font-size:.65rem; }
-  .sea-metrics dd { font-size:clamp(1.15rem,.8rem + 1.8vw,1.7rem); }
-  .sea-map { min-height:calc(590px + (var(--fleet-rows) - 1)*100px + var(--wrecks)*38px); border-radius:1.4rem; background-position:center; }
-  .sea-island { width:78%; max-width:360px; left:50%; top:2rem; transform:translateX(-50%); }
-  .sea-island > span { top:-.8rem; font-size:.85rem; }
-  .sea-timeline { top:240px; left:10%; right:10%; padding:0; border:0; justify-content:center; font-size:.7rem; }
-  .sea-timeline span:first-child,.sea-timeline span:last-child { display:none; }
-  .sea-timeline span:nth-child(2) { background:#eef8ffef; border-radius:2rem; padding:.3rem 1rem; z-index:2; }
-  .sea-timeline span::after { display:none; }
-  .sea-fleet { position:absolute; direction:rtl; top:calc(330px - var(--fleet-progress)*40px); left:.4rem; right:.4rem; display:grid; grid-template-columns:repeat(var(--fleet-columns),minmax(0,1fr)); gap:.8rem .3rem; }
-  .sea-fleet > li { position:relative; inset:auto; height:125px; min-width:0; }
-  .sea-fleet > li::before { top:-50px; bottom:0; left:50%; right:auto; border-top:0; border-left:2px dashed #fff; }
-  .sea-vessel { position:relative; inset:auto; display:flex; flex-direction:column; align-items:center; min-width:0; height:100%; }
-  .sea-vessel > img { position:relative; inset:auto; transform:none; width:76px; max-width:100%; height:76px; flex-shrink:0; }
-  .sea-branch-label { position:relative; inset:auto; display:flex; flex-direction:column; gap:.2rem; width:100%; max-width:7rem; padding:.35rem .15rem; min-height:54px; border-radius:.8rem; font-size:clamp(.62rem,.43rem + 1vw,.8rem); }
+  .sea-map { background-image:url('../assets/sea/ocean-distance-mobile.webp'); }
+  .sea-island { top:23%; }
+  .sea-fleet > li,.sea-wrecks > li { left:var(--mobile-x); top:calc(46% + var(--berth-row)*24%); width:29%; max-width:9rem; }
+  .sea-vessel > img,.sea-wrecks img { width:calc(76px + var(--berth-row)*10px); }
+  .sea-branch-label { font-size:clamp(.7rem,.55rem + .6vw,.82rem); padding:.35rem .2rem; }
   .sea-branch-label svg { display:none; }
-  .sea-count { font-size:.62rem; padding:.1rem .45rem; }
-  .sea-wrecks { position:absolute; left:.9rem; right:.9rem; bottom:3.8rem; display:grid; gap:.35rem; }
-  .sea-wrecks > li { position:relative; inset:auto; height:auto; }
-  .sea-wrecks button { position:relative; inset:auto; display:flex; justify-content:center; align-items:center; gap:.5rem; }
-  .sea-wrecks img { position:relative; inset:auto; transform:rotate(-18deg); width:45px; height:40px; margin-top:-22px; }
-  .sea-wrecks button > span { position:relative; inset:auto; font-size:.65rem; padding:.35rem .65rem; }
-  .sea-start { bottom:.8rem; right:50%; transform:translateX(50%); white-space:nowrap; font-size:.7rem; }
-  .sea-selected { margin-top:.75rem; padding:1rem; gap:.85rem; border-radius:1.3rem; }
-  .sea-selected-heading { width:100%; gap:.5rem; }
-  .sea-selected h2 { font-size:1.05rem; }
-  .sea-selected-heading > svg { width:2rem; height:2rem; padding:.4rem; }
-  .sea-status { margin-inline-start:auto; padding:.3rem .6rem; font-size:.65rem; }
-  .sea-daily { width:100%; padding:.8rem .6rem; gap:.8rem; }
-  .sea-daily strong { font-size:.8rem; }
-  .sea-daily p { font-size:.75rem; }
-  .sea-stars svg { width:23px; height:23px; }
-  .sea-deadline { margin:auto; font-size:.65rem; }
+  .sea-wrecks button > span { font-size:.72rem; padding:.35rem .2rem; }
+  .sea-wrecks button > span > span { font-size:.6rem; }
+  .sea-start { bottom:.7rem; font-size:.65rem; }
 }
-@media (min-width:640px) and (max-width:760px) {
-  .recognition-header .sea-navigation { display:grid; }
+@media (prefers-reduced-motion:no-preference) {
+  .sea-island { transition:transform 1s ease; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .sea-island { transition:none !important; }
 }

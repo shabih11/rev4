@@ -4,6 +4,7 @@ import { useData } from '../context/DataContext';
 import { seaBranchName, seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
 import island from '../assets/sea/island.webp';
 import boat from '../assets/sea/boat.webp';
+import departingBoat from '../assets/sea/boat-stern.webp';
 import './SeaMission.css';
 
 const number = (value: number) => value.toLocaleString('ar-SA', { maximumFractionDigits: 2 });
@@ -17,18 +18,24 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
   const branch = mission.branches.find(branch => branch.name === selected) || mission.branches[0];
   const afloat = mission.branches.filter(branch => branch.status !== 'sunk');
   const sunk = mission.branches.filter(branch => branch.status === 'sunk');
-  const columns = afloat.length > 4 ? 3 : Math.max(1, afloat.length);
-  const currentProgress = Math.max(...afloat.map(branch => branch.progress), 0);
+  const berth = (name: string): CSSProperties => {
+    const index = mission.branches.findIndex(branch => branch.name === name);
+    return {
+      '--berth-x': `${100 - (index + .5) * 100 / SEA_BRANCHES.length}%`,
+      '--mobile-x': `${100 - (index % 3 + .5) * 100 / 3}%`,
+      '--berth-row': Math.floor(index / 3),
+    } as CSSProperties;
+  };
 
   return <main className="sea-mission" id="sea-mission-content">
     <h1 className="sr-only">مهمة البحر</h1>
-    <section className="sea-map" aria-label="رحلة الفروع إلى الجزيرة" style={{ '--fleet-columns': columns, '--fleet-progress': currentProgress, '--fleet-rows': Math.ceil(afloat.length / columns), '--wrecks': sunk.length } as CSSProperties}>
-      <div className="sea-island" aria-hidden="true"><span>٣٠ نوفمبر</span><img src={island} alt="" width="850" height="567" /></div>
-      <div className="sea-timeline" aria-hidden="true"><span>٥ نوفمبر</span><span>{!mission.started ? 'تنطلق قريبًا' : mission.finished ? 'نهاية الرحلة' : shortDate(now)}</span><span>٣٠ نوفمبر</span></div>
+    <section className="sea-map" aria-label="رحلة الفروع إلى الجزيرة" style={{ '--journey-progress': mission.journeyProgress } as CSSProperties}>
+      <div className="sea-island" aria-hidden="true"><img src={island} alt="" width="850" height="567" /></div>
+      <p className="sea-timeline">{!mission.started ? 'تنطلق قريبًا' : mission.finished ? 'نهاية الرحلة' : shortDate(now)}</p>
       <ul className="sea-fleet" role="list">
-        {afloat.map((item, index) => <li key={item.name} style={{ '--progress': item.progress, '--lane': index } as CSSProperties}>
+        {afloat.map(item => <li key={item.name} style={berth(item.name)}>
           <button type="button" className="sea-vessel" aria-pressed={item.name === branch.name} onClick={() => setSelected(item.name)}>
-            <img src={boat} alt="" width="240" height="240" />
+            <img src={departingBoat} alt="" width="240" height="320" />
             <span className="sea-branch-label"><span><Building2 size={14} aria-hidden="true" />{item.name}</span>
               <span className={`sea-count ${item.current && item.current.count >= 2 ? 'sea-count-complete' : ''}`}>
                 {item.status === 'waiting' || item.status === 'unverified' ? statusLabels[item.status] : item.status === 'arrived' ? <><Check size={13} aria-hidden="true" />وصل</> : <>{number(item.current?.count ?? 0)} من ٢</>}
@@ -39,7 +46,7 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
       </ul>
       {afloat.length === 0 && <p className="sea-empty">لم يصل أي فرع</p>}
       {sunk.length > 0 && <ul className="sea-wrecks" role="list">
-        {sunk.map(item => <li key={item.name} style={{ '--progress': item.progress, '--lane': mission.branches.indexOf(item) } as CSSProperties}>
+        {sunk.map(item => <li key={item.name} style={berth(item.name)}>
           <button type="button" onClick={() => setSelected(item.name)} aria-pressed={item.name === branch.name}>
             <img src={boat} alt="" width="240" height="240" />
             <span><Building2 size={14} aria-hidden="true" /><strong>{item.name}</strong><span>غرق {shortDate(item.failedDay!.start)}</span></span>

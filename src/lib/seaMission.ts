@@ -24,6 +24,17 @@ export function seaOpening(branch: string, day: number) {
   return date.getTime() + minutes * 60000 - RIYADH_OFFSET;
 }
 
+// The shared camera advances once per competition day, even if all boats have sunk.
+export function seaJourneyProgress(now = Date.now()) {
+  let stage = 0;
+  for (let day = SEA_MISSION.firstDay; day <= SEA_MISSION.lastDay; day++) {
+    const opening = Math.min(...SEA_BRANCHES.map(branch => seaOpening(branch, day)));
+    if (now < opening) break;
+    stage = day - SEA_MISSION.firstDay;
+  }
+  return stage / (SEA_MISSION.lastDay - SEA_MISSION.firstDay);
+}
+
 function reviewCalendar(value: string): number | null {
   const raw = toEnglishNumerals(value || '').trim();
   const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(raw);
@@ -80,6 +91,6 @@ export function seaMission(reviews: readonly Review[], now = Date.now()) {
   const started = branches.some(branch => branch.status !== 'waiting');
   const finished = branches.every(branch => now >= branch.days.at(-1)!.end);
   const uncertain = branches.some(branch => branch.status === 'unverified');
-  return { branches, remaining, started, finished, uncertain,
+  return { branches, remaining, started, finished, uncertain, journeyProgress: seaJourneyProgress(now),
     share: started && !uncertain && remaining > 0 ? SEA_MISSION.reward / remaining : null };
 }
