@@ -10,6 +10,9 @@ for (const file of readdirSync(directory).filter(file => file.endsWith('.sql')).
   if (!/^begin;/mi.test(sql) || !/rollback;\s*(?:select\s+'[^']*'\s+as\s+\w+;\s*)?$/i.test(sql)) {
     throw new Error(`${file} must isolate its fixtures with BEGIN / ROLLBACK`);
   }
+  // Production supplies this through Vault. The local stack needs its own
+  // synthetic credential, inside the same rolled-back transaction as each test.
+  sql = sql.replace(/^begin;/mi, "begin;\nselect vault.create_secret('test-only-default-password', 'employee_default_password');");
   if (file === 'security.sql') sql = securityFixturesForMonth(sql, new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' }));
   process.stdout.write(`Database test: ${file}\n`);
   const result = spawnSync('docker', ['exec', '-i', container, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
