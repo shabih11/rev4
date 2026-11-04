@@ -10,7 +10,7 @@ import { employeeTier } from '../lib/employeeFeatures';
 import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
-import { Brand, PageLoading } from '../components/Brand';
+import { PageLoading } from '../components/Brand';
 import React, { lazy, Suspense, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
@@ -191,7 +191,6 @@ export const Leaderboard: React.FC = () => {
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
   const navigation = <header className="recognition-header relative z-30">
-        {seaMode && <Link to="/" aria-label="الرئيسية"><Brand compact /></Link>}
         <nav className="recognition-header-actions sea-navigation" aria-label="التنقل">
           {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
             setLoggingOut(true); setLogoutError('');
@@ -200,7 +199,7 @@ export const Leaderboard: React.FC = () => {
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
           <button type="button" aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><CalendarCheck size={16} aria-hidden="true" />النتائج</button>
-          <Link to="/?view=sea" aria-current={seaMode ? 'page' : undefined} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
+          <Link to={seaMode ? '/' : '/?view=sea'} aria-current={seaMode ? 'page' : undefined} aria-label={seaMode ? 'مهمة البحر، العودة إلى لوحة الترتيب' : 'مهمة البحر'} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
         </nav>
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
       </header>;

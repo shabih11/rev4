@@ -11,7 +11,7 @@ function moduleUrl(name) {
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   cache.set(name, url); return url;
 }
-const { seaMission, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
+const { seaMission, seaBerths, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
 let id = 0;
 function review(branch, stamp, rating = '5') {
@@ -249,4 +249,68 @@ test('island approach follows competition dates independently of branch eliminat
   assert.equal(sunk.remaining, 0);
   assert.equal(sunk.journeyProgress, 15 / 25);
   assert.equal(sunk.journeyProgress, surviving.journeyProgress);
+});
+
+const berths = (reviews, now) => seaBerths(seaMission(reviews, now).branches, now);
+test('boats start in two rows and move one row at the daily target, once per day', () => {
+  const now = instant('2026-11-05T16:00:00');
+  assert.deepEqual(berths([], now).map(boat => boat.row), [1, 1, 1, 2, 2, 2]);
+  const rows = countedDay('المملكة', 5, 2);
+  assert.equal(berths(rows.slice(0, 1), now).find(boat => boat.name === 'المملكة').row, 2);
+  assert.equal(berths(rows, now).find(boat => boat.name === 'المملكة').row, 1);
+  assert.deepEqual(berths([...rows, ...rows, ...countedDay('المملكة', 5, 4)], now), berths(rows, now));
+  assert.equal(berths([...rows, ...countedDay('المملكة', 6, 2)], instant('2026-11-06T16:00:00')).find(boat => boat.name === 'المملكة').row, 0);
+});
+
+test('three boats in front clear the middle, and the next rear achievement reaches the middle', () => {
+  const now = instant('2026-11-05T16:00:00');
+  // Kingdom completed before the leading trio, so it is pushed back with the others.
+  const rows = [...countedDay('المملكة', 5, 2), ...SEA_BRANCHES.slice(0, 3).flatMap(name => countedDay(name, 5, 2))];
+  const positions = berths(rows, now);
+  assert.deepEqual(positions.map(boat => boat.row), [0, 0, 0, 2, 2, 2]);
+  const next = berths([...rows, review('شرق', instant('2026-11-05T15:00:00')), review('شرق', instant('2026-11-05T15:01:00'))], now);
+  assert.equal(next.find(boat => boat.name === 'شرق').row, 1);
+  assert.deepEqual(next.slice(0, 3).map(boat => boat.row), [0, 0, 0]);
+});
+
+test('movement follows achievement time rather than synchronization order and corrects late data', () => {
+  const now = instant('2026-11-05T16:00:00');
+  const rows = SEA_BRANCHES.flatMap(name => countedDay(name, 5, 2));
+  assert.deepEqual(berths(rows, now), berths([...rows].reverse(), now));
+  const incomplete = rows.filter(row => row.branch !== 'سلام');
+  assert.equal(berths(incomplete, now).find(boat => boat.name === 'سلام').row, 1);
+  assert.equal(berths(rows, now).find(boat => boat.name === 'سلام').row, 0);
+});
+
+test('sunken branches are reset with the fleet and cannot advance from post-sinking targets', () => {
+  const now = instant('2026-11-08T16:00:00');
+  const leaders = SEA_BRANCHES.slice(0, 3).flatMap(name => [
+    ...countedDay(name, 5, 1), ...completedDays(name, 6, 8),
+  ]);
+  const rows = [...leaders, ...countedDay('المملكة', 8, 2)];
+  const state = seaMission(rows, now);
+  assert.equal(state.branches.find(boat => boat.name === 'المملكة').status, 'sunk');
+  assert.equal(seaBerths(state.branches, now).find(boat => boat.name === 'المملكة').row, 2);
+});
+
+test('horizontal positions stay fixed all Riyadh day through updates and reshuffle tomorrow', () => {
+  const now = instant('2026-11-05T16:00:00');
+  const horizontal = positions => positions.map(({ name, x }) => ({ name, x }));
+  const initial = horizontal(berths([], now));
+  const rows = SEA_BRANCHES.flatMap(name => countedDay(name, 5, 2));
+  assert.deepEqual(horizontal(berths(rows, now)), initial);
+  assert.deepEqual(horizontal(berths(rows, instant('2026-11-05T23:59:59'))), initial);
+  assert.notDeepEqual(horizontal(berths(rows, instant('2026-11-06T00:00:00'))), initial);
+  assert.equal(new Set(initial.map(boat => boat.x)).size, 6);
+  assert.notDeepEqual(initial.map(boat => boat.x), [...initial.map(boat => boat.x)].sort((a, b) => a - b));
+});
+
+test('front boats continue racing on later daily goals while the view stays within three rows', () => {
+  const rows = SEA_BRANCHES.slice(0, 3).flatMap(name => countedDay(name, 5, 2));
+  const nextDay = [...rows, ...countedDay('سلام', 6, 2)];
+  const positions = berths(nextDay, instant('2026-11-06T16:00:00'));
+  assert.equal(positions.find(boat => boat.name === 'سلام').row, 0);
+  assert.equal(positions.find(boat => boat.name === 'جاليري').row, 1);
+  assert.equal(positions.find(boat => boat.name === 'ذافيو').row, 1);
+  assert.ok(positions.every(boat => boat.row >= 0 && boat.row <= 2));
 });

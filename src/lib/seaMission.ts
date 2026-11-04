@@ -14,11 +14,46 @@ const aliases: Record<string, string> = { 'الرياض جاليري': 'جالي
 export const seaBranchName = (branch: string) => aliases[branch.trim()] || branch.trim();
 
 type Review = { id: string; branch: string; rating: string; date: string; time: string };
-export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; uncertain: boolean; graceUsed: boolean };
+export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; completedAt?: number; uncertain: boolean; graceUsed: boolean };
 export type SeaBranch = {
   name: string; status: 'waiting' | 'sailing' | 'sunk' | 'arrived' | 'unverified';
   days: SeaDay[]; current: SeaDay | undefined; failedDay: SeaDay | undefined; progress: number;
 };
+
+// Stable shuffled lanes keep refreshes from moving boats sideways at random.
+function laneHash(value: string) {
+  let hash = 2166136261;
+  for (const character of value) hash = Math.imul(hash ^ character.charCodeAt(0), 16777619);
+  return hash >>> 0;
+}
+
+export function seaBerths(branches: readonly SeaBranch[], now = Date.now()) {
+  const rows = new Map(branches.map(branch => [branch.name, SEA_BRANCHES.indexOf(branch.name as typeof SEA_BRANCHES[number]) < 3 ? 1 : 2]));
+  const events = branches.flatMap(branch => branch.days
+    .filter(day => day.completedAt !== undefined && (!branch.failedDay || day.day < branch.failedDay.day)
+      && (branch.status !== 'unverified' || day.end <= (branch.days.find(day => day.uncertain && day.count < day.target)?.start ?? 0)))
+    .map(day => ({ name: branch.name, day: day.day, at: day.completedAt! }))
+  ).sort((a, b) => a.at - b.at || a.name.localeCompare(b.name, 'ar'));
+  for (const event of events) {
+    const previous = rows.get(event.name)!;
+    // Follow a leader into the next stretch instead of freezing every boat at the front.
+    if (previous === 0) {
+      for (const [name, row] of rows) if (name !== event.name) rows.set(name, Math.min(2, row + 1));
+    }
+    rows.set(event.name, Math.max(0, previous - 1));
+    if (previous === 1 && [...rows.values()].filter(row => row === 0).length === 3) {
+      for (const [name, row] of rows) if (row !== 0) rows.set(name, 2);
+    }
+  }
+  // The Riyadh calendar date changes the shuffle only at local midnight.
+  const seed = new Date(now + RIYADH_OFFSET).toISOString().slice(0, 10);
+  const lanes = [...branches].sort((a, b) => laneHash(`${seed}:${a.name}`) - laneHash(`${seed}:${b.name}`));
+  return branches.map(branch => {
+    const row = rows.get(branch.name)!;
+    const lane = lanes.findIndex(peer => peer.name === branch.name);
+    return { name: branch.name, row, x: (lane + .5) * 100 / lanes.length, width: 90 / lanes.length };
+  });
+}
 
 // UTC is used only as calendar arithmetic. All boundaries are explicitly Riyadh time.
 export function seaOpening(branch: string, day: number) {
@@ -86,7 +121,9 @@ export function seaMission(reviews: readonly Review[], now = Date.now()) {
     const days: SeaDay[] = Array.from({ length: SEA_MISSION.lastDay - SEA_MISSION.firstDay + 1 }, (_, index) => {
       const day = SEA_MISSION.firstDay + index;
       const start = seaOpening(name, day), end = seaOpening(name, day + 1);
-      return { day, ...seaDailyRule(day), start, end, graceUsed: false, count: dated.filter(review => review.branch === name && review.timestamp >= start && review.timestamp < end).length,
+      const rule = seaDailyRule(day);
+      const timestamps = dated.filter(review => review.branch === name && review.timestamp >= start && review.timestamp < end).map(review => review.timestamp).sort((a, b) => a - b);
+      return { day, ...rule, start, end, graceUsed: false, count: timestamps.length, completedAt: timestamps[rule.target - 1],
         uncertain: undated.some(review => review.branch === name && review.calendar < end + RIYADH_OFFSET && review.calendar + DAY > start + RIYADH_OFFSET) };
     });
     const usedGraces = new Set<number>();

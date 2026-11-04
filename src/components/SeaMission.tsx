@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Building2, Check } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { seaBranchName, seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
+import { seaBerths, seaBranchName, seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
 import island from '../assets/sea/island.webp';
 import boat from '../assets/sea/boat.webp';
 import departingBoat from '../assets/sea/boat-stern.webp';
@@ -18,12 +18,13 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
   const branch = mission.branches.find(branch => branch.name === selected) || mission.branches[0];
   const afloat = mission.branches.filter(branch => branch.status !== 'sunk');
   const sunk = mission.branches.filter(branch => branch.status === 'sunk');
+  const berths = seaBerths(mission.branches, now);
   const berth = (name: string): CSSProperties => {
-    const index = mission.branches.findIndex(branch => branch.name === name);
+    const position = berths.find(berth => berth.name === name)!;
     return {
-      '--berth-x': `${100 - (index + .5) * 100 / SEA_BRANCHES.length}%`,
-      '--mobile-x': `${100 - (index % 3 + .5) * 100 / 3}%`,
-      '--berth-row': Math.floor(index / 3),
+      '--berth-x': `${position.x}%`,
+      '--berth-width': `${position.width}%`,
+      '--berth-row': position.row,
     } as CSSProperties;
   };
 
@@ -84,5 +85,5 @@ export function SeaMission() {
     return () => { document.title = title; };
   }, []);
   if (syncError || !online) return <main className="sea-mission"><p role="alert" className="sea-error">تعذر تحديث مهمة البحر. أعيدي المحاولة عند عودة الاتصال.</p></main>;
-  return <SeaMissionView reviews={reviewSummaries} now={now} preferredBranch={currentAccount?.branch} />;
+  return <SeaMissionView reviews={reviewSummaries} now={Math.max(now, Date.now())} preferredBranch={currentAccount?.branch} />;
 }
