@@ -11,7 +11,7 @@ function moduleUrl(name) {
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   cache.set(name, url); return url;
 }
-const { seaMission, seaBerths, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
+const { seaMission, seaForegroundBerths, seaBerths, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
 let id = 0;
 function review(branch, stamp, rating = '5') {
@@ -331,4 +331,17 @@ test('front boats continue racing on later daily goals while the view stays with
   assert.equal(positions.find(boat => boat.name === 'جاليري').row, 1);
   assert.equal(positions.find(boat => boat.name === 'ذافيو').row, 1);
   assert.ok(positions.every(boat => boat.row >= 0 && boat.row <= 2));
+});
+
+
+test('foreground boats scatter near the viewer with stable daily positions and no regular grid', () => {
+  const now = instant('2026-11-05T17:00:00');
+  const branches = seaMission([], now).branches;
+  const positions = seaForegroundBerths(branches, now);
+  assert.equal(positions.length, 6);
+  assert.equal(new Set(positions.map(p => p.y)).size, 6);
+  assert.ok(positions.every(p => p.x >= 12 && p.x <= 90 && p.y >= 65 && p.y <= 97));
+  assert.deepEqual(seaForegroundBerths(branches, now + 60000), positions);
+  assert.notDeepEqual(seaForegroundBerths(branches, now + 86400000), positions);
+  assert.deepEqual(seaForegroundBerths([], now), []);
 });
