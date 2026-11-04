@@ -1,4 +1,5 @@
 import { EmployeeTransfer } from '../components/EmployeeTransfer';
+import { ResultReportsInbox } from '../components/ResultReportsInbox';
 import { employeeQualityPoints } from '../lib/employeeQuality';
 import { AdminShiftCalendar } from '../components/AdminShiftCalendar';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
@@ -765,6 +766,7 @@ export const SystemAdminDashboard: React.FC = () => {
                 <MessageSquareWarning className="text-gray-800" size={28} />
                 <h2 className="text-2xl font-bold text-gray-800">إدارة الملاحظات</h2>
               </div>
+              <ResultReportsInbox />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Complaints Form */}
