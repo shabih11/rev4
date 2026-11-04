@@ -29,12 +29,14 @@ function laneHash(value: string) {
 
 export function seaBerths(branches: readonly SeaBranch[], now = Date.now()) {
   const rows = new Map(branches.map(branch => [branch.name, SEA_BRANCHES.indexOf(branch.name as typeof SEA_BRANCHES[number]) < 3 ? 1 : 2]));
+  const lastAchievement = new Map<string, number>();
   const events = branches.flatMap(branch => branch.days
     .filter(day => day.completedAt !== undefined && (!branch.failedDay || day.day < branch.failedDay.day)
       && (branch.status !== 'unverified' || day.end <= (branch.days.find(day => day.uncertain && day.count < day.target)?.start ?? 0)))
     .map(day => ({ name: branch.name, day: day.day, at: day.completedAt! }))
   ).sort((a, b) => a.at - b.at || a.name.localeCompare(b.name, 'ar'));
   for (const event of events) {
+    lastAchievement.set(event.name, event.at);
     const previous = rows.get(event.name)!;
     // Follow a leader into the next stretch instead of freezing every boat at the front.
     if (previous === 0) {
@@ -45,13 +47,26 @@ export function seaBerths(branches: readonly SeaBranch[], now = Date.now()) {
       for (const [name, row] of rows) if (row !== 0) rows.set(name, 2);
     }
   }
+  // Pack overflow into the nearest available row, with priority for recent achievers.
+  const placedRows = new Map<string, number>();
+  const occupancy = [0, 0, 0];
+  const placementOrder = [...branches].sort((a, b) => rows.get(a.name)! - rows.get(b.name)!
+    || (lastAchievement.get(b.name) ?? 0) - (lastAchievement.get(a.name) ?? 0));
+  for (const branch of placementOrder) {
+    const preferred = rows.get(branch.name)!;
+    const row = [preferred, preferred + 1, preferred + 2, preferred - 1, preferred - 2]
+      .find(candidate => candidate >= 0 && candidate <= 2 && occupancy[candidate] < 3)!;
+    placedRows.set(branch.name, row);
+    occupancy[row]++;
+  }
   // The Riyadh calendar date changes the shuffle only at local midnight.
   const seed = new Date(now + RIYADH_OFFSET).toISOString().slice(0, 10);
   const lanes = [...branches].sort((a, b) => laneHash(`${seed}:${a.name}`) - laneHash(`${seed}:${b.name}`));
   return branches.map(branch => {
-    const row = rows.get(branch.name)!;
-    const lane = lanes.findIndex(peer => peer.name === branch.name);
-    return { name: branch.name, row, x: (lane + .5) * 100 / lanes.length, width: 90 / lanes.length };
+    const row = placedRows.get(branch.name)!;
+    const peers = lanes.filter(peer => placedRows.get(peer.name) === row);
+    const lane = peers.findIndex(peer => peer.name === branch.name);
+    return { name: branch.name, row, x: (lane + .5) * 100 / peers.length, width: 30 };
   });
 }
 

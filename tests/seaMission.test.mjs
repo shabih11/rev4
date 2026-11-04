@@ -278,7 +278,7 @@ test('movement follows achievement time rather than synchronization order and co
   const rows = SEA_BRANCHES.flatMap(name => countedDay(name, 5, 2));
   assert.deepEqual(berths(rows, now), berths([...rows].reverse(), now));
   const incomplete = rows.filter(row => row.branch !== 'سلام');
-  assert.equal(berths(incomplete, now).find(boat => boat.name === 'سلام').row, 1);
+  assert.equal(berths(incomplete, now).find(boat => boat.name === 'سلام').row, 2);
   assert.equal(berths(rows, now).find(boat => boat.name === 'سلام').row, 0);
 });
 
@@ -293,7 +293,7 @@ test('sunken branches are reset with the fleet and cannot advance from post-sink
   assert.equal(seaBerths(state.branches, now).find(boat => boat.name === 'المملكة').row, 2);
 });
 
-test('horizontal positions stay fixed all Riyadh day through updates and reshuffle tomorrow', () => {
+test('packed horizontal order stays fixed all Riyadh day and reshuffles tomorrow', () => {
   const now = instant('2026-11-05T16:00:00');
   const horizontal = positions => positions.map(({ name, x }) => ({ name, x }));
   const initial = horizontal(berths([], now));
@@ -301,8 +301,26 @@ test('horizontal positions stay fixed all Riyadh day through updates and reshuff
   assert.deepEqual(horizontal(berths(rows, now)), initial);
   assert.deepEqual(horizontal(berths(rows, instant('2026-11-05T23:59:59'))), initial);
   assert.notDeepEqual(horizontal(berths(rows, instant('2026-11-06T00:00:00'))), initial);
-  assert.equal(new Set(initial.map(boat => boat.x)).size, 6);
+  assert.equal(new Set(initial.map(boat => boat.x)).size, 3);
   assert.notDeepEqual(initial.map(boat => boat.x), [...initial.map(boat => boat.x)].sort((a, b) => a - b));
+});
+
+test('every row holds at most three boats, evenly packed without empty lanes', () => {
+  const now = instant('2026-11-06T16:00:00');
+  for (let mask = 0; mask < 64; mask++) {
+    const reviews = SEA_BRANCHES.flatMap((name, index) => [
+      ...countedDay(name, 5, 2), ...(mask & (1 << index) ? countedDay(name, 6, 2) : []),
+    ]);
+    const positions = berths(reviews, now);
+    assert.equal(positions.length, 6);
+    for (let row = 0; row < 3; row++) {
+      const peers = positions.filter(boat => boat.row === row).sort((a, b) => a.x - b.x);
+      assert.ok(peers.length <= 3, `overfull row ${row} for achievement set ${mask}`);
+      assert.deepEqual(peers.map(boat => boat.x), peers.map((_, index) => (index + .5) * 100 / peers.length));
+      assert.ok(peers.every(boat => boat.width === 30));
+    }
+    assert.deepEqual(berths([...reviews].reverse(), now), positions);
+  }
 });
 
 test('front boats continue racing on later daily goals while the view stays within three rows', () => {
