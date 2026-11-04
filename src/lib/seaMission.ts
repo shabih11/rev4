@@ -1,7 +1,12 @@
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes, toEnglishNumerals } from './formatDate';
 
-export const SEA_MISSION = { year: 2026, month: 11, firstDay: 5, lastDay: 30, reward: 1000, dailyTarget: 2 } as const;
+export const SEA_MISSION = { year: 2026, month: 11, firstDay: 5, lastDay: 30, reward: 1000 } as const;
+export const SEA_PHASES = [
+  { id: 1, firstDay: 5, lastDay: 15, target: 2 },
+  { id: 2, firstDay: 16, lastDay: 25, target: 3 },
+  { id: 3, firstDay: 26, lastDay: 30, target: 4 },
+] as const;
 export const SEA_BRANCHES = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'] as const;
 const DAY = 86400000;
 const RIYADH_OFFSET = 3 * 3600000;
@@ -9,7 +14,7 @@ const aliases: Record<string, string> = { 'الرياض جاليري': 'جالي
 export const seaBranchName = (branch: string) => aliases[branch.trim()] || branch.trim();
 
 type Review = { id: string; branch: string; rating: string; date: string; time: string };
-export type SeaDay = { day: number; start: number; end: number; count: number; uncertain: boolean };
+export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; uncertain: boolean; graceUsed: boolean };
 export type SeaBranch = {
   name: string; status: 'waiting' | 'sailing' | 'sunk' | 'arrived' | 'unverified';
   days: SeaDay[]; current: SeaDay | undefined; failedDay: SeaDay | undefined; progress: number;
@@ -22,6 +27,12 @@ export function seaOpening(branch: string, day: number) {
   if (!hours) throw new Error('Unknown sea mission branch');
   const minutes = date.getUTCDay() === 5 ? 14 * 60 : timeMinutes(hours.open)!;
   return date.getTime() + minutes * 60000 - RIYADH_OFFSET;
+}
+
+export function seaDailyRule(day: number) {
+  const phase = SEA_PHASES.find(phase => day >= phase.firstDay && day <= phase.lastDay);
+  if (!phase) throw new Error('Day outside sea mission');
+  return { phase: phase.id, target: phase.target, minimum: Math.ceil(phase.target / 2) };
 }
 
 // The shared camera advances once per competition day, even if all boats have sunk.
@@ -75,16 +86,27 @@ export function seaMission(reviews: readonly Review[], now = Date.now()) {
     const days: SeaDay[] = Array.from({ length: SEA_MISSION.lastDay - SEA_MISSION.firstDay + 1 }, (_, index) => {
       const day = SEA_MISSION.firstDay + index;
       const start = seaOpening(name, day), end = seaOpening(name, day + 1);
-      return { day, start, end, count: dated.filter(review => review.branch === name && review.timestamp >= start && review.timestamp < end).length,
+      return { day, ...seaDailyRule(day), start, end, graceUsed: false, count: dated.filter(review => review.branch === name && review.timestamp >= start && review.timestamp < end).length,
         uncertain: undated.some(review => review.branch === name && review.calendar < end + RIYADH_OFFSET && review.calendar + DAY > start + RIYADH_OFFSET) };
     });
-    // The first unresolved/failed business day blocks later days from deciding the result.
-    const firstShortDay = days.find(day => now >= day.end && day.count < SEA_MISSION.dailyTarget);
-    const uncertain = firstShortDay?.uncertain === true;
-    const failedDay = uncertain ? undefined : firstShortDay;
+    const usedGraces = new Set<number>();
+    let blockedDay: SeaDay | undefined;
+    let failedDay: SeaDay | undefined;
+    // Resolve closed business days in order. Each phase has its own non-transferable grace.
+    for (const day of days) {
+      if (now < day.end) break;
+      if (day.count >= day.target) continue;
+      // An unknown timestamp can change whether this day needs a grace at all.
+      if (day.uncertain) { blockedDay = day; break; }
+      if (day.count >= day.minimum && !usedGraces.has(day.phase)) {
+        usedGraces.add(day.phase);
+        day.graceUsed = true;
+      } else { failedDay = day; break; }
+    }
+    const uncertain = Boolean(blockedDay);
     const current = days.find(day => now >= day.start && now < day.end);
     const status = now < days[0].start ? 'waiting' : uncertain ? 'unverified' : failedDay ? 'sunk' : now >= days.at(-1)!.end ? 'arrived' : 'sailing';
-    const elapsed = (Math.min(now, firstShortDay?.end ?? now) - days[0].start) / (days.at(-1)!.end - days[0].start);
+    const elapsed = (Math.min(now, (blockedDay || failedDay)?.end ?? now) - days[0].start) / (days.at(-1)!.end - days[0].start);
     return { name, days, current, status, failedDay, progress: Math.max(0, Math.min(1, elapsed)) };
   });
   const remaining = branches.filter(branch => branch.status !== 'sunk' && branch.status !== 'unverified').length;

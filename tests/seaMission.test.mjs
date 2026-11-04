@@ -11,7 +11,7 @@ function moduleUrl(name) {
   const url = 'data:text/javascript;base64,' + Buffer.from(code).toString('base64');
   cache.set(name, url); return url;
 }
-const { seaMission, seaOpening, seaJourneyProgress, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
+const { seaMission, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
 let id = 0;
 function review(branch, stamp, rating = '5') {
@@ -20,8 +20,132 @@ function review(branch, stamp, rating = '5') {
 }
 const branch = (reviews, now, name = 'شرق') => seaMission(reviews, now).branches.find(row => row.name === name);
 function completedDays(name, first, last) {
-  return Array.from({ length: last - first + 1 }, (_, index) => [review(name, seaOpening(name, first + index)), review(name, seaOpening(name, first + index) + 1000)]).flat();
+  return Array.from({ length: last - first + 1 }, (_, index) => Array.from({ length: seaDailyRule(first + index).target }, (_, offset) => review(name, seaOpening(name, first + index) + offset * 1000))).flat();
 }
+
+function countedDay(name, day, count) {
+  return Array.from({ length: count }, (_, offset) => review(name, seaOpening(name, day) + offset * 1000));
+}
+function monthWithCounts(name, overrides = {}) {
+  return Array.from({ length: 26 }, (_, index) => {
+    const day = index + 5;
+    return countedDay(name, day, overrides[day] ?? seaDailyRule(day).target);
+  }).flat();
+}
+
+test('phase boundaries use targets 2/3/4 and round half of three up to two', () => {
+  for (const day of [5, 15]) assert.deepEqual(seaDailyRule(day), { phase: 1, target: 2, minimum: 1 });
+  for (const day of [16, 25]) assert.deepEqual(seaDailyRule(day), { phase: 2, target: 3, minimum: 2 });
+  for (const day of [26, 30]) assert.deepEqual(seaDailyRule(day), { phase: 3, target: 4, minimum: 2 });
+  assert.throws(() => seaDailyRule(4)); assert.throws(() => seaDailyRule(31));
+});
+
+test('one half-target day in each phase gives three independent graces and arrival', () => {
+  const rows = monthWithCounts('شرق', { 5: 1, 16: 2, 26: 2 });
+  const state = branch(rows, seaOpening('شرق', 31));
+  assert.equal(state.status, 'arrived');
+  assert.deepEqual(state.days.filter(day => day.graceUsed).map(day => day.day), [5, 16, 26]);
+});
+
+test('second short day in the same phase sinks even after intervening fully completed days', () => {
+  for (const [first, second, count] of [[5, 15, 1], [16, 25, 2], [26, 30, 3]]) {
+    const rows = monthWithCounts('شرق', { [first]: count, [second]: count });
+    const state = branch(rows, seaOpening('شرق', 31));
+    assert.equal(state.status, 'sunk');
+    assert.equal(state.failedDay.day, second);
+    assert.deepEqual(state.days.filter(day => day.graceUsed).map(day => day.day), [first]);
+  }
+});
+
+test('below half sinks immediately even with an unused grace in that phase', () => {
+  for (const [day, count] of [[5, 0], [16, 1], [26, 1]]) {
+    const state = branch(monthWithCounts('شرق', { [day]: count }), seaOpening('شرق', day + 1));
+    assert.equal(state.status, 'sunk');
+    assert.equal(state.failedDay.day, day);
+    assert.equal(state.days.some(day => day.graceUsed), false);
+  }
+});
+
+test('unused graces cannot be carried forward and used graces cannot resurrect a sunken branch', () => {
+  const rows = monthWithCounts('شرق', { 16: 2, 17: 2 });
+  const state = branch(rows, seaOpening('شرق', 31));
+  assert.equal(state.status, 'sunk'); assert.equal(state.failedDay.day, 17);
+  assert.deepEqual(state.days.filter(day => day.graceUsed).map(day => day.day), [16]);
+});
+
+test('grace is consumed only when the business day closes, including its last second', () => {
+  const end = seaOpening('شرق', 6);
+  const rows = countedDay('شرق', 5, 1);
+  const before = branch(rows, end - 1);
+  assert.equal(before.status, 'sailing'); assert.equal(before.days[0].graceUsed, false);
+  const after = branch(rows, end);
+  assert.equal(after.status, 'sailing'); assert.equal(after.days[0].graceUsed, true);
+  assert.equal(branch(rows, seaOpening('شرق', 7)).status, 'sunk');
+});
+
+test('phase is determined by business-day start, not by midnight or review calendar date', () => {
+  const rows = [...completedDays('شرق', 5, 14), review('شرق', instant('2026-11-16T06:59:59'))];
+  const before = branch(rows, seaOpening('شرق', 16) - 1);
+  assert.equal(before.current.day, 15); assert.equal(before.current.target, 2);
+  const after = branch(rows, seaOpening('شرق', 16));
+  assert.equal(after.status, 'sailing'); assert.equal(after.days[10].graceUsed, true);
+  assert.equal(after.current.day, 16); assert.equal(after.current.target, 3);
+  const withSecondGrace = branch([...rows, ...countedDay('شرق', 16, 2)], seaOpening('شرق', 17));
+  assert.equal(withSecondGrace.status, 'sailing');
+  assert.deepEqual(withSecondGrace.days.filter(day => day.graceUsed).map(day => day.day), [15, 16]);
+});
+
+test('last day of phase two keeps its three-review target until the opening on November 26', () => {
+  const rows = [...completedDays('شرق', 5, 24), ...countedDay('شرق', 25, 2)];
+  const before = branch(rows, seaOpening('شرق', 26) - 1);
+  assert.equal(before.current.target, 3);
+  const after = branch(rows, seaOpening('شرق', 26));
+  assert.equal(after.status, 'sailing'); assert.equal(after.current.target, 4);
+  assert.equal(after.days.find(day => day.day === 25).graceUsed, true);
+});
+
+test('four-review phase includes overnight reviews up to the Friday opening', () => {
+  const rows = [...completedDays('شرق', 5, 25), review('شرق', instant('2026-11-26T07:00:00')), review('شرق', instant('2026-11-27T13:59:59'))];
+  const state = branch(rows, seaOpening('شرق', 27));
+  assert.equal(state.status, 'sailing');
+  const day = state.days.find(day => day.day === 26);
+  assert.equal(day.count, 2); assert.equal(day.target, 4); assert.equal(day.graceUsed, true);
+});
+
+test('uncertain timestamps do not consume a grace or make a later exclusion final', () => {
+  const first = countedDay('شرق', 5, 2);
+  const rows = [first[0], { ...first[1], time: '' }, ...countedDay('شرق', 6, 1)];
+  const now = seaOpening('شرق', 7);
+  const unresolved = branch(rows, now);
+  assert.equal(unresolved.status, 'unverified'); assert.equal(unresolved.days.some(day => day.graceUsed), false);
+  const resolved = branch([first[0], first[1], rows[2]], now);
+  assert.equal(resolved.status, 'sailing');
+  assert.deepEqual(resolved.days.filter(day => day.graceUsed).map(day => day.day), [6]);
+});
+
+test('late reviews can release an earlier grace for another day and do not mutate source rows', () => {
+  const rows = [...countedDay('شرق', 5, 1), ...countedDay('شرق', 6, 1)];
+  const now = seaOpening('شرق', 7), snapshot = JSON.stringify(rows);
+  assert.equal(branch(rows, now).failedDay.day, 6);
+  const rescued = branch([...rows, review('شرق', seaOpening('شرق', 5) + 60000)], now);
+  assert.equal(rescued.status, 'sailing');
+  assert.deepEqual(rescued.days.filter(day => day.graceUsed).map(day => day.day), [6]);
+  assert.equal(JSON.stringify(rows), snapshot);
+});
+
+test('phase-two grace requires two unique positive reviews, not duplicate rows or low stars', () => {
+  const rows = completedDays('شرق', 5, 15), positive = countedDay('شرق', 16, 1)[0];
+  const state = branch([...rows, positive, positive, review('شرق', seaOpening('شرق', 16), '3')], seaOpening('شرق', 17));
+  assert.equal(state.status, 'sunk'); assert.equal(state.failedDay.count, 1);
+});
+
+test('graces are independent per branch and reward shares include rescued survivors', () => {
+  const a = monthWithCounts('شرق', { 5: 1, 16: 2, 26: 2 });
+  const b = monthWithCounts('سلام', { 5: 1, 16: 2, 26: 3 });
+  const state = seaMission([...a, ...b], seaOpening('جاليري', 31));
+  assert.equal(state.remaining, 2); assert.equal(state.share, 500);
+  for (const name of ['شرق', 'سلام']) assert.equal(state.branches.find(row => row.name === name).days.filter(day => day.graceUsed).length, 3);
+});
 
 test('uses existing branch openings in Riyadh and the Friday override', () => {
   for (const [name, hour] of [['جاليري', 14], ['القصر', 14], ['المملكة', 10], ['سلام', 10], ['شرق', 7], ['ذافيو', 12]]) {
@@ -50,7 +174,8 @@ test('last second belongs to old day; a review at next opening belongs to new da
   const state = branch(rows, end);
   assert.equal(state.status, 'sailing');
   assert.equal(state.days[0].count, 2); assert.equal(state.current.count, 1);
-  assert.equal(branch(rows.slice(0, 1).concat(rows[2]), end).status, 'sunk');
+  const grace = branch(rows.slice(0, 1).concat(rows[2]), end);
+  assert.equal(grace.status, 'sailing'); assert.equal(grace.days[0].graceUsed, true);
 });
 test('counts unique branch reviews with 4/5 stars, independent of linked employee count', () => {
   const stamp = seaOpening('جاليري', 5);
@@ -99,8 +224,9 @@ test('late synchronization recomputes from review occurrence time without alteri
   const now = seaOpening('شرق', 6);
   const rows = completedDays('شرق', 5, 5);
   const original = JSON.stringify(rows);
-  assert.equal(branch(rows.slice(0, 1), now).status, 'sunk');
+  assert.equal(branch(rows.slice(0, 1), now).days[0].graceUsed, true);
   assert.equal(branch(rows, now).status, 'sailing');
+  assert.equal(branch(rows, now).days[0].graceUsed, false);
   assert.equal(JSON.stringify(rows), original);
 });
 

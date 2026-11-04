@@ -37,8 +37,8 @@ export function SeaMissionView({ reviews, now, preferredBranch = '' }: { reviews
           <button type="button" className="sea-vessel" aria-pressed={item.name === branch.name} onClick={() => setSelected(item.name)}>
             <img src={departingBoat} alt="" width="240" height="320" />
             <span className="sea-branch-label"><span><Building2 size={14} aria-hidden="true" />{item.name}</span>
-              <span className={`sea-count ${item.current && item.current.count >= 2 ? 'sea-count-complete' : ''}`}>
-                {item.status === 'waiting' || item.status === 'unverified' ? statusLabels[item.status] : item.status === 'arrived' ? <><Check size={13} aria-hidden="true" />وصل</> : <>{number(item.current?.count ?? 0)} من ٢</>}
+              <span className={`sea-count ${item.current && item.current.count >= item.current.target ? 'sea-count-complete' : ''}`}>
+                {item.status === 'waiting' || item.status === 'unverified' ? statusLabels[item.status] : item.status === 'arrived' ? <><Check size={13} aria-hidden="true" />وصل</> : item.current ? <>{number(item.current.count)} من {number(item.current.target)}</> : null}
               </span>
             </span>
           </button>
