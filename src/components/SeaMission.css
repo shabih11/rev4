@@ -27,15 +27,28 @@
   position:relative;
   flex:1;
   min-width:0;
-  min-height:44rem;
+  min-height:60rem;
   direction:ltr;
   isolation:isolate;
   overflow:hidden;
-  background:#8edcf3 url('../assets/sea/ocean-distance.webp') center / 100% 100% no-repeat;
+  background:#8edcf3;
   border:0;
   border-radius:0;
   box-shadow:none;
 }
+.sea-backdrop { position:absolute; inset:0; z-index:0; pointer-events:none; }
+.sea-backdrop img { display:block; width:100%; height:100%; object-fit:fill; }
+.sea-map[data-light="night"] { background-color:#102646; }
+.sea-map[data-light="soft"] .sea-island,
+.sea-map[data-light="soft"] .sea-vessel-art { filter:brightness(.88) saturate(.87); }
+.sea-map[data-light="night"] .sea-island,
+.sea-map[data-light="night"] .sea-vessel-art { filter:brightness(.56) saturate(.72) drop-shadow(0 0 5px #99cfff20); }
+.sea-map[data-light="night"] .sea-branch-label,
+.sea-map[data-light="night"] .sea-timeline,
+.sea-map[data-light="night"] .sea-start { color:#eff7ff; background:#102749ed; border-color:#9cc6f878; }
+.sea-map[data-light="night"] .sea-vessel[aria-pressed="true"] .sea-branch-label { border-color:#d9ecff; }
+.sea-map[data-light="night"] .sea-count { color:#eaf5ff; background:#244e7b; }
+.sea-map[data-light="night"] .sea-count-complete { color:#d7ffe7; background:#15563f; }
 .sea-island {
   position:absolute;
   z-index:1;
@@ -69,7 +82,7 @@
   left:0;
   top:0;
   height:100%;
-  transform:translate(var(--berth-x),calc(32% + var(--berth-row)*18%));
+  transform:translate(var(--berth-x),calc(18% + var(--berth-row)*26%));
   width:100%;
   pointer-events:none;
 }
@@ -85,13 +98,32 @@
   border-radius:.8rem;
   pointer-events:auto;
 }
-.sea-vessel > img {
+.sea-vessel-art {
+  position:relative;
   display:block;
-  width:min(100%,128px);
-  height:auto;
+  width:min(100%,112px);
+  aspect-ratio:3/5;
+  isolation:isolate;
+}
+.sea-vessel-boat {
+  position:relative;
+  z-index:1;
+  display:block;
+  width:100%;
   aspect-ratio:3/4;
+  height:auto;
   object-fit:contain;
 }
+.sea-vessel-wake {
+  position:absolute;
+  bottom:0;
+  left:5%;
+  width:90%;
+  height:32%;
+  pointer-events:none;
+}
+.sea-sleep-until { font-size:.65rem; }
+.sea-vessel[data-scene="distress"] .sea-branch-label { border-color:#ae4b31; }
 .sea-branch-label {
   display:flex;
   flex-direction:column;
@@ -152,10 +184,10 @@
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
   .sea-page .recognition-header { flex-direction:column; align-items:stretch; gap:.5rem; padding:.6rem .65rem; }
-  .sea-map { background-image:url('../assets/sea/ocean-distance-mobile.webp'); }
+  .sea-map { min-height:54rem; }
   .sea-island { top:23.8%; }
   .sea-vessel,.sea-wrecks button { max-width:9rem; }
-  .sea-vessel > img,.sea-wrecks img { width:min(100%,calc(68px + var(--berth-row)*10px)); }
+  .sea-vessel-art,.sea-wrecks img { width:min(100%,calc(68px + var(--berth-row)*10px)); }
   .sea-branch-label { font-size:clamp(.65rem,.5rem + .6vw,.82rem); padding:.35rem .1rem; }
   .sea-count { max-width:100%; padding:.15rem .2rem; white-space:normal; }
   .sea-branch-label svg { display:none; }
