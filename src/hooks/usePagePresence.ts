@@ -4,7 +4,7 @@ import { startPagePresence } from '../lib/pagePresence';
 import type { UserAccount } from '../lib/mockData';
 
 export function usePagePresence(account: UserAccount | null) {
-  const employeeId = account?.role === 'employee' ? account.id : null;
+  const employeeId = account?.role === 'employee' || account?.role === 'manager' ? account.id : null;
   useEffect(() => {
     if (!employeeId) return;
     return startPagePresence(async signal => {

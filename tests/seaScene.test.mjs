@@ -8,9 +8,16 @@ const at = value => Date.parse(value + '+03:00');
 const branch = (overrides = {}) => ({ name: 'شرق', status: 'sailing', current: { count: 0, target: 2, uncertain: false }, ...overrides });
 
 test('Riyadh daylight changes independently of sleeping and host timezone', () => {
-  for (const [time, expected] of [['05:59:59', 'night'], ['06:00:00', 'sunny'], ['14:59:59', 'sunny'], ['15:00:00', 'soft'], ['18:59:59', 'soft'], ['19:00:00', 'night'], ['23:59:59', 'night']]) {
+  for (const [time, expected] of [['04:59:59', 'night-deep'], ['05:59:59', 'night'], ['06:00:00', 'sunny'], ['14:59:59', 'sunny'], ['15:00:00', 'soft'], ['18:59:59', 'soft'], ['19:00:00', 'night'], ['23:00:00', 'night-deep']]) {
     assert.equal(seaLight(at(`2026-11-05T${time}`)), expected);
   }
+});
+
+test('weather softens daylight, deepens cloudy nights and respects provider day/night', () => {
+  assert.equal(seaLight(at('2026-11-05T12:00:00'), { cloud: 90, symbol: 'cloudy' }), 'soft');
+  assert.equal(seaLight(at('2026-11-05T20:00:00'), { cloud: 90, symbol: 'cloudy' }), 'night-deep');
+  assert.equal(seaLight(at('2026-11-05T17:30:00'), { cloud: 0, symbol: 'clearsky_night' }), 'night');
+  assert.equal(seaLight(at('2026-11-05T05:30:00'), { cloud: 0, symbol: 'clearsky_day' }), 'sunny');
 });
 
 test('each branch sleeps until its own opening, and midnight closes all branches', () => {
@@ -54,7 +61,32 @@ test('coffee lasts the first hour, then an incomplete target shows adventure', (
   assert.equal(seaBranchScene(branch(), at('2026-11-05T22:59:59')), 'adventure');
 });
 
-test('a completed target celebrates from the shift midpoint and continues through the final hour', () => {
+test('each branch has coffee for one hour at both shift starts, including Friday', () => {
+  for (const date of ['2026-11-05', '2026-11-06']) {
+    for (const name of SEA_BRANCHES) {
+      const item = branch({ name });
+      const opening = seaBranchClock(name, at(`${date}T12:00:00`)).opensAt;
+      assert.equal(seaBranchScene(item, opening), 'coffee');
+      assert.equal(seaBranchScene(item, opening + 3600000 - 1), 'coffee');
+      assert.equal(seaBranchScene(item, opening + 3600000), 'adventure');
+      assert.equal(seaBranchScene(item, at(`${date}T15:59:59`)), 'adventure');
+      assert.equal(seaBranchScene(item, at(`${date}T16:00:00`)), 'coffee');
+      assert.equal(seaBranchScene(item, at(`${date}T16:59:59`)), 'coffee');
+      assert.equal(seaBranchScene(item, at(`${date}T17:00:00`)), 'adventure');
+    }
+  }
+});
+
+test('second-shift coffee pauses daily celebration but preserves final branch states', () => {
+  const complete = branch({ current: { count: 2, target: 2, uncertain: false } });
+  assert.equal(seaBranchScene(complete, at('2026-11-05T16:00:00')), 'coffee');
+  assert.equal(seaBranchScene(complete, at('2026-11-05T17:00:00')), 'celebrate');
+  for (const [status, expected] of [['waiting', 'sleep'], ['sunk', 'distress'], ['arrived', 'celebrate']]) {
+    assert.equal(seaBranchScene(branch({ status }), at('2026-11-05T16:30:00')), expected);
+  }
+});
+
+test('a completed target celebrates from the day midpoint and during the final hour', () => {
   const complete = branch({ current: { count: 2, target: 2, uncertain: false } });
   assert.equal(seaBranchScene(complete, at('2026-11-05T07:30:00')), 'coffee');
   assert.equal(seaBranchScene(complete, at('2026-11-05T15:29:59')), 'adventure');

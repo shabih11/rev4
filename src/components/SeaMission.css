@@ -24,30 +24,34 @@
 .sea-navigation > a[aria-current="page"]::before { display:none; }
 .sea-mission { display:flex; flex:1; width:100%; min-width:0; margin:0; padding:0; }
 .sea-map {
+  --scene-brightness:1; --scene-saturation:1;
   position:relative; flex:1; min-width:0; min-height:clamp(38rem,80dvh,60rem);
   direction:ltr; isolation:isolate; overflow:hidden; background:#8edcf3;
   border:0; border-radius:0; box-shadow:none;
 }
 .sea-backdrop { position:absolute; inset:0; z-index:0; pointer-events:none; }
 .sea-backdrop img { display:block; width:100%; height:100%; object-fit:fill; }
-.sea-map[data-light="night"] { background-color:#102646; }
-.sea-map[data-light="soft"] .sea-island,
-.sea-map[data-light="soft"] .sea-vessel-art { filter:brightness(.88) saturate(.87); }
-.sea-map[data-light="night"] .sea-island,
-.sea-map[data-light="night"] .sea-vessel-art { filter:brightness(.56) saturate(.72); }
+.sea-map[data-light="soft"] { --scene-brightness:.88; --scene-saturation:.87; }
+.sea-map[data-light="night"] { --scene-brightness:.62; --scene-saturation:.72; background-color:#102646; }
+.sea-map[data-light="night-deep"] { --scene-brightness:.43; --scene-saturation:.6; background-color:#09182e; }
+.sea-map[data-light="night-deep"] .sea-backdrop { filter:brightness(.68) saturate(.8); }
+.sea-island,.sea-vessel-art { filter:brightness(var(--scene-brightness)) saturate(var(--scene-saturation)); }
+.sea-atmosphere,.sea-rain { position:absolute; inset:0; z-index:2000; pointer-events:none; }
+.sea-atmosphere { opacity:0; }
+.sea-map[data-weather="cloudy"] .sea-atmosphere { opacity:.42; background:linear-gradient(#8998adbb,transparent 35%); }
+.sea-map[data-weather="wind"] .sea-atmosphere { opacity:.22; background:linear-gradient(110deg,#e2dbb8aa,transparent 65%); }
+.sea-map:is([data-weather="rain"],[data-weather="storm"]) .sea-atmosphere { opacity:.5; background:linear-gradient(#39485cbb,#49657d44); }
+.sea-rain { display:none; opacity:.2; background-image:repeating-linear-gradient(110deg,transparent 0 35px,#d7edff 36px,transparent 37px 70px); background-size:110px 180px; }
+.sea-map:is([data-weather="rain"],[data-weather="storm"]) .sea-rain { display:block; }
+.sea-map[data-weather="storm"] .sea-rain { opacity:.32; background-size:75px 140px; }
 .sea-island {
-  position:absolute; z-index:1; width:min(72%,940px); left:50%; top:21.6%;
+  /* Overlap the shoreline's transparent edge with the backdrop horizon. */
+  position:absolute; z-index:1; width:min(72%,940px); left:50%; top:calc(21.5% + 4px);
   transform-origin:50% 100%;
-  transform:translate(-50%,-100%) translateY(calc(var(--journey-progress)*5px)) scale(calc(.68 + var(--journey-progress)*.14));
+  transform:translate(-50%,-100%) scale(calc(.68 + var(--journey-progress)*.14));
   pointer-events:none;
 }
 .sea-island img { display:block; width:100%; height:auto; }
-.sea-timeline {
-  position:absolute; z-index:2; top:1rem; left:50%; transform:translateX(-50%);
-  padding:.35rem .85rem; border-radius:2rem; color:#274b70; background:#f2fbffe6;
-  font-size:.75rem; font-weight:700; direction:rtl; white-space:nowrap;
-}
-.sea-map[data-light="night"] .sea-timeline { color:#eff7ff; background:#102749ed; }
 .sea-fleet { list-style:none; margin:0; padding:0; }
 .sea-fleet > li {
   position:absolute; z-index:var(--berth-z); left:0; top:0; height:100%; width:100%;
@@ -55,11 +59,11 @@
 }
 .sea-vessel {
   position:relative; display:flex; justify-content:center; align-items:center;
-  width:var(--berth-width); max-width:10rem; min-height:44px;
+  width:min(var(--berth-width),calc(80px + var(--berth-depth)*64px)); max-width:10rem; min-height:44px;
   transform:translate(-50%,-75%); padding:0; border:0; background:transparent;
   color:#142b54; pointer-events:auto; cursor:pointer; border-radius:40%;
 }
-.sea-vessel-art { position:relative; display:block; width:min(100%,112px); aspect-ratio:3/5; isolation:isolate; pointer-events:none; }
+.sea-vessel-art { position:relative; display:block; width:100%; aspect-ratio:3/5; isolation:isolate; pointer-events:none; }
 .sea-vessel-boat {
   position:relative; z-index:1; display:block; width:100%; aspect-ratio:3/4; height:auto; object-fit:contain;
   -webkit-mask-image:linear-gradient(#000 90%,#000d 93%,transparent 98%);
@@ -88,17 +92,22 @@
   width:max-content; max-width:100%; color:#143853; font-size:.85rem; font-weight:800;
   direction:rtl; line-height:1.5; text-shadow:0 1px 2px #fff,0 0 5px #ffffffc9; pointer-events:none;
 }
-.sea-map[data-light="night"] .sea-branch-name { color:#f5faff; text-shadow:0 2px 3px #071a30,0 0 7px #071a30; }
+.sea-map:is([data-light="night"],[data-light="night-deep"]) .sea-branch-name { color:#f5faff; text-shadow:0 2px 3px #071a30,0 0 7px #071a30; }
 .sea-error { align-self:flex-start; margin:1rem; padding:1rem; border-radius:.8rem; background:white; color:#9f2929; }
 @media (max-width:760px) {
-  .sea-island { top:20.9%; }
+  .sea-island { top:calc(20.8% + 2px); }
   .recognition-header .sea-navigation { display:grid; width:100%; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem; }
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
   .sea-page .recognition-header { flex-direction:column; align-items:stretch; gap:.5rem; padding:.6rem .65rem; }
-  .sea-vessel-art { width:min(100%,calc(68px + var(--berth-row)*10px)); }
+  .sea-vessel { width:min(var(--berth-width),calc(56px + var(--berth-depth)*40px)); }
   .sea-branch-name { font-size:.75rem; }
 }
 @media (prefers-reduced-motion:no-preference) {
   .sea-island,.sea-fleet > li { transition:transform 1s ease; }
+  .sea-atmosphere { transition:opacity 2s ease; }
+  .sea-rain { animation:sea-rainfall .8s linear infinite; }
+  .sea-map[data-weather="wind"] .sea-vessel-art { animation:sea-wind-sway 3s ease-in-out infinite alternate; }
 }
+@keyframes sea-rainfall { to { background-position:-65px 180px; } }
+@keyframes sea-wind-sway { from { transform:rotate(-2deg); } to { transform:rotate(2deg); } }

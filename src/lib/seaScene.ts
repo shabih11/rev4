@@ -1,18 +1,21 @@
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes } from './formatDate';
 import { seaBranchName, type SeaBranch } from './seaMission';
+import type { RiyadhWeather } from './riyadhWeather';
 
-export type SeaLight = 'sunny' | 'soft' | 'night';
+export type SeaLight = 'sunny' | 'soft' | 'night' | 'night-deep';
 export type SeaScene = 'sleep' | 'coffee' | 'adventure' | 'celebrate' | 'distress';
 const HOUR = 3600000;
 const DAY = 24 * HOUR;
 const RIYADH = 3 * HOUR;
 
-// These are visual day phases, not a weather forecast or astronomical sunrise times.
-export function seaLight(now: number): SeaLight {
+// The provider's day/night symbol takes precedence over fallback visual hours.
+export function seaLight(now: number, weather: RiyadhWeather | null = null): SeaLight {
   const local = new Date(now + RIYADH);
   const hour = local.getUTCHours();
-  return hour >= 6 && hour < 15 ? 'sunny' : hour >= 15 && hour < 19 ? 'soft' : 'night';
+  const day = weather?.symbol.endsWith('_day') ? true : weather?.symbol.endsWith('_night') ? false : hour >= 6 && hour < (weather ? 18 : 19);
+  if (day) return hour < 15 && (!weather || weather.cloud < 60) ? 'sunny' : 'soft';
+  return hour >= 23 || hour < 5 || (weather && weather.cloud >= 75) ? 'night-deep' : 'night';
 }
 
 function openingOn(calendar: number, name: string) {
@@ -37,7 +40,8 @@ export function seaBranchScene(branch: SeaBranch, now: number): SeaScene {
   if (branch.status === 'waiting' || !clock.isOpen) return 'sleep';
   if (branch.status === 'sunk') return 'distress';
   if (branch.status === 'arrived') return 'celebrate';
-  if (now < clock.opensAt + HOUR) return 'coffee';
+  const secondShiftStartsAt = clock.closesAt - 8 * HOUR; // 16:00 Riyadh.
+  if (now < clock.opensAt + HOUR || (now >= secondShiftStartsAt && now < secondShiftStartsAt + HOUR)) return 'coffee';
   const complete = branch.current !== undefined && branch.current.count >= branch.current.target;
   // A missing review time must never create a false visual failure.
   const verified = branch.status !== 'unverified' && !branch.current?.uncertain;

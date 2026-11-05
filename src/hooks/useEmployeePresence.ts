@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { UserAccount } from '../lib/mockData';
 
 type Presence = Record<string, string | null>;
-export function useEmployeePresence(open: boolean, viewer: UserAccount | null) {
+export function useEmployeePresence(open: boolean, viewer: UserAccount | null, source: 'get_employee_last_presence' | 'get_branch_last_presence' = 'get_employee_last_presence') {
   const viewerId = viewer?.role === 'admin' ? viewer.id : null;
   const [result, setResult] = useState<{ viewerId: string; data?: Presence; error?: boolean } | null>(null);
   useEffect(() => {
@@ -16,7 +16,7 @@ export function useEmployeePresence(open: boolean, viewer: UserAccount | null) {
       loading = true;
       const epoch = ++revision;
       try {
-        const { data, error } = await supabase.rpc('get_employee_last_presence').abortSignal(AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]));
+        const { data, error } = await supabase.rpc(source).abortSignal(AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]));
         if (error || !data || typeof data !== 'object' || Array.isArray(data) ||
           Object.values(data).some(value => value !== null && (typeof value !== 'string' || !Number.isFinite(Date.parse(value))))) throw new Error('invalid-presence');
         if (active && epoch === revision) setResult({ viewerId, data: data as Presence });
@@ -29,6 +29,6 @@ export function useEmployeePresence(open: boolean, viewer: UserAccount | null) {
     window.addEventListener('focus', reload);
     document.addEventListener('visibilitychange', reload);
     return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener('focus', reload); document.removeEventListener('visibilitychange', reload); };
-  }, [open, viewerId]);
+  }, [open, viewerId, source]);
   return open && viewerId && result?.viewerId === viewerId ? result : null;
 }

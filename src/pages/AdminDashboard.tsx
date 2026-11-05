@@ -10,6 +10,7 @@ import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
 import { formatTime, timeMinutes } from '../lib/formatDate';
 import { UserProfileTab } from '../components/UserProfileTab';
+import { LeaderboardLink } from '../components/LeaderboardLink';
 import employeeImg from '../assets/employee.png';
 
 // Rules for editable months: current month anytime; previous month only within 2 days from the end of that month
@@ -260,7 +261,7 @@ export const AdminDashboard: React.FC = () => {
       <header className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 text-white px-4 md:px-8 py-4 shadow-md sticky top-0 z-30 flex justify-between items-center backdrop-blur-md">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg md:text-xl font-black">إدارة فرع {user?.branch}</h1>
+            <h1 className="text-lg md:text-xl font-black">{user?.branch}</h1>
           </div>
           <p className="text-xs text-blue-100 font-medium mt-0.5">
             بدء العمل في الفرع : {formatTime(branchHours.open)}
@@ -268,6 +269,7 @@ export const AdminDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+        <LeaderboardLink className="text-blue-100 hover:bg-white/10" />
         <button
           onClick={logout}
           className="p-2 hover:bg-white/10 rounded-xl flex items-center gap-1.5 text-xs font-bold text-blue-100 transition cursor-pointer"

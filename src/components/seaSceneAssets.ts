@@ -40,6 +40,7 @@ export const SEA_BACKDROPS: Record<SeaLight, { desktop: string; mobile: string }
   sunny: { desktop: sunnyDesktop, mobile: sunnyMobile },
   soft: { desktop: softDesktop, mobile: softMobile },
   night: { desktop: nightDesktop, mobile: nightMobile },
+  'night-deep': { desktop: nightDesktop, mobile: nightMobile },
 };
 
 export const SEA_SCENE_ASSETS: Record<string, Record<SeaScene, string>> = {

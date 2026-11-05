@@ -289,11 +289,38 @@ do $$ begin
  if (select version::text from public.app_state where id=1) is distinct from current_setting('rev4.presence_test_version') then raise exception 'Presence invalidated shared read caches'; end if;
 end $$;
 set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select public.record_employee_page_presence();
+do $$ begin
+ begin perform public.get_branch_last_presence(); raise exception 'Manager read branch presence'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_branch_last_presence();
+ if result->>'verify-branch-a' is null or (result->>'verify-branch-a')::timestamptz < clock_timestamp()-interval '15 seconds' then raise exception 'Manager presence not recorded'; end if;
+ if result->'verify-branch-b' is distinct from 'null'::jsonb then raise exception 'Unseen branch invented presence'; end if;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid='00000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$ begin
+ if public.get_branch_last_presence()->'verify-branch-a' is distinct from 'null'::jsonb then raise exception 'Disabled manager exposed presence'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.record_employee_page_presence(); raise exception 'Disabled manager recorded presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=false where uid='00000000-0000-4000-8000-000000000002';
+set local role authenticated;
 do $$ declare suffix text; begin
  foreach suffix in array array['2','5','99'] loop
   perform set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-'||lpad(suffix,12,'0'),'role','authenticated')::text,true);
   begin perform public.get_employee_last_presence(); raise exception 'Non-admin read presence'; exception when insufficient_privilege then null; end;
-  begin perform public.record_employee_page_presence(); raise exception 'Non-employee recorded presence'; exception when insufficient_privilege then null; end;
+  begin perform public.get_branch_last_presence(); raise exception 'Non-admin read branch presence'; exception when insufficient_privilege then null; end;
+  if suffix <> '2' then
+   begin perform public.record_employee_page_presence(); raise exception 'Non-member recorded presence'; exception when insufficient_privilege then null; end;
+  end if;
  end loop;
 end $$;
 reset role;
@@ -305,6 +332,7 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-00000000
 do $$ begin begin perform public.get_employee_last_presence(); raise exception 'Disabled admin read presence'; exception when insufficient_privilege then null; end; end $$;
 set local role anon;
 do $$ begin
+ begin perform public.get_branch_last_presence(); raise exception 'Anonymous read branch presence'; exception when insufficient_privilege then null; end;
  begin perform public.get_employee_last_presence(); raise exception 'Anonymous read presence'; exception when insufficient_privilege then null; end;
  begin perform public.record_employee_page_presence(); raise exception 'Anonymous recorded presence'; exception when insufficient_privilege then null; end;
 end $$;

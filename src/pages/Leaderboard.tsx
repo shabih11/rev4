@@ -17,7 +17,7 @@ import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
-import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, CalendarCheck, Waves } from 'lucide-react';
+import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, Podium, Waves } from 'lucide-react';
 import '../components/SeaMission.css';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
@@ -27,7 +27,7 @@ import { ResultsPodium } from '../components/ResultsPodium';
 import { calculateEmployeeRewards } from '../lib/employeeRewards';
 import { formatTimestamp, isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
-import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
+import { isInCurrentMonth, isPositiveReview, previousMonthEnd } from '../lib/reviewPeriod';
 import { favoritePartner, newestFirst, monthlyEmployeeOrder, weeklyActivity, periodReviewLeaders } from '../lib/employeeActivity';
 
 type SlideData =
@@ -47,6 +47,9 @@ export const Leaderboard: React.FC = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
   const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  const accountName = (currentAccount?.role === 'manager' ? currentAccount.branch : currentAccount?.name)?.trim() || 'حسابي';
+  const resultsMonth = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', calendar: 'gregory', month: 'long' })
+    .format(resultsMode ? resultsDate : previousMonthEnd(resultsDate));
   useEffect(() => {
     if (seaMode && resultsMode) setResultsMode(false);
   }, [seaMode, resultsMode, setResultsMode]);
@@ -56,6 +59,7 @@ export const Leaderboard: React.FC = () => {
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
   const employeePresence = useEmployeePresence(showAllEmployeesModal, currentAccount);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
+  const branchPresence = useEmployeePresence(showAllBranchesModal, currentAccount, 'get_branch_last_presence');
   const [selectedBranchPeriod, setSelectedBranchPeriod] = useState<{ branch: string; start: number; end: number } | null>(null);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
 
@@ -195,10 +199,10 @@ export const Leaderboard: React.FC = () => {
           {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
             setLoggingOut(true); setLogoutError('');
             try { await logout(); } catch { setLogoutError('تعذر تسجيل الخروج؛ أعيدي المحاولة.'); } finally { setLoggingOut(false); }
-          }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard" aria-label="صفحتي الخاصة"><UserRound size={16} aria-hidden="true" />صفحتي</Link>}
+          }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard"><UserRound size={16} aria-hidden="true" />{accountName}</Link>}
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
-          <button type="button" aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><CalendarCheck size={16} aria-hidden="true" />النتائج</button>
+          <button type="button" aria-label={`نتائج ${resultsMonth}`} aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><Podium size={16} aria-hidden="true" />{resultsMonth}</button>
           <Link to={seaMode ? '/' : '/?view=sea'} aria-current={seaMode ? 'page' : undefined} aria-label={seaMode ? 'مهمة البحر، العودة إلى لوحة الترتيب' : 'مهمة البحر'} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
         </nav>
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
@@ -510,7 +514,12 @@ export const Leaderboard: React.FC = () => {
                       }}
                     >
                       <div className="flex justify-between items-center mb-3 border-b pb-2">
-                        <h4 className="font-bold text-lg text-blue-800">{branchName}</h4>
+                        <div>
+                          <h4 className="font-bold text-lg text-blue-800">{branchName}</h4>
+                          {currentAccount?.role === 'admin' && <p className="mt-1 text-[10px] text-slate-500">
+                            آخر ظهور لحساب الفرع: {!branchPresence ? 'جارٍ التحميل…' : branchPresence.error ? 'تعذر التحميل' : branchPresence.data?.[branchName] === null ? 'لم يُسجل حضور بعد' : branchPresence.data?.[branchName] ? formatTimestamp(Date.parse(branchPresence.data[branchName]!)) : 'غير متاح'}
+                          </p>}
+                        </div>
                         <div className="text-left">
                           <p className="text-xs text-gray-500">إجمالي تقييمات الشهر</p>
                           <p className="text-xl font-black text-blue-600">{branchMonthReviews.length}</p>
