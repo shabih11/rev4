@@ -93,19 +93,19 @@ test('each branch has coffee for one hour at both shift starts, including Friday
   }
 });
 
-test('second-shift coffee pauses daily celebration but preserves final branch states', () => {
+test('daily celebration takes priority over second-shift coffee but preserves final branch states', () => {
   const complete = branch({ current: { count: 2, target: 2, uncertain: false } });
-  assert.equal(seaBranchScene(complete, at('2026-11-05T16:00:00')), 'coffee');
+  assert.equal(seaBranchScene(complete, at('2026-11-05T16:00:00')), 'celebrate');
   assert.equal(seaBranchScene(complete, at('2026-11-05T17:00:00')), 'celebrate');
   for (const [status, expected] of [['waiting', 'sleep'], ['sunk', 'distress'], ['arrived', 'celebrate']]) {
     assert.equal(seaBranchScene(branch({ status }), at('2026-11-05T16:30:00')), expected);
   }
 });
 
-test('a completed target celebrates from the day midpoint and during the final hour', () => {
+test('a completed target celebrates immediately during morning coffee and throughout the open day', () => {
   const complete = branch({ current: { count: 2, target: 2, uncertain: false } });
-  assert.equal(seaBranchScene(complete, at('2026-11-05T07:30:00')), 'coffee');
-  assert.equal(seaBranchScene(complete, at('2026-11-05T15:29:59')), 'adventure');
+  assert.equal(seaBranchScene(complete, at('2026-11-05T07:30:00')), 'celebrate');
+  assert.equal(seaBranchScene(complete, at('2026-11-05T15:29:59')), 'celebrate');
   assert.equal(seaBranchScene(complete, at('2026-11-05T15:30:00')), 'celebrate');
   assert.equal(seaBranchScene(complete, at('2026-11-05T23:59:59')), 'celebrate');
   assert.equal(seaBranchScene(complete, at('2026-11-06T00:00:00')), 'sleep');

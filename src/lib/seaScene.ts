@@ -40,14 +40,14 @@ export function seaBranchScene(branch: SeaBranch, now: number): SeaScene {
   if (branch.status === 'waiting' || !clock.isOpen) return 'sleep';
   if (branch.status === 'sunk') return 'distress';
   if (branch.status === 'arrived') return 'celebrate';
+  const complete = branch.current !== undefined && branch.current.count >= branch.current.target;
+  if (complete) return 'celebrate';
   const secondShiftStartsAt = clock.closesAt - 8 * HOUR; // 16:00 Riyadh.
   if (now < clock.opensAt + HOUR || (now >= secondShiftStartsAt && now < secondShiftStartsAt + HOUR)) return 'coffee';
-  const complete = branch.current !== undefined && branch.current.count >= branch.current.target;
   // A missing review time must never create a false visual failure.
   const verified = branch.status !== 'unverified' && !branch.current?.uncertain;
   if (now >= clock.closesAt - HOUR && !complete && verified) return 'distress';
-  const midpoint = clock.opensAt + (clock.closesAt - clock.opensAt) / 2;
-  return complete && now >= midpoint ? 'celebrate' : 'adventure';
+  return 'adventure';
 }
 
 export function seaSceneBerths(branches: readonly SeaBranch[], now: number) {
