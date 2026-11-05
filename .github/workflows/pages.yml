@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -16,7 +17,7 @@ jobs:
     with:
       pages: true
   deploy:
-    if: github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/main'
+    if: always() && needs.build.result == 'success' && needs.build.outputs.publish == 'true' && github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
