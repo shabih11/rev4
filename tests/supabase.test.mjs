@@ -66,7 +66,7 @@ test('Windsor refreshes recent source data instead of using the default six-hour
  assert.equal(requests[1].searchParams.get('refresh_interval'),'15min');
  await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',fetcher,'1min'),/Invalid Windsor refresh interval/);
  assert.equal(requests.length,2);
- await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',async()=>({ok:false})),{message:'Windsor request failed'});
+ await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',async()=>({ok:false,status:403,text:async()=> 'Refresh interval is unavailable on this plan'})),error=>error.message==='Windsor request failed' && error.httpStatus===403 && error.refreshRejected===true);
 });
 const {privateKey,publicKey}=await generateKeyPair('RS256');
 const claims={repository:'shabih11/rev4',ref:'refs/heads/codex/supabase-production',event_name:'push',workflow_ref:'shabih11/rev4/.github/workflows/windsor-sync.yml@refs/heads/codex/supabase-production'};

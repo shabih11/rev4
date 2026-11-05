@@ -9,7 +9,12 @@ export async function fetchSnapshot(key,from,to,fetcher=fetch,refreshInterval='1
  url.searchParams.set('refresh_since','3d');
  url.searchParams.set('refresh_interval',refreshInterval);
  let response;try{response=await fetcher(url,{signal:AbortSignal.timeout(180000)});}catch{throw Error('Windsor connection failed');}
- if(!response.ok)throw Error('Windsor request failed');
+ if(!response.ok){
+  const reason=await response.text();
+  throw Object.assign(Error('Windsor request failed'),{httpStatus:response.status,
+   refreshRejected:/refresh|plan|subscription|upgrade/i.test(reason),
+   authenticationRejected:/api.?key|not authorized|unauthorized|authentication/i.test(reason)});
+ }
  const body=await response.json(),rows=Array.isArray(body)?body:body.data;
  if(!Array.isArray(rows) || body.status && !['done','success'].includes(body.status) || body.total_rows!==undefined && Number(body.total_rows)!==rows.length)throw Error('Incomplete Windsor response');
  return rows;
@@ -27,5 +32,7 @@ if(process.argv[1] && import.meta.url===new URL(process.argv[1],'file:').href){
   const response=await fetch('https://zcnfzrkegodvrtzimlnn.supabase.co/functions/v1/windsor-import',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(rows),signal:AbortSignal.timeout(180000)});
   if(!response.ok)throw Error('Supabase import failed');
   console.log(JSON.stringify({...await response.json(),refreshInterval}));
- }catch{console.error('Daily sync failed; credentials and source contents are not logged');process.exitCode=1;}
+ }catch(error){console.error(JSON.stringify({message:'Review sync failed; credentials and source contents are not logged',
+  httpStatus:Number.isInteger(error?.httpStatus)?error.httpStatus:undefined,
+  refreshRejected:error?.refreshRejected===true,authenticationRejected:error?.authenticationRejected===true}));process.exitCode=1;}
 }
