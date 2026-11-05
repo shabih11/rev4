@@ -19,16 +19,23 @@ export function useDailyReadModel(session: CloudSession) {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (!uid) return;
-    let active = true, revision = 0, subscribed = false, failures = 0;
+    let active = true, revision = 0, failures = 0, pendingLoads = 0;
+    let loadedVersion: string | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
-    const load = async (knownVersion?: string) => {
+    const load = async (knownVersion?: string, force = false) => {
+      if (!active) return;
       const epoch = ++revision; clearTimeout(retry);
+      pendingLoads++;
       try {
         let version = knownVersion;
         if (!version) {
           const { data, error } = await supabase.from('app_state').select('version').eq('id', 1).abortSignal(AbortSignal.timeout(15000)).single();
           if (error || !data) throw error || new Error('missing-state');
           version = String(data.version);
+        }
+        if (!force && version === loadedVersion) {
+          if (active && epoch === revision) { failures = 0; setError(null); }
+          return;
         }
         const rows = await cachedRows<DailyReadModel>(namespace + 'summary|' + version, async () => {
           const [{ data, error }, featureResult] = await Promise.all([
@@ -39,21 +46,30 @@ export function useDailyReadModel(session: CloudSession) {
           if (!data || typeof data.generatedAt !== 'string' || !Array.isArray(data.directory) || !Array.isArray(data.reviews) || !Array.isArray(data.notes)) throw new Error('invalid-summary');
           return [{ ...data, features: featureResult.error ? null : featureResult.data } as DailyReadModel];
         }, true);
-        if (active && epoch === revision) { failures = 0; setError(null); setValue({ namespace, revision: version, data: rows[0] }); }
+        if (active && epoch === revision) { loadedVersion = version; failures = 0; setError(null); setValue({ namespace, revision: version, data: rows[0] }); }
       } catch (reason) {
         if (!active || epoch !== revision) return;
         setError('تعذر التحقق من البيانات؛ ستُستأنف المزامنة تلقائيًا.');
         const code = (reason as { code?: string })?.code;
         if (code !== '42501' && code !== 'PGRST301') retry = setTimeout(() => void load(), Math.min(300000, 5000 * 2 ** failures++));
+      } finally {
+        pendingLoads--;
       }
     };
     void load();
     const channel = supabase.channel(`summary:${uid}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' }, payload => void load(String(payload.new.version)))
-      .subscribe(status => { if (status === 'SUBSCRIBED') { if (subscribed) void load(); subscribed = true; } });
-    const reload = () => { void load(); };
+      .subscribe(status => { if (status === 'SUBSCRIBED') void load(); });
+    const reload = () => { void load(undefined, true); };
+    // Realtime is the fast path; a lightweight version check covers missed events.
+    const checkVisible = () => {
+      if (document.visibilityState === 'visible' && navigator.onLine && !pendingLoads && !failures) void load();
+    };
+    const visible = () => { if (document.visibilityState === 'visible') reload(); };
+    const poll = window.setInterval(checkVisible, 15000);
+    document.addEventListener('visibilitychange', visible);
     window.addEventListener('online', reload); window.addEventListener('rev4-cache-changed', reload);
-    return () => { active = false; revision++; clearTimeout(retry); void supabase.removeChannel(channel); window.removeEventListener('online', reload); window.removeEventListener('rev4-cache-changed', reload); };
+    return () => { active = false; revision++; clearTimeout(retry); window.clearInterval(poll); document.removeEventListener('visibilitychange', visible); void supabase.removeChannel(channel); window.removeEventListener('online', reload); window.removeEventListener('rev4-cache-changed', reload); };
   }, [uid, namespace]);
   const current = uid && value?.namespace === namespace ? value : null;
   return { data: current?.data || null, ready: Boolean(current), error: uid ? error : null, revision: current?.revision || 'initial' };

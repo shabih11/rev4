@@ -1,10 +1,9 @@
 name: Windsor to Supabase
 on:
   schedule:
-    - cron: '*/10 9-20 * * *' # Every 10 minutes, 12:00–23:50 Asia/Riyadh.
-    - cron: '0 21 * * *' # 00:00 Asia/Riyadh; GitHub may delay scheduled starts.
+    - cron: '*/5 * * * *' # Every 5 minutes, including overnight reviews; GitHub may delay starts.
   push:
-    branches: [codex/supabase-production]
+    branches: [main, codex/supabase-production]
     paths: ['.github/workflows/windsor-sync.yml', 'automation/windsor-sync.mjs', 'supabase/functions/windsor-import/**']
   workflow_dispatch:
     inputs:
@@ -42,4 +41,5 @@ jobs:
           WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
           WINDSOR_DATE_FROM: ${{ inputs.date_from }}
           WINDSOR_DATE_TO: ${{ inputs.date_to }}
+          WINDSOR_REFRESH_INTERVAL: ${{ vars.WINDSOR_REFRESH_INTERVAL || '1h' }}
         run: node automation/windsor-sync.mjs

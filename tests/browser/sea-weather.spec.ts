@@ -3,9 +3,11 @@ import { test, expect, login, mockService } from './fixtures.js';
 
 for (const scenario of [
   { name: 'bright day', hour: 12, cloud: 0, symbol: 'clearsky_day', wind: 2, light: 'sunny', effect: 'clear' },
-  { name: 'soft cloudy day', hour: 12, cloud: 90, symbol: 'cloudy', wind: 2, light: 'soft', effect: 'cloudy' },
-  { name: 'moonlit night', hour: 20, cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'night', effect: 'clear' },
-  { name: 'deep stormy night', hour: 23, cloud: 90, symbol: 'rainandthunder', wind: 12, light: 'night-deep', effect: 'storm' },
+  { name: 'cloudy weather during sunny hours', hour: 12, cloud: 90, symbol: 'cloudy', wind: 2, light: 'sunny', effect: 'cloudy' },
+  { name: 'soft afternoon', hour: 16, cloud: 0, symbol: 'clearsky_day', wind: 2, light: 'soft', effect: 'clear' },
+  { name: 'partially dark evening', hour: 20, cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'dusk', effect: 'clear' },
+  { name: 'stormy evening', hour: 23, cloud: 90, symbol: 'rainandthunder', wind: 12, light: 'dusk', effect: 'storm' },
+  { name: 'moonlit sleep', hour: '00', cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'night', effect: 'clear' },
   { name: 'windy mobile day', hour: 12, cloud: 10, symbol: 'fair_day', wind: 9, light: 'sunny', effect: 'wind' },
 ] as const) {
   test(`Riyadh weather renders ${scenario.name}`, async ({ page }) => {
@@ -30,7 +32,7 @@ for (const scenario of [
       y: parseFloat((item as HTMLElement).style.getPropertyValue('--berth-y')),
     })));
     for (const sleeping of fleet.filter(item => item.sleeping)) {
-      for (const awake of fleet.filter(item => !item.sleeping)) expect(sleeping.y).toBeLessThan(awake.y);
+      for (const awake of fleet.filter(item => !item.sleeping)) expect(sleeping.y).toBeGreaterThan(awake.y);
     }
     await expect(page.getByRole('complementary', { name: 'طقس الرياض' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'MET Norway' })).toHaveCount(0);

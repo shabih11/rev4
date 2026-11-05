@@ -32,9 +32,10 @@
 .sea-backdrop { position:absolute; inset:0; z-index:0; pointer-events:none; }
 .sea-backdrop img { display:block; width:100%; height:100%; object-fit:fill; }
 .sea-map[data-light="soft"] { --scene-brightness:.88; --scene-saturation:.87; }
+.sea-map[data-light="dusk"] { --scene-brightness:.74; --scene-saturation:.76; background-color:#364b69; }
+.sea-map[data-light="dusk"] .sea-backdrop { filter:brightness(.62) saturate(.65); }
+.sea-map[data-light="dusk"] .sea-backdrop::after { content:""; position:absolute; inset:0; background:linear-gradient(#46446b66,#1f426b33 45%,#18355855); }
 .sea-map[data-light="night"] { --scene-brightness:.62; --scene-saturation:.72; background-color:#102646; }
-.sea-map[data-light="night-deep"] { --scene-brightness:.43; --scene-saturation:.6; background-color:#09182e; }
-.sea-map[data-light="night-deep"] .sea-backdrop { filter:brightness(.68) saturate(.8); }
 .sea-island,.sea-vessel-art { filter:brightness(var(--scene-brightness)) saturate(var(--scene-saturation)); }
 .sea-atmosphere,.sea-rain { position:absolute; inset:0; z-index:2000; pointer-events:none; }
 .sea-atmosphere { opacity:0; }
@@ -66,8 +67,9 @@
 .sea-vessel-art { position:relative; display:block; width:100%; aspect-ratio:3/5; isolation:isolate; pointer-events:none; }
 .sea-vessel-boat {
   position:relative; z-index:1; display:block; width:100%; aspect-ratio:3/4; height:auto; object-fit:contain;
-  -webkit-mask-image:linear-gradient(#000 90%,#000d 93%,transparent 98%);
-  mask-image:linear-gradient(#000 90%,#000d 93%,transparent 98%);
+  /* Submerge the projecting rudder tip at the same waterline as the hull. */
+  -webkit-mask-image:linear-gradient(#000 88%,#000c 91%,transparent 95%);
+  mask-image:linear-gradient(#000 88%,#000c 91%,transparent 95%);
 }
 .sea-vessel-wake {
   position:absolute; z-index:0; bottom:8%; left:6%; width:88%; height:26%; opacity:.65;
@@ -84,9 +86,14 @@
   -webkit-mask-image:linear-gradient(transparent 42%,#000 72%);
   mask-image:linear-gradient(transparent 42%,#000 72%);
 }
-.sea-vessel[data-scene="distress"] .sea-water-contact,
-.sea-vessel[data-scene="distress"] .sea-water-front { opacity:.3; }
-.sea-vessel[data-scene="distress"] .sea-vessel-boat { -webkit-mask-image:none; mask-image:none; }
+.sea-vessel:is([data-scene="distress"],[data-scene="capsized"]) :is(.sea-water-contact,.sea-water-front,.sea-water-shadow) { display:none; }
+.sea-vessel:is([data-scene="distress"],[data-scene="capsized"]) .sea-vessel-boat {
+  /* Fade only the contact-water edges into the live ocean behind the cutout. */
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent),linear-gradient(#000 90%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent),linear-gradient(#000 90%,transparent 100%);
+  -webkit-mask-composite:source-in;
+  mask-composite:intersect;
+}
 .sea-vessel[aria-pressed="true"] .sea-vessel-boat {
   filter:drop-shadow(1px 0 0 #e6f5ff) drop-shadow(-1px 0 0 #e6f5ff) drop-shadow(0 1px 0 #e6f5ff) drop-shadow(0 -1px 0 #e6f5ff) drop-shadow(0 0 8px #278fe3a6);
 }
@@ -96,7 +103,14 @@
   width:max-content; max-width:100%; color:#143853; font-size:.85rem; font-weight:800;
   direction:rtl; line-height:1.5; text-shadow:0 1px 2px #fff,0 0 5px #ffffffc9; pointer-events:none;
 }
-.sea-map:is([data-light="night"],[data-light="night-deep"]) .sea-branch-name { color:#f5faff; text-shadow:0 2px 3px #071a30,0 0 7px #071a30; }
+.sea-map:is([data-light="dusk"],[data-light="night"]) .sea-branch-name { color:#f5faff; text-shadow:0 2px 3px #071a30,0 0 7px #071a30; }
+.sea-vessel[data-scene="celebrate"] .sea-vessel-boat {
+  filter:drop-shadow(1px 0 0 #4ade80) drop-shadow(-1px 0 0 #4ade80) drop-shadow(0 1px 0 #4ade80) drop-shadow(0 -1px 0 #4ade80) drop-shadow(0 0 9px #22c55ecc);
+}
+.sea-map .sea-vessel[data-scene="celebrate"] .sea-branch-name {
+  color:#fff;
+  text-shadow:0 2px 3px #064e3b,0 0 6px #22c55e,0 0 12px #22c55e;
+}
 .sea-error { align-self:flex-start; margin:1rem; padding:1rem; border-radius:.8rem; background:white; color:#9f2929; }
 @media (max-width:760px) {
   .sea-island { top:calc(20.8% + 2px); }

@@ -54,6 +54,20 @@ test('Windsor errors cannot echo a credential-bearing URL',async()=>{
  await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-10-21',async url=>{throw Error(String(url));}),{message:'Windsor connection failed'});
  await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-10-21',async()=>({ok:true,json:async()=>({status:'done',data:[source()],total_rows:2})})),{message:'Incomplete Windsor response'});
 });
+test('Windsor refreshes recent source data instead of using the default six-hour cache',async()=>{
+ const requests=[];
+ const fetcher=async url=>{requests.push(new URL(url));return{ok:true,json:async()=>({status:'done',data:[source()],total_rows:1})};};
+ assert.equal((await fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',fetcher)).length,1);
+ assert.equal(requests[0].searchParams.get('refresh_since'),'3d');
+ assert.equal(requests[0].searchParams.get('refresh_interval'),'1h');
+ assert.equal(requests[0].searchParams.get('date_from'),'2026-08-01');
+ assert.equal(requests[0].searchParams.get('select_accounts').split(',').length,6);
+ await fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',fetcher,'15min');
+ assert.equal(requests[1].searchParams.get('refresh_interval'),'15min');
+ await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',fetcher,'1min'),/Invalid Windsor refresh interval/);
+ assert.equal(requests.length,2);
+ await assert.rejects(fetchSnapshot('synthetic-key','2026-08-01','2026-11-05',async()=>({ok:false})),{message:'Windsor request failed'});
+});
 const {privateKey,publicKey}=await generateKeyPair('RS256');
 const claims={repository:'shabih11/rev4',ref:'refs/heads/codex/supabase-production',event_name:'push',workflow_ref:'shabih11/rev4/.github/workflows/windsor-sync.yml@refs/heads/codex/supabase-production'};
 const sign=(extra={},audience='rev4-windsor-supabase',expires='5m')=>new SignJWT({...claims,...extra}).setProtectedHeader({alg:'RS256'}).setIssuer('https://token.actions.githubusercontent.com').setAudience(audience).setIssuedAt().setExpirationTime(expires).sign(privateKey);

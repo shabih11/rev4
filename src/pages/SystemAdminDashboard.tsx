@@ -829,8 +829,8 @@ export const SystemAdminDashboard: React.FC = () => {
             <section className="bg-white rounded-3xl border p-6 space-y-4" dir="rtl">
               <AdditionalFeaturesSettings />
               <details className="border-t pt-5"><summary className="cursor-pointer font-bold">حالة تكامل Windsor.ai</summary>
-              <h2 className="text-2xl font-black">المزامنة اليومية من Windsor.ai</h2>
-              <p>تجلب مهمة GitHub تقييمات الفروع يوميًا عند العاشرة مساءً بتوقيت الرياض، وقد يتأخر تشغيلها حسب توفر خوادم GitHub.</p>
+              <h2 className="text-2xl font-black">مزامنة تقييمات قوقل</h2>
+              <p>تُفحص التقييمات الجديدة دوريًا طوال اليوم. يعتمد وصولها على وقت إتاحتها من قوقل وفترة تحديث Windsor، وقد يتأخر تشغيل مهمة الجلب.</p>
               <p>تُحفظ البيانات في Supabase وتُربط بالشفتات المسجلة. يحتفظ المتصفح بالنتائج ويستقبل إصدار البيانات الجديد تلقائيًا.</p>
               <p>تُدار بيانات الاتصال في الخادم. لا يحتاج هذا المتصفح إلى مفتاح Windsor.</p>
               <a href="https://github.com/shabih11/rev4/actions/workflows/windsor-sync.yml" target="_blank" rel="noreferrer" className="text-blue-700 underline">حالة المزامنة</a></details>

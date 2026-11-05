@@ -1,21 +1,21 @@
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes } from './formatDate';
 import { seaBranchName, seaForegroundBerths, type SeaBranch } from './seaMission';
-import type { RiyadhWeather } from './riyadhWeather';
 
-export type SeaLight = 'sunny' | 'soft' | 'night' | 'night-deep';
-export type SeaScene = 'sleep' | 'coffee' | 'adventure' | 'celebrate' | 'distress';
+export type SeaLight = 'sunny' | 'soft' | 'dusk' | 'night';
+export type SeaScene = 'sleep' | 'coffee' | 'adventure' | 'halfway' | 'celebrate' | 'distress' | 'capsized';
 const HOUR = 3600000;
 const DAY = 24 * HOUR;
 const RIYADH = 3 * HOUR;
 
-// The provider's day/night symbol takes precedence over fallback visual hours.
-export function seaLight(now: number, weather: RiyadhWeather | null = null): SeaLight {
+// Fixed Riyadh wall-clock phases; weather effects never move these boundaries.
+export function seaLight(now: number): SeaLight {
   const local = new Date(now + RIYADH);
-  const hour = local.getUTCHours();
-  const day = weather?.symbol.endsWith('_day') ? true : weather?.symbol.endsWith('_night') ? false : hour >= 6 && hour < (weather ? 18 : 19);
-  if (day) return hour < 15 && (!weather || weather.cloud < 60) ? 'sunny' : 'soft';
-  return hour >= 23 || hour < 5 || (weather && weather.cloud >= 75) ? 'night-deep' : 'night';
+  const minutes = local.getUTCHours() * 60 + local.getUTCMinutes();
+  if (minutes < 6 * 60 + 30) return 'night';
+  if (minutes < 16 * 60) return 'sunny';
+  if (minutes < 17 * 60 + 30) return 'soft';
+  return 'dusk';
 }
 
 function openingOn(calendar: number, name: string) {
@@ -35,19 +35,22 @@ export function seaBranchClock(name: string, now: number) {
 }
 
 export function seaBranchScene(branch: SeaBranch, now: number): SeaScene {
+  // Elimination is confirmed at the next business-day boundary. It persists overnight.
+  if (branch.status === 'sunk') return 'capsized';
   const clock = seaBranchClock(branch.name, now);
   // Sleeping uses the same image in daylight and at night; the scene controls lighting.
   if (branch.status === 'waiting' || !clock.isOpen) return 'sleep';
-  if (branch.status === 'sunk') return 'distress';
   if (branch.status === 'arrived') return 'celebrate';
+  const complete = branch.current !== undefined && branch.current.count >= branch.current.target;
+  if (complete) return 'celebrate';
+  // Use only this business day's count, and round odd targets up to the next review.
+  if (branch.current && !complete && branch.current.count >= Math.ceil(branch.current.target / 2)) return 'halfway';
   const secondShiftStartsAt = clock.closesAt - 8 * HOUR; // 16:00 Riyadh.
   if (now < clock.opensAt + HOUR || (now >= secondShiftStartsAt && now < secondShiftStartsAt + HOUR)) return 'coffee';
-  const complete = branch.current !== undefined && branch.current.count >= branch.current.target;
   // A missing review time must never create a false visual failure.
   const verified = branch.status !== 'unverified' && !branch.current?.uncertain;
   if (now >= clock.closesAt - HOUR && !complete && verified) return 'distress';
-  const midpoint = clock.opensAt + (clock.closesAt - clock.opensAt) / 2;
-  return complete && now >= midpoint ? 'celebrate' : 'adventure';
+  return 'adventure';
 }
 
 export function seaSceneBerths(branches: readonly SeaBranch[], now: number) {
@@ -58,5 +61,7 @@ export function seaSceneBerths(branches: readonly SeaBranch[], now: number) {
 
 export const SEA_SCENE_LABELS: Record<SeaScene, string> = {
   sleep: 'راحة حتى موعد الفتح', coffee: 'قهوة البداية والاستعداد', adventure: 'مغامرة نحو الهدف',
-  celebrate: 'احتفال بإنجاز المهمة', distress: 'تحدٍّ بحري شاق',
+  halfway: 'بلغنا نصف الهدف اليومي — تفقد الجوال وتشجيع الزميلات',
+  celebrate: 'احتفال بإنجاز المهمة', distress: 'قارب يغرق والموظفات في الماء',
+  capsized: 'قارب مقلوب والموظفات في الماء متمسكات بحافته — خارج المنافسة',
 };

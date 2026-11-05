@@ -17,7 +17,7 @@ type SeaReview = Parameters<typeof seaMission>[0][number];
 export function SeaMissionView({ reviews, now, weather = null }: { reviews: readonly SeaReview[]; now: number; preferredBranch?: string; weather?: RiyadhWeather | null }) {
   const mission = seaMission(reviews, now);
   const [selected, setSelected] = useState('');
-  const light = seaLight(now, weather);
+  const light = seaLight(now);
   const atmosphere = seaWeather(weather);
   const berths = seaSceneBerths(mission.branches, now);
   const berth = (name: string): CSSProperties => {
@@ -49,11 +49,11 @@ export function SeaMissionView({ reviews, now, weather = null }: { reviews: read
             <span className="sea-vessel-art">
               <span className="sea-water-shadow" aria-hidden="true" />
               <img className="sea-water-contact" src={waterContact} alt="" width="768" height="256" />
-              {(scene === 'adventure' || scene === 'celebrate') && <img className="sea-vessel-wake" src={boatWake} alt="" width="640" height="640" />}
+              {(scene === 'adventure' || scene === 'halfway' || scene === 'celebrate') && <img className="sea-vessel-wake" src={boatWake} alt="" width="640" height="640" />}
               <img className="sea-vessel-boat" src={SEA_SCENE_ASSETS[item.name][scene]} alt={SEA_SCENE_LABELS[scene]} width="640" height="896" />
               <img className="sea-water-front" src={waterContact} alt="" width="768" height="256" />
             </span>
-            {selected === item.name && <span className="sea-branch-name">{item.name}</span>}
+            {(scene === 'celebrate' || selected === item.name) && <span className="sea-branch-name">{item.name}</span>}
           </button>
         </li>; })}
       </ul>
@@ -70,7 +70,8 @@ export function SeaMission() {
     // Refresh at an opening boundary even when the page stays open overnight.
     const next = Math.min(...SEA_BRANCHES.flatMap(branch => Array.from({ length: 27 }, (_, index) => seaOpening(branch, index + 5))).filter(boundary => boundary > now));
     const refresh = () => setNow(Date.now());
-    const timer = window.setTimeout(refresh, Math.min(60000, Math.max(0, next - Date.now()) + 25));
+    const current = Date.now();
+    const timer = window.setTimeout(refresh, Math.min(60000 - current % 60000, Math.max(0, next - current)) + 25);
     const visible = () => { if (document.visibilityState === 'visible') refresh(); };
     document.addEventListener('visibilitychange', visible);
     return () => { window.clearTimeout(timer); document.removeEventListener('visibilitychange', visible); };

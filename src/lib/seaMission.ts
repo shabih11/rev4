@@ -75,8 +75,9 @@ export function seaForegroundBerths(branches: readonly SeaBranch[], now = Date.n
   const seed = new Date(now + RIYADH_OFFSET).toISOString().slice(0, 10);
   const anchors = [{ x: 17, y: 73 }, { x: 49, y: 68 }, { x: 81, y: 76 },
     { x: 23, y: 91 }, { x: 57, y: 87 }, { x: 86, y: 95 }].sort((a, b) => a.y - b.y);
-  const order = [...branches].sort((a, b) => Number(sleepingUntil.has(b.name)) - Number(sleepingUntil.has(a.name))
-    || (sleepingUntil.get(b.name) ?? 0) - (sleepingUntil.get(a.name) ?? 0)
+  // The race heads toward the island (smaller y); sleeping branches trail near the viewer.
+  const order = [...branches].sort((a, b) => Number(sleepingUntil.has(a.name)) - Number(sleepingUntil.has(b.name))
+    || (sleepingUntil.get(a.name) ?? 0) - (sleepingUntil.get(b.name) ?? 0)
     || laneHash(`foreground:${seed}:${a.name}`) - laneHash(`foreground:${seed}:${b.name}`)
     || a.name.localeCompare(b.name, 'ar'));
   return seaBerths(branches, now).map(berth => {
