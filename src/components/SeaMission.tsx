@@ -2,8 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { useData } from '../context/DataContext';
 import { useRiyadhWeather } from '../hooks/useRiyadhWeather';
 import { seaWeather, weatherAt, type RiyadhWeather } from '../lib/riyadhWeather';
-import { seaForegroundBerths, seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
-import { seaBranchScene, seaLight, SEA_SCENE_LABELS } from '../lib/seaScene';
+import { seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
+import { seaBranchScene, seaSceneBerths, seaLight, SEA_SCENE_LABELS } from '../lib/seaScene';
 import { SEA_BACKDROPS, SEA_SCENE_ASSETS } from './seaSceneAssets';
 import island from '../assets/sea/island-horizon.webp';
 import boatWake from '../assets/sea/boat-wake.webp';
@@ -19,7 +19,7 @@ export function SeaMissionView({ reviews, now, weather = null }: { reviews: read
   const [selected, setSelected] = useState('');
   const light = seaLight(now, weather);
   const atmosphere = seaWeather(weather);
-  const berths = seaForegroundBerths(mission.branches, now);
+  const berths = seaSceneBerths(mission.branches, now);
   const berth = (name: string): CSSProperties => {
     const position = berths.find(berth => berth.name === name)!;
     return {

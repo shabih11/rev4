@@ -2,10 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { moduleUrl } from './helpers/typescript.mjs';
-const { seaBranchClock, seaBranchScene, seaLight } = await import(moduleUrl('seaScene'));
+const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight } = await import(moduleUrl('seaScene'));
 const { seaMission, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const at = value => Date.parse(value + '+03:00');
 const branch = (overrides = {}) => ({ name: 'شرق', status: 'sailing', current: { count: 0, target: 2, uncertain: false }, ...overrides });
+
+test('sleeping branches stay behind open branches, with later openings farthest away', () => {
+  for (const time of ['09:00:00', '11:00:00', '13:00:00', '14:00:00', '23:59:59']) {
+    const now = at(`2026-11-05T${time}`);
+    const branches = seaMission([], now).branches;
+    const positions = seaSceneBerths(branches, now);
+    for (const a of branches) for (const b of branches) {
+      const aSleeps = seaBranchScene(a, now) === 'sleep';
+      const bSleeps = seaBranchScene(b, now) === 'sleep';
+      if (aSleeps && (!bSleeps || seaBranchClock(a.name, now).nextOpening > seaBranchClock(b.name, now).nextOpening)) {
+        assert.ok(positions.find(p => p.name === a.name).y < positions.find(p => p.name === b.name).y);
+      }
+    }
+    assert.deepEqual(seaSceneBerths(branches, now + 1), positions);
+  }
+});
 
 test('Riyadh daylight changes independently of sleeping and host timezone', () => {
   for (const [time, expected] of [['04:59:59', 'night-deep'], ['05:59:59', 'night'], ['06:00:00', 'sunny'], ['14:59:59', 'sunny'], ['15:00:00', 'soft'], ['18:59:59', 'soft'], ['19:00:00', 'night'], ['23:00:00', 'night-deep']]) {

@@ -1,6 +1,6 @@
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes } from './formatDate';
-import { seaBranchName, type SeaBranch } from './seaMission';
+import { seaBranchName, seaForegroundBerths, type SeaBranch } from './seaMission';
 import type { RiyadhWeather } from './riyadhWeather';
 
 export type SeaLight = 'sunny' | 'soft' | 'night' | 'night-deep';
@@ -48,6 +48,12 @@ export function seaBranchScene(branch: SeaBranch, now: number): SeaScene {
   if (now >= clock.closesAt - HOUR && !complete && verified) return 'distress';
   const midpoint = clock.opensAt + (clock.closesAt - clock.opensAt) / 2;
   return complete && now >= midpoint ? 'celebrate' : 'adventure';
+}
+
+export function seaSceneBerths(branches: readonly SeaBranch[], now: number) {
+  const sleepingUntil = new Map(branches.filter(branch => seaBranchScene(branch, now) === 'sleep')
+    .map(branch => [branch.name, seaBranchClock(branch.name, now).nextOpening]));
+  return seaForegroundBerths(branches, now, sleepingUntil);
 }
 
 export const SEA_SCENE_LABELS: Record<SeaScene, string> = {

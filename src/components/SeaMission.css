@@ -69,7 +69,11 @@
   -webkit-mask-image:linear-gradient(#000 90%,#000d 93%,transparent 98%);
   mask-image:linear-gradient(#000 90%,#000d 93%,transparent 98%);
 }
-.sea-vessel-wake { position:absolute; z-index:0; bottom:0; left:5%; width:90%; height:32%; }
+.sea-vessel-wake {
+  position:absolute; z-index:0; bottom:8%; left:6%; width:88%; height:26%; opacity:.65;
+  -webkit-mask-image:linear-gradient(#000 65%,transparent);
+  mask-image:linear-gradient(#000 65%,transparent);
+}
 .sea-water-shadow {
   position:absolute; z-index:0; left:18%; bottom:24%; width:64%; height:3%; border-radius:50%;
   background:radial-gradient(ellipse,#083c4e46 0%,transparent 73%);

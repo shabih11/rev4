@@ -25,6 +25,13 @@ for (const scenario of [
     const map = page.locator('.sea-map');
     await expect(map).toHaveAttribute('data-light', scenario.light);
     await expect(map).toHaveAttribute('data-weather', scenario.effect);
+    const fleet = await page.locator('.sea-fleet > li').evaluateAll(items => items.map(item => ({
+      sleeping: item.querySelector('.sea-vessel')?.getAttribute('data-scene') === 'sleep',
+      y: parseFloat((item as HTMLElement).style.getPropertyValue('--berth-y')),
+    })));
+    for (const sleeping of fleet.filter(item => item.sleeping)) {
+      for (const awake of fleet.filter(item => !item.sleeping)) expect(sleeping.y).toBeLessThan(awake.y);
+    }
     await expect(page.getByRole('complementary', { name: 'طقس الرياض' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'MET Norway' })).toHaveCount(0);
     if (scenario.effect === 'storm') {
