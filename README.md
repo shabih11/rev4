@@ -7,9 +7,9 @@
 ```sh
 npm ci
 npm run dev
-npm run verify
-npm run test:browser
 ```
+
+للتحقق من التغييرات استخدم الفحص المناسب في [دليل الاختبارات](docs/testing.md). `npm run check:scope` يعرض نطاقها؛ `npm run verify` للفحص المحلي الشامل. لا يلزم تشغيل اختبارات المتصفح وقاعدة البيانات لكل تعديل.
 
 المتطلبات: Node.js 24. إعداد Supabase العام موجود في `src/lib/supabase.ts`، ويمكن تجاوزه بمتغيري `VITE_SUPABASE_URL` و`VITE_SUPABASE_PUBLISHABLE_KEY`. لا تضع مفاتيح إدارة أو Windsor في متغيرات `VITE_*`.
 
@@ -29,4 +29,4 @@ GitHub Actions يجلب Windsor باستخدام سر `WINDSOR_API_KEY` المو
 
 ## النشر
 
-الهدف الافتراضي للتحديثات هو `main`. يشغّل GitHub Pages فحوص lint واختبارات Node وChromium والبناء واختبارات SQL في بيئة معزولة قبل السماح بالنشر. لا تُنشر هجرات قاعدة البيانات أو Edge Functions تلقائيًا. راجع [سير الإصدار](docs/production-workflow.md) و[دليل الاختبارات](docs/testing.md). الموقع الحالي: [rev4](https://shabih11.github.io/rev4/).
+الهدف الافتراضي للتحديثات هو `main`. يختار CI الفحوص بحسب الملفات المتأثرة، وينشر بعد نجاح الفحوص المطلوبة. تعديل التوثيق وحده لا يعيد بناء الموقع أو نشره. يُشغّل الفحص الكامل لتغييرات البيانات والصلاحيات والأدوات وعند تعذر تحديد النطاق. لا تُنشر هجرات قاعدة البيانات أو Edge Functions تلقائيًا. راجع [سير الإصدار](docs/production-workflow.md) و[دليل الاختبارات](docs/testing.md). الموقع الحالي: [rev4](https://shabih11.github.io/rev4/).
