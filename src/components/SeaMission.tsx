@@ -62,13 +62,6 @@ export function SeaMissionView({ reviews, now }: { reviews: readonly SeaReview[]
 export function SeaMission() {
   const { reviewSummaries, currentAccount, syncError } = useData();
   const [now, setNow] = useState(Date.now);
-  const [online, setOnline] = useState(() => navigator.onLine);
-  useEffect(() => {
-    const update = () => setOnline(navigator.onLine);
-    window.addEventListener('online', update);
-    window.addEventListener('offline', update);
-    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
-  }, []);
   useEffect(() => {
     // Refresh at an opening boundary even when the page stays open overnight.
     const next = Math.min(...SEA_BRANCHES.flatMap(branch => Array.from({ length: 27 }, (_, index) => seaOpening(branch, index + 5))).filter(boundary => boundary > now));
@@ -83,6 +76,6 @@ export function SeaMission() {
     document.title = 'مهمة البحر | أي آم سبيشل';
     return () => { document.title = title; };
   }, []);
-  if (syncError || !online) return <main className="sea-mission"><p role="alert" className="sea-error">تعذر تحديث مهمة البحر. أعيدي المحاولة عند عودة الاتصال.</p></main>;
+  if (syncError) return <main className="sea-mission"><p role="alert" className="sea-error">تعذر تحديث مهمة البحر. أعيدي المحاولة عند عودة الاتصال.</p></main>;
   return <SeaMissionView reviews={reviewSummaries} now={Math.max(now, Date.now())} preferredBranch={currentAccount?.branch} />;
 }
