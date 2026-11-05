@@ -8,7 +8,17 @@ export async function fetchSnapshot(key,from,to,fetcher=fetch,refreshInterval='1
  // Repeating the same URL otherwise reuses Windsor's default six-hour cache.
  url.searchParams.set('refresh_since','3d');
  url.searchParams.set('refresh_interval',refreshInterval);
- let response;try{response=await fetcher(url,{signal:AbortSignal.timeout(180000)});}catch{throw Error('Windsor connection failed');}
+ const request=async()=>{try{return await fetcher(url,{signal:AbortSignal.timeout(180000)});}catch{throw Error('Windsor connection failed');}};
+ let response=await request();
+ if(response.status===403){
+  const reason=await response.clone().text();
+  if(/refresh|plan|subscription|upgrade/i.test(reason) && !/api.?key|not authorized|unauthorized|authentication/i.test(reason)){
+   // Keep ingestion available when this account cannot request a shorter source cache.
+   console.warn('Windsor rejected the requested refresh interval (HTTP 403); using the provider cache policy. A supported refresh plan is required for fresher source data.');
+   url.searchParams.delete('refresh_since');url.searchParams.delete('refresh_interval');
+   response=await request();
+  }
+ }
  if(!response.ok){
   const reason=await response.text();
   throw Object.assign(Error('Windsor request failed'),{httpStatus:response.status,
@@ -31,7 +41,7 @@ if(process.argv[1] && import.meta.url===new URL(process.argv[1],'file:').href){
   const {value:token}=await tokenResponse.json();
   const response=await fetch('https://zcnfzrkegodvrtzimlnn.supabase.co/functions/v1/windsor-import',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(rows),signal:AbortSignal.timeout(180000)});
   if(!response.ok)throw Error('Supabase import failed');
-  console.log(JSON.stringify({...await response.json(),refreshInterval}));
+  console.log(JSON.stringify({...await response.json(),requestedRefreshInterval:refreshInterval}));
  }catch(error){console.error(JSON.stringify({message:'Review sync failed; credentials and source contents are not logged',
   httpStatus:Number.isInteger(error?.httpStatus)?error.httpStatus:undefined,
   refreshRejected:error?.refreshRejected===true,authenticationRejected:error?.authenticationRejected===true}));process.exitCode=1;}
