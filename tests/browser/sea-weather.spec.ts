@@ -4,8 +4,8 @@ import { test, expect, login, mockService } from './fixtures.js';
 for (const scenario of [
   { name: 'bright day', hour: 12, cloud: 0, symbol: 'clearsky_day', wind: 2, light: 'sunny', effect: 'clear' },
   { name: 'cloudy weather during sunny hours', hour: 12, cloud: 90, symbol: 'cloudy', wind: 2, light: 'sunny', effect: 'cloudy' },
-  { name: 'soft afternoon', hour: 16, cloud: 0, symbol: 'clearsky_day', wind: 2, light: 'soft', effect: 'clear' },
-  { name: 'partially dark evening', hour: 20, cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'dusk', effect: 'clear' },
+  { name: 'soft afternoon', hour: 17, cloud: 0, symbol: 'clearsky_day', wind: 2, light: 'soft', effect: 'clear' },
+  { name: 'partially dark evening', hour: 23, cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'dusk', effect: 'clear' },
   { name: 'stormy evening', hour: 23, cloud: 90, symbol: 'rainandthunder', wind: 12, light: 'dusk', effect: 'storm' },
   { name: 'moonlit sleep', hour: '00', cloud: 0, symbol: 'clearsky_night', wind: 2, light: 'night', effect: 'clear' },
   { name: 'windy mobile day', hour: 12, cloud: 10, symbol: 'fair_day', wind: 9, light: 'sunny', effect: 'wind' },
@@ -44,7 +44,7 @@ for (const scenario of [
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(requests).toBe(1);
     expect(service.unexpected).toEqual([]);
-    await page.screenshot({ path: `/tmp/rev4-weather-${scenario.light}-${scenario.effect}.png` });
+    await page.screenshot({ path: test.info().outputPath(`weather-${scenario.light}-${scenario.effect}.png`) });
   });
 }
 
