@@ -13,8 +13,8 @@ export function seaLight(now: number): SeaLight {
   const local = new Date(now + RIYADH);
   const minutes = local.getUTCHours() * 60 + local.getUTCMinutes();
   if (minutes < 6 * 60 + 30) return 'night';
-  if (minutes < 16 * 60) return 'sunny';
-  if (minutes < 17 * 60 + 30) return 'soft';
+  if (minutes < 17 * 60) return 'sunny';
+  if (minutes < 23 * 60) return 'soft';
   return 'dusk';
 }
 
