@@ -9,12 +9,15 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "playwright test",
+    "test:db": "node automation/test-database.mjs",
+    "check:scope": "node automation/check-scope.mjs",
+    "verify": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.118.0",
     "clsx": "^2.1.1",
-    "firebase": "^12.17.0",
     "framer-motion": "^12.43.0",
     "lucide-react": "^1.28.0",
     "react": "^19.2.8",
@@ -24,16 +27,21 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
     "autoprefixer": "^10.5.4",
-    "gh-pages": "^6.3.0",
+    "jose": "6.2.13",
     "oxlint": "^1.75.0",
     "postcss": "^8.5.25",
     "tailwindcss": "^3.4.19",
     "typescript": "~6.0.2",
     "vite": "^8.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shabih11/rev4.git"
   }
 }

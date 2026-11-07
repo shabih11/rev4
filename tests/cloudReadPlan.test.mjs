@@ -1,13 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { moduleUrl } from './helpers/typescript.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import ts from 'typescript';
-import { initializeApp, deleteApp } from 'firebase/app';
-import { getFirestore, collection, query, or, where } from 'firebase/firestore';
-const code = ts.transpileModule(readFileSync(new URL('../src/lib/cloudReadPlan.ts', import.meta.url), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const { combineRecordScopes, recordFilters } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+const { combineRecordScopes, recordFilters } = await import(moduleUrl('cloudReadPlan'));
 const admin = { id: 'test-admin', branch: 'test-branch', role: 'admin' };
 
 test('no open detail screen produces no detail query; empty input never causes a full scan', () => {
@@ -31,25 +25,14 @@ test('complete maintenance view overrides narrowed requests', () => {
   assert.deepEqual(recordFilters('reviews', { all: true }, admin), []);
 });
 
-test('timeline queries always retain the existing server authorization constraints', () => {
-  assert.deepEqual(recordFilters('timeline', { all: true }, { ...admin, role: 'manager' }), [
-    { field: 'branch', op: '==', value: 'test-branch' },
-  ]);
-  assert.deepEqual(recordFilters('timeline', { branches: ['other-branch'] }, { ...admin, role: 'employee' }), [
-    { field: 'employeeIds', op: 'array-contains', value: 'test-admin' },
-  ]);
-  assert.equal(recordFilters('timeline', null, { ...admin, role: 'employee' }), null);
+test('detail queries use the selected record across roles without widening the scope', () => {
+  for (const role of ['admin','manager','employee']) {
+    assert.deepEqual(recordFilters('timeline', { employeeIds: ['other-employee'] }, {...admin,role}), [{field:'employeeIds',op:'array-contains-any',value:['other-employee']}]);
+    assert.deepEqual(recordFilters('timeline', { branches: ['other-branch'] }, {...admin,role}), [{field:'branch',op:'in',value:['other-branch']}]);
+    assert.equal(recordFilters('timeline', null, {...admin,role}), null);
+  }
 });
 
 test('query limits fail explicitly instead of returning incomplete data or scanning all records', () => {
   assert.throws(() => recordFilters('reviews', { employeeIds: Array.from({ length: 31 }, (_, i) => `test-${i}`) }, admin));
-});
-
-test('the real Firebase SDK accepts the merged branch and employee query without issuing reads', async () => {
-  const app = initializeApp({ projectId: 'synthetic-read-plan-test' }, 'read-plan-test');
-  try {
-    const ref = collection(getFirestore(app), 'synthetic-records');
-    const filters = recordFilters('reviews', { branches: ['b'], employeeIds: ['test-e', 'Test'] }, admin);
-    assert.doesNotThrow(() => query(ref, or(...filters.map(filter => where(filter.field, filter.op, filter.value)))));
-  } finally { await deleteApp(app); }
 });

@@ -1,0 +1,12 @@
+name: Production checks
+on:
+  push:
+    branches: ['codex/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml

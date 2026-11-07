@@ -1,0 +1,341 @@
+-- Run in one transaction and roll back; never provisions lasting accounts.
+begin;
+-- Isolated branches prevent overlap with real shifts; every fixture is rolled back.
+insert into public.branches(id,data) select id,jsonb_build_object('id',id,'name',id,'start','16:00','end','23:00','nextDayTime','10:00') from (values ('verify-branch-a'),('verify-branch-b')) b(id);
+insert into public.profiles(id,data) select id,jsonb_build_object('id',id,'name','Verification','branch',branch,'role',role,'imageUrl','','points',0,'reviewsCount',0,'stats','{}'::jsonb) from (values
+ ('verify-admin','verify-branch-a','admin'),('verify-manager','verify-branch-a','manager'),('verify-employee','verify-branch-a','employee'),('verify-other','verify-branch-b','employee')) p(id,branch,role);
+insert into auth.users(id,email) values
+ ('00000000-0000-4000-8000-000000000001','rev4-admin@example.invalid'),
+ ('00000000-0000-4000-8000-000000000002','rev4-manager@example.invalid'),
+ ('00000000-0000-4000-8000-000000000003','rev4-employee@example.invalid');
+insert into public.user_access(uid,profile_id,role,branch) values
+ ('00000000-0000-4000-8000-000000000001','verify-admin','admin',null),
+ ('00000000-0000-4000-8000-000000000002','verify-manager','manager','verify-branch-a'),
+ ('00000000-0000-4000-8000-000000000003','verify-employee','employee','verify-branch-a');
+insert into public.reviews(id,data) select id,jsonb_build_object('id',id,'branch','verify-branch-a','rating','3','date','21-10-2026','time',clock,'linkedEmployeeIds','[]'::jsonb) from (values ('verify-before','15:59'),('verify-boundary','16:00'),('verify-overnight','02:00')) r(id,clock);
+insert into public.reviews(id,data) values ('verify-next-day','{"id":"verify-next-day","branch":"verify-branch-a","rating":"5","date":"22-10-2026","time":"13:59","linkedEmployeeIds":[]}');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select public.write_rows('timeline',jsonb_build_array(jsonb_build_object('id','verify-shift','before',null,'after',jsonb_build_object('id','verify-shift','branch','verify-branch-a','type','shift','title','Verification','date','21-10-2026','time','16:00','endDate','22-10-2026','endTime','14:00','employees',jsonb_build_array(jsonb_build_object('id','verify-employee','name','Verification'))))));
+do $$ begin
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-boundary') is distinct from 'verify-shift' then raise exception 'Boundary review was not linked'; end if;
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-next-day') is distinct from 'verify-shift' then raise exception 'Overnight review was not linked'; end if;
+ if (select cardinality(employee_ids) from public.reviews where id='verify-before')<>0 then raise exception 'Previous shift boundary leaked'; end if;
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-overnight')='verify-shift' then raise exception 'Wrong business day linked'; end if;
+ begin perform public.get_accounts(); raise exception 'Manager can read private accounts'; exception when insufficient_privilege then null; end;
+ begin insert into public.user_access(uid,profile_id,role) values('00000000-0000-4000-8000-000000000002','verify-other','admin'); raise exception 'Manager can grant roles'; exception when insufficient_privilege then null; end;
+ begin perform public.write_rows('timeline','[{"id":"verify-invalid-member","before":null,"after":{"id":"verify-invalid-member","branch":"verify-branch-a","type":"shift","title":"Verification","date":"21-10-2026","time":"14:00","endTime":"16:00","employees":[{"id":"verify-other","name":"Verification"}]}}]'); raise exception 'Cross-branch membership accepted'; exception when foreign_key_violation then null; end;
+ begin perform public.write_rows('timeline','[{"id":"verify-overlap","before":null,"after":{"id":"verify-overlap","branch":"verify-branch-a","type":"shift","title":"Verification","date":"21-10-2026","time":"17:00","endTime":"18:00","employees":[{"id":"verify-employee","name":"Verification"}]}}]'); raise exception 'Overlapping shift accepted'; exception when exclusion_violation then null; end;
+ begin perform public.write_rows('timeline','[{"id":"verify-shift","before":null,"after":null}]'); raise exception 'Old write accepted'; exception when sqlstate 'PT409' then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ begin
+ if private.account_role()<>'employee' then raise exception 'User metadata granted a role'; end if;
+ if (select count(*) from public.reviews where id like 'verify-%')<>4 then raise exception 'Shared employee review read failed'; end if;
+ if public.get_read_model()::text like '%example.invalid%' then raise exception 'Summary exposed account emails'; end if;
+ begin perform public.get_accounts(); raise exception 'Employee can read private accounts'; exception when insufficient_privilege then null; end;
+ begin perform public.write_rows('users',jsonb_build_array(jsonb_build_object('id','verify-employee','before',(select data from public.profiles where id='verify-employee'),'after',(select data||'{"role":"admin"}'::jsonb from public.profiles where id='verify-employee')))); raise exception 'Employee elevated own role'; exception when insufficient_privilege then null; end;
+end $$;
+select public.rename_me('Updated verification','Verification');
+do $$ begin
+ if (select data->>'name' from public.profiles where id='verify-employee')<>'Updated verification' then raise exception 'Own name update failed'; end if;
+ begin perform public.rename_me('Stale verification','Verification'); raise exception 'Stale name accepted'; exception when sqlstate 'PT409' then null; end;
+ if (select data->>'name' from public.profiles where id='verify-employee')<>'Updated verification' then raise exception 'Stale rename changed profile'; end if;
+ begin perform public.merge_employees('verify-employee','verify-other','Verification','verify-branch-a'); raise exception 'Employee can merge identities'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into public.timeline_events(id,data) values('verify-other-shift','{"id":"verify-other-shift","branch":"verify-branch-b","type":"shift","title":"Verification","date":"21-10-2026","time":"16:00","endTime":"17:00","employees":[{"id":"verify-other","name":"Verification"}]}');
+insert into public.reviews(id,data) values('verify-other-review','{"id":"verify-other-review","branch":"verify-branch-b","rating":"5","date":"21-10-2026","time":"16:30","linkedEmployeeIds":[]}');
+select public.merge_employees('verify-employee','verify-other','Merged verification','verify-branch-a');
+do $$ begin
+ if exists(select 1 from public.profiles where id='verify-other') then raise exception 'Duplicate remains after merge'; end if;
+ if exists(select 1 from public.reviews where 'verify-other'=any(employee_ids)) or exists(select 1 from public.timeline_events where 'verify-other'=any(employee_ids)) then raise exception 'Merge left orphan identities'; end if;
+ if (select employee_ids from public.reviews where id='verify-other-review')<>array['verify-employee'] then raise exception 'Merge lost credits'; end if;
+end $$;
+set local role service_role;
+select set_config('request.jwt.claims','{"role":"service_role"}',true);
+-- Simulate an importer holding an obsolete empty assignment snapshot.
+update public.reviews set data=(data-'linkedShiftId')||'{"linkedEmployeeIds":[],"comment":"Source edit"}'::jsonb where id='verify-boundary';
+do $$ begin
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-boundary') is distinct from 'verify-shift' then raise exception 'Source edit overwrote current assignments'; end if;
+end $$;
+update public.reviews set data=jsonb_set(data,'{time}','"15:59"'::jsonb) where id='verify-boundary';
+do $$ begin
+ if (select cardinality(employee_ids) from public.reviews where id='verify-boundary')<>0 then raise exception 'Changed source time retained invalid assignments'; end if;
+end $$;
+update public.reviews set data=jsonb_set(data,'{time}','"16:00"'::jsonb) where id='verify-boundary';
+do $$ begin
+ if (select data->>'linkedShiftId' from public.reviews where id='verify-boundary') is distinct from 'verify-shift' then raise exception 'Changed source time did not relink'; end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000099","role":"authenticated"}',true);
+do $$ begin
+ if (select count(*) from public.profiles)<>0 then raise exception 'Account without membership sees directory'; end if;
+ begin perform public.get_accounts(); raise exception 'Missing membership leaked accounts'; exception when insufficient_privilege then null; end;
+ begin perform public.get_read_model(); raise exception 'Missing membership leaked summary'; exception when insufficient_privilege then null; end;
+end $$;
+set local role anon;
+do $$ begin
+ begin perform public.get_read_model(); raise exception 'Anonymous summary access'; exception when insufficient_privilege then null; end;
+ begin perform 1 from public.reviews limit 1; raise exception 'Anonymous review access'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+ begin perform private.record_day('31-02-2026'); raise exception 'Invalid date accepted'; exception when datetime_field_overflow then null; end;
+ if private.record_at('21-10-2026','16:00')<>timestamptz '2026-10-21 13:00:00Z' then raise exception 'Riyadh timezone incorrect'; end if;
+end $$;
+select 'RLS, roles, privacy, conflicts, shift boundaries and Riyadh dates verified' as verification;
+-- Optional features and account administration must remain server-authorized.
+insert into public.profiles(id,data) values('verify-outside','{"id":"verify-outside","name":"Verification outside","branch":"verify-branch-b","role":"employee","manualStats":{"positive":3}}');
+insert into auth.users(id,email) values('00000000-0000-4000-8000-000000000004','rev4-outside@example.invalid');
+insert into public.user_access(uid,profile_id,role,branch) values('00000000-0000-4000-8000-000000000004','verify-outside','employee','verify-branch-b');
+update public.profiles set data=data||'{"manualStats":{"positive":3}}' where id='verify-employee';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin if public.authorize_employee_account('verify-employee')<>'00000000-0000-4000-8000-000000000003'::uuid then raise exception 'Admin employee account action denied'; end if; end $$;
+select public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":8,"goldAt":11}',(select data from public.employee_feature_settings where id=1));
+select public.save_employee_features((select data||'{"rounding":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin
+ if (select data->'rounding' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Rounding flag was not saved'; end if;
+ begin perform public.save_employee_features((select data||'{"rounding":"true"}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'String rounding accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.save_employee_features((select data||'{"rounding":null}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'Null rounding accepted'; exception when invalid_parameter_value then null; end;
+end $$;
+-- Older clients must not silently disable the flag when omitting it.
+select public.save_employee_features((select data-'rounding' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin if (select data->'rounding' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Legacy save reset rounding'; end if; end $$;
+select public.save_employee_features((select data||'{"rounding":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin
+ begin perform public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":11,"goldAt":8}',(select data from public.employee_feature_settings where id=1)); raise exception 'Invalid thresholds accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.save_employee_features((select data from public.employee_feature_settings where id=1),'{}'); raise exception 'Feature conflict accepted'; exception when sqlstate 'PT409' then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.authorize_employee_account('verify-employee'); raise exception 'Manager can change branch employee credentials'; exception when insufficient_privilege then null; end;
+ begin perform public.authorize_employee_account('verify-outside'); raise exception 'Manager changed another branch account'; exception when insufficient_privilege then null; end;
+ begin perform public.rename_me('Changed manager name',(select data->>'name' from public.profiles where id='verify-manager')); raise exception 'Manager can rename own account'; exception when insufficient_privilege then null; end;
+ begin update public.profiles set data=jsonb_set(data,'{name}','"Changed manager name"'::jsonb) where id='verify-manager'; raise exception 'Manager bypassed rename guard through direct write'; exception when insufficient_privilege then null; end;
+ begin perform public.authorize_employee_account('verify-admin'); raise exception 'Manager changed admin account'; exception when insufficient_privilege then null; end;
+ begin perform public.save_employee_features('{}','{}'); raise exception 'Manager changed global features'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.authorize_employee_account('verify-employee'); raise exception 'Employee can reset accounts'; exception when insufficient_privilege then null; end;
+ begin update public.profiles set data=jsonb_set(data,'{imageUrl}','"replacement"') where id='verify-employee'; raise exception 'Employee replaced fixed avatar'; exception when insufficient_privilege then null; end;
+ begin perform private.capture_employee_baseline(); raise exception 'Employee captured arbitrary baseline'; exception when insufficient_privilege then null; end;
+ begin perform public.employee_default_password(); raise exception 'Default password exposed'; exception when insufficient_privilege then null; end;
+ begin perform public.save_my_accessories(array['veil']); raise exception 'Gold accessory unlocked for silver'; exception when insufficient_privilege then null; end;
+ begin update public.employee_feature_settings set data='{}' where id=1; raise exception 'Direct settings write accepted'; exception when insufficient_privilege then null; end;
+ begin insert into public.employee_accessories(profile_id,items) values('verify-outside',array['veil']); raise exception 'Direct accessory write accepted'; exception when insufficient_privilege then null; end;
+ if public.get_employee_features()::text like '%example.invalid%' then raise exception 'Features exposed account emails'; end if;
+end $$;
+do $$ begin
+ begin perform public.save_my_accessories(array['shawl','brooch']); raise exception 'Retired accessory API is writable'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.save_employee_features((select data||'{"avatars":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.save_my_accessories('{}'); raise exception 'Disabled feature write accepted'; exception when insufficient_privilege then null; end;
+end $$;
+set local role anon;
+do $$ begin
+ begin perform public.get_employee_features(); raise exception 'Anonymous feature access'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+ if (select points from private.employee_scores() where profile_id='verify-outside')<>9 then raise exception 'Tier score differs from monthly formula'; end if;
+ if (select balance from private.employee_scores() where profile_id='verify-outside')<>0 then raise exception 'Unlinked employee received credit'; end if;
+end $$;
+select 'Employee feature permissions, thresholds, accessories and account boundaries verified' as feature_verification;
+-- Employee last sign-in privacy: synthetic fixtures only; enclosing transaction rolls back.
+reset role;
+update auth.users set last_sign_in_at='2026-10-27T08:00:00Z' where id='00000000-0000-4000-8000-000000000003';
+insert into public.profiles(id,data) values('verify-sign-in-unlinked','{"id":"verify-sign-in-unlinked","name":"Verification unlinked","role":"employee","branch":"verify-branch-a"}');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_employee_last_sign_ins();
+ if (result->>'verify-employee')::timestamptz is distinct from '2026-10-27T08:00:00Z'::timestamptz then raise exception 'Last sign-in timestamp mismatch'; end if;
+ if result->'verify-sign-in-unlinked' is distinct from 'null'::jsonb then raise exception 'Unlinked account must not invent a sign-in'; end if;
+ if result ? 'verify-admin' or result ? 'verify-manager' then raise exception 'Non-employee sign-ins exposed'; end if;
+ if public.get_read_model()::text like '%last_sign_in%' then raise exception 'Shared directory exposed sign-ins'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Manager can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Employee can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000099","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Non-member can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid='00000000-0000-4000-8000-000000000001';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Disabled admin can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=false where uid='00000000-0000-4000-8000-000000000001';
+set local role anon;
+select set_config('request.jwt.claims','{}',true);
+do $$ begin
+ begin perform public.get_employee_last_sign_ins(); raise exception 'Anon can read sign-ins'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'Employee sign-in authorization verified' as sign_in_verification;
+
+-- Read-only display accounts and atomic single-branch transfers.
+reset role;
+insert into public.profiles(id,data) values ('verify-viewer','{"id":"verify-viewer","name":"Verification display","branch":"","role":"viewer"}');
+insert into auth.users(id,email) values ('00000000-0000-4000-8000-000000000005','rev4-viewer@example.invalid');
+insert into public.user_access(uid,profile_id,role,branch) values ('00000000-0000-4000-8000-000000000005','verify-viewer','viewer',null);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000005","role":"authenticated","user_metadata":{"role":"admin"}}',true);
+do $$ declare rows_changed integer; begin
+ if public.get_my_account()->>'role' is distinct from 'viewer' then raise exception 'Display account role mismatch'; end if;
+ if public.get_read_model()->'directory' is null then raise exception 'Viewer cannot load leaderboard'; end if;
+ if not exists(select 1 from public.timeline_events where id='verify-shift') then raise exception 'Viewer cannot read shifts'; end if;
+ begin perform public.get_accounts(); raise exception 'Viewer exposed accounts'; exception when insufficient_privilege then null; end;
+ begin perform public.authorize_employee_account('verify-employee'); raise exception 'Viewer can change credentials'; exception when insufficient_privilege then null; end;
+ begin perform public.rename_me('Changed display','Verification display'); raise exception 'Viewer can rename'; exception when insufficient_privilege then null; end;
+ update public.profiles set data=jsonb_set(data,'{name}','"Changed display"') where id='verify-viewer';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can write profile directly'; end if;
+ begin insert into public.profiles(id,data) values('verify-viewer-created','{"id":"verify-viewer-created","name":"Forbidden","branch":"verify-branch-a","role":"employee"}'); raise exception 'Viewer can create employees'; exception when insufficient_privilege then null; end;
+ begin perform public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false); raise exception 'Viewer can transfer'; exception when insufficient_privilege then null; end;
+ begin perform public.equip_avatar(null); raise exception 'Viewer can equip avatars'; exception when insufficient_privilege then null; end;
+ begin perform public.set_employee_disabled('verify-employee',true); raise exception 'Viewer can disable employees'; exception when insufficient_privilege then null; end;
+ update public.reviews set data=jsonb_set(data,'{comment}','"Forbidden"') where id='verify-before';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can edit reviews'; end if;
+ delete from public.timeline_events where id='verify-shift';
+ get diagnostics rows_changed=row_count;
+ if rows_changed<>0 then raise exception 'Viewer can delete shifts'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false); raise exception 'Manager can transfer employees'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.transfer_employee('verify-employee','verify-branch-b','verify-branch-a',false);
+do $$ begin
+ if (select branch from public.profiles where id='verify-employee') is distinct from 'verify-branch-b' or (select branch from public.user_access where profile_id='verify-employee') is distinct from 'verify-branch-b' then raise exception 'Transfer profile/access diverged'; end if;
+ if not exists(select 1 from public.timeline_events where id='verify-shift' and 'verify-employee'=any(employee_ids)) then raise exception 'Transfer lost shift history'; end if;
+ begin perform public.transfer_employee('verify-employee','verify-branch-a','verify-branch-a',false); raise exception 'Stale transfer accepted'; exception when sqlstate 'PT409' then null; end;
+ begin perform public.transfer_employee('verify-employee','invalid','verify-branch-b',false); raise exception 'Invalid target branch accepted'; exception when invalid_parameter_value then null; end;
+end $$;
+-- Keep a legacy assignment deliberately: it must not grant a second current branch.
+update public.profiles set data=data||'{"assignedBranches":["verify-branch-a","verify-branch-b"]}'::jsonb where id='verify-employee';
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin insert into public.timeline_events(id,data) values('verify-wrong-branch','{"id":"verify-wrong-branch","type":"shift","title":"Verification","branch":"verify-branch-a","date":"23-10-2026","time":"16:00","endTime":"17:00","employees":[{"id":"verify-employee","name":"Verification"}]}'); raise exception 'Historical assignment granted second branch'; exception when foreign_key_violation then null; end;
+end $$;
+-- Historical shift edits and imported reviews retain legitimate previous credits.
+update public.timeline_events set data=jsonb_set(data,'{comment}','"Historical edit"') where id='verify-shift';
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+insert into public.reviews(id,data) values('verify-historical-import','{"id":"verify-historical-import","branch":"verify-branch-a","rating":"5","date":"21-10-2026","time":"17:15","linkedEmployeeIds":[]}');
+select public.transfer_employee('verify-employee','موظفة خارجية','verify-branch-b',false);
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+insert into public.timeline_events(id,data) values('verify-mobile-shift','{"id":"verify-mobile-shift","type":"shift","title":"Verification","branch":"verify-branch-a","date":"23-10-2026","time":"16:00","endTime":"17:00","employees":[{"id":"verify-employee","name":"Verification"}]}');
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+select public.transfer_employee('verify-employee','verify-branch-a','موظفة خارجية',true);
+do $$ begin
+ if (select data->'isCoverage' from public.profiles where id='verify-employee') is distinct from 'false'::jsonb then raise exception 'Fixed branch kept mobile flag'; end if;
+ if (select data->'assignedBranches' from public.profiles where id='verify-employee') is distinct from '["verify-branch-a"]'::jsonb then raise exception 'Fixed transfer kept multiple current branches'; end if;
+end $$;
+reset role;
+select 'Read-only viewer and employee transfers verified' as display_verification;
+
+-- Page presence is independent of authentication times and shared summaries.
+select set_config('rev4.presence_test_version',(select version::text from public.app_state where id=1),true);
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+select public.record_employee_page_presence();
+do $$ begin
+ begin perform public.get_employee_last_presence(); raise exception 'Employee read presence'; exception when insufficient_privilege then null; end;
+ begin perform 1 from private.employee_page_presence; raise exception 'Direct presence read allowed'; exception when insufficient_privilege then null; end;
+ begin perform public.record_employee_page_presence('verify-other',clock_timestamp()); raise exception 'Client supplied presence identity/time'; exception when undefined_function then null; end;
+end $$;
+reset role;
+do $$ begin
+ if not exists(select 1 from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003' and last_seen_at between clock_timestamp()-interval '15 seconds' and clock_timestamp()) then raise exception 'Presence not recorded with server time'; end if;
+end $$;
+select set_config('rev4.presence_test_first',(select last_seen_at::text from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003'),true);
+set local role authenticated;
+select public.record_employee_page_presence();
+reset role;
+do $$ begin
+ if (select last_seen_at from private.employee_page_presence where user_id='00000000-0000-4000-8000-000000000003') is distinct from current_setting('rev4.presence_test_first')::timestamptz then raise exception 'Duplicate heartbeat was not throttled'; end if;
+end $$;
+update private.employee_page_presence set last_seen_at=clock_timestamp()-interval '2 minutes' where user_id='00000000-0000-4000-8000-000000000003';
+set local role authenticated;
+select public.record_employee_page_presence();
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_employee_last_presence();
+ if result->>'verify-employee' is null or (result->>'verify-employee')::timestamptz < clock_timestamp()-interval '15 seconds' then raise exception 'Presence did not refresh'; end if;
+ if result->'verify-sign-in-unlinked' is distinct from 'null'::jsonb then raise exception 'Unseen employee invented presence'; end if;
+ if result ? 'verify-admin' or result ? 'verify-manager' then raise exception 'Non-employee presence exposed'; end if;
+ if public.get_read_model()::text like '%last_seen_at%' then raise exception 'Shared summary exposed presence'; end if;
+ begin perform public.record_employee_page_presence(); raise exception 'Admin recorded employee presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+do $$ begin
+ if (select version::text from public.app_state where id=1) is distinct from current_setting('rev4.presence_test_version') then raise exception 'Presence invalidated shared read caches'; end if;
+end $$;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+select public.record_employee_page_presence();
+do $$ begin
+ begin perform public.get_branch_last_presence(); raise exception 'Manager read branch presence'; exception when insufficient_privilege then null; end;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ declare result jsonb; begin
+ result=public.get_branch_last_presence();
+ if result->>'verify-branch-a' is null or (result->>'verify-branch-a')::timestamptz < clock_timestamp()-interval '15 seconds' then raise exception 'Manager presence not recorded'; end if;
+ if result->'verify-branch-b' is distinct from 'null'::jsonb then raise exception 'Unseen branch invented presence'; end if;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid='00000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$ begin
+ if public.get_branch_last_presence()->'verify-branch-a' is distinct from 'null'::jsonb then raise exception 'Disabled manager exposed presence'; end if;
+end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
+do $$ begin
+ begin perform public.record_employee_page_presence(); raise exception 'Disabled manager recorded presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.user_access set disabled=false where uid='00000000-0000-4000-8000-000000000002';
+set local role authenticated;
+do $$ declare suffix text; begin
+ foreach suffix in array array['2','5','99'] loop
+  perform set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-'||lpad(suffix,12,'0'),'role','authenticated')::text,true);
+  begin perform public.get_employee_last_presence(); raise exception 'Non-admin read presence'; exception when insufficient_privilege then null; end;
+  begin perform public.get_branch_last_presence(); raise exception 'Non-admin read branch presence'; exception when insufficient_privilege then null; end;
+  if suffix <> '2' then
+   begin perform public.record_employee_page_presence(); raise exception 'Non-member recorded presence'; exception when insufficient_privilege then null; end;
+  end if;
+ end loop;
+end $$;
+reset role;
+update public.user_access set disabled=true where uid in ('00000000-0000-4000-8000-000000000001','00000000-0000-4000-8000-000000000003');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ begin begin perform public.record_employee_page_presence(); raise exception 'Disabled employee recorded presence'; exception when insufficient_privilege then null; end; end $$;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
+do $$ begin begin perform public.get_employee_last_presence(); raise exception 'Disabled admin read presence'; exception when insufficient_privilege then null; end; end $$;
+set local role anon;
+do $$ begin
+ begin perform public.get_branch_last_presence(); raise exception 'Anonymous read branch presence'; exception when insufficient_privilege then null; end;
+ begin perform public.get_employee_last_presence(); raise exception 'Anonymous read presence'; exception when insufficient_privilege then null; end;
+ begin perform public.record_employee_page_presence(); raise exception 'Anonymous recorded presence'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+select 'Page presence, privacy, server timestamps, throttling and role guards verified' as presence_verification;
+rollback;

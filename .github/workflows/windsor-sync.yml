@@ -1,0 +1,45 @@
+name: Windsor to Supabase
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Every 5 minutes, including overnight reviews; GitHub may delay starts.
+  push:
+    branches: [main, codex/supabase-production]
+    paths: ['.github/workflows/windsor-sync.yml', 'automation/windsor-sync.mjs', 'supabase/functions/windsor-import/**']
+  workflow_dispatch:
+    inputs:
+      date_from:
+        description: 'Optional reconciliation start (YYYY-MM-DD)'
+        required: false
+      date_to:
+        description: 'Optional reconciliation end (YYYY-MM-DD)'
+        required: false
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: windsor-supabase-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    if: github.repository == 'shabih11/rev4' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/supabase-production')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Check Windsor credential
+        env:
+          WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
+        run: node -e 'if (!process.env.WINDSOR_API_KEY) { console.error("WINDSOR_API_KEY is required"); process.exit(1); }'
+      - name: Import changed reviews using GitHub identity
+        env:
+          WINDSOR_API_KEY: ${{ secrets.WINDSOR_API_KEY }}
+          WINDSOR_DATE_FROM: ${{ inputs.date_from }}
+          WINDSOR_DATE_TO: ${{ inputs.date_to }}
+          WINDSOR_REFRESH_INTERVAL: ${{ vars.WINDSOR_REFRESH_INTERVAL || '1h' }}
+        run: node automation/windsor-sync.mjs

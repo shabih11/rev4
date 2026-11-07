@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -15,7 +14,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   isMandatory = false,
 }) => {
   const { user, changePassword } = useAuth();
-  const { updateUser } = useData();
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,10 +33,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       setError('كلمة المرور يجب أن تكون 6 خانات على الأقل');
       return;
     }
-    if (cleanPass === '123456') {
-      setError('يرجى اختيار كلمة مرور جديدة تختلف عن كلمة المرور الافتراضية (123456)');
-      return;
-    }
     if (cleanPass !== confirmPassword.trim()) {
       setError('كلمة المرور وتأكيدها غير متطابقين');
       return;
@@ -49,8 +43,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setIsSubmitting(false);
 
     if (res.success) {
-      updateUser(user.id, { password: cleanPass });
-      sessionStorage.removeItem('must_change_default_password');
       setSuccess(true);
       setTimeout(() => {
         setSuccess(false);
@@ -88,7 +80,7 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="bg-amber-50/80 border border-amber-200/80 p-3.5 rounded-2xl text-xs text-amber-900 leading-relaxed font-medium">
-              أنتِ تستخدمين كلمة المرور الافتراضية <span className="font-bold underline" dir="ltr">(123456)</span>. لحماية بياناتك والتقييمات، يرجى تعيين كلمة مرور جديدة خاصة بكِ.
+              لحماية حسابك وبياناتك، عيّني كلمة مرور خاصة بكِ قبل متابعة استخدام التطبيق.
             </div>
 
             {error && (

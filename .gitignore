@@ -34,3 +34,7 @@ src/lib/employeeRosterImport.ts
 src/lib/verifiedReviewImport.ts
 tests/employeeRosterImport.test.mjs
 tests/verifiedReviewImport.test.mjs
+
+# Isolated browser test artifacts
+playwright-report/
+test-results/

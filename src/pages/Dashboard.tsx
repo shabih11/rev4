@@ -1,18 +1,21 @@
-import React from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { Trophy } from 'lucide-react';
+import React, { lazy, Suspense } from 'react';
+import { PageLoading } from '../components/Brand';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { AdminDashboard } from './AdminDashboard';
-import { SystemAdminDashboard } from './SystemAdminDashboard';
-import { EmployeeDashboard } from './EmployeeDashboard';
+import { useData } from '../context/DataContext';
+const AdminDashboard = lazy(() => import('./AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const SystemAdminDashboard = lazy(() => import('./SystemAdminDashboard').then(m => ({ default: m.SystemAdminDashboard })));
+const EmployeeDashboard = lazy(() => import('./EmployeeDashboard').then(m => ({ default: m.EmployeeDashboard })));
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const { summaryReady, syncError } = useData();
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'viewer') return <Navigate to="/" replace />;
   return <>
-    <nav className="bg-white px-4 py-3 border-b flex justify-end font-alexandria" dir="rtl" aria-label="التنقل الرئيسي">
-      <Link to="/" className="inline-flex items-center gap-2 text-blue-600 font-bold"><Trophy size={18}/> لوحة الترتيب</Link>
-    </nav>
-    {user.role === 'admin' ? <SystemAdminDashboard /> : user.role === 'manager' ? <AdminDashboard /> : <EmployeeDashboard />}
+    {!summaryReady && <div className="p-3 text-center bg-amber-50 text-sm" dir="rtl">
+      <p>{syncError || 'جارٍ تحميل الملخص اليومي…'}</p>
+    </div>}
+    <Suspense fallback={<PageLoading />}>{user.role === 'admin' ? <SystemAdminDashboard /> : user.role === 'manager' ? <AdminDashboard /> : <EmployeeDashboard />}</Suspense>
   </>;
 };

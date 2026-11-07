@@ -1,11 +1,12 @@
+import { EmployeeIdentity } from './EmployeeIdentity';
+import { MysteryStore } from './MysteryStore';
+import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
-import { User, Lock, Mail, Building2, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
+import { User, Lock, Mail, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useData } from '../context/DataContext';
 
 export const UserProfileTab: React.FC = () => {
-  const { user, changePassword, logout } = useAuth();
-  const { updateUser } = useData();
+  const { user, changePassword, logout, updateName } = useAuth();
 
   const [name, setName] = useState(user?.name || '');
   const [newPassword, setNewPassword] = useState('');
@@ -18,20 +19,22 @@ export const UserProfileTab: React.FC = () => {
 
   if (!user) return null;
 
-  const handleUpdateName = (e: React.FormEvent) => {
+  const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
     setNameMsg(null);
+    if (user.role === 'manager') return;
     if (!name.trim()) {
       setNameMsg({ text: 'يرجى إدخال اسم صحيح', type: 'error' });
       return;
     }
-    updateUser(user.id, { name: name.trim() });
-    setNameMsg({ text: 'تم تحديث الاسم بنجاح', type: 'success' });
+    const result = await updateName(name.trim());
+    setNameMsg({ text: result.success ? 'تم تحديث الاسم بنجاح' : result.error || 'تعذر حفظ الاسم', type: result.success ? 'success' : 'error' });
     setTimeout(() => setNameMsg(null), 3000);
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (user.role !== 'admin') return;
     setPassMsg(null);
 
     const cleanPass = newPassword.trim();
@@ -49,8 +52,6 @@ export const UserProfileTab: React.FC = () => {
     setIsUpdatingPass(false);
 
     if (res.success) {
-      updateUser(user.id, { password: cleanPass });
-      sessionStorage.removeItem('must_change_default_password');
       setNewPassword('');
       setConfirmPassword('');
       setPassMsg({ text: 'تم تحديث كلمة المرور بنجاح!', type: 'success' });
@@ -60,29 +61,27 @@ export const UserProfileTab: React.FC = () => {
     }
   };
 
-  const roleTitle = user.role === 'admin' ? 'الإدارة العامة' : user.role === 'manager' ? 'مديرة فرع' : 'موظفة فرع';
+  const roleTitle = user.role === 'admin' ? 'الإدارة العامة' : user.role === 'manager' ? 'إدارة الفرع' : 'موظفة فرع';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-fade-in font-sans" dir="rtl">
+    <div className="profile-panel max-w-2xl mx-auto space-y-6 font-sans" dir="rtl">
       {/* Account Info Header Card */}
-      <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white p-6 sm:p-8 rounded-3xl shadow-lg relative overflow-hidden">
+      <div className="profile-summary text-white p-6 sm:p-8 rounded-3xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 text-center sm:text-right">
           <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow-inner">
             <User size={40} />
           </div>
-          <div className="flex-1 space-y-1">
+          <div className="flex-1 min-w-0 space-y-3">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold mb-1">
               <Shield size={13} />
               {roleTitle}
             </div>
-            <h2 className="text-2xl font-black">{user.name}</h2>
+            <h2 className="text-2xl font-black">{user.role === 'manager' ? user.branch : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}</h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
-              <span className="flex items-center gap-1">
-                <Building2 size={14} /> فرع {user.branch}
-              </span>
+              {user.username && <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">اسم المستخدم: <bdi className="select-text">{user.username}</bdi></span>}
               {user.email && (
-                <span className="flex items-center gap-1 dir-ltr" dir="ltr">
-                  <Mail size={14} /> {user.email}
+                <span className="inline-flex max-w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm" dir="ltr">
+                  <Mail size={14} className="shrink-0" /> <span className="break-all">{user.email}</span>
                 </span>
               )}
             </div>
@@ -90,8 +89,9 @@ export const UserProfileTab: React.FC = () => {
         </div>
       </div>
 
+      <MysteryStore employee={user} />
       {/* Edit Name Card */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+      {user.role !== 'manager' && <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex items-center gap-2.5 border-b pb-3">
           <User className="text-blue-600" size={20} />
           <h3 className="font-bold text-gray-800 text-base">تعديل الاسم</h3>
@@ -124,10 +124,10 @@ export const UserProfileTab: React.FC = () => {
             حفظ الاسم
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Change Password Card */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+      {user.role === 'admin' && <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
         <div className="flex items-center gap-2.5 border-b pb-3">
           <Lock className="text-amber-600" size={20} />
           <h3 className="font-bold text-gray-800 text-base">تغيير كلمة المرور</h3>
@@ -185,10 +185,11 @@ export const UserProfileTab: React.FC = () => {
             {isUpdatingPass ? 'جارٍ التحديث...' : 'تحديث كلمة المرور'}
           </button>
         </form>
-      </div>
+      </div>}
 
       {/* Logout button */}
-      <div className="pt-2 flex justify-center">
+      <div className="pt-2 flex items-center justify-center gap-2">
+        <LeaderboardLink />
         <button
           onClick={logout}
           className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-6 py-3 rounded-2xl border border-red-200 transition text-sm flex items-center gap-2 cursor-pointer"

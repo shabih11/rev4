@@ -1,10 +1,12 @@
 import type { Employee } from '../types';
 
-export type Role = 'manager' | 'employee' | 'admin';
+export type Role = 'manager' | 'employee' | 'admin' | 'viewer';
 
 export interface UserAccount extends Employee {
   email: string;
-  password?: string;
+  mustChangePassword?: boolean;
+  mustSetUsername?: boolean;
+  username?: string;
   role: Role;
 }
 
@@ -38,7 +40,7 @@ export function matchEmployee(
 
   // 1. Direct or code/alias match in current branch or coverage
   const candidateUsers = users.filter(
-    u => u.role === 'employee' && (u.branch === branch || u.branch === 'موظفة خارجية')
+    u => u.role === 'employee' && (u.branch === branch || u.isCoverage === true)
   );
 
   let found = candidateUsers.find(

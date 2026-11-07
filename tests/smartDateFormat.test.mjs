@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatDateTime, formatDate } from '../src/lib/formatDate.ts';
+import { formatDateTime, formatDate, formatTime } from '../src/lib/formatDate.ts';
 
 test('smart formatDateTime formats today, yesterday, day before yesterday with time, and older dates without time', () => {
   // Get current date in Asia/Riyadh
@@ -38,6 +38,23 @@ test('smart formatDateTime formats today, yesterday, day before yesterday with t
   const olderKey = makeDateKey(olderDate.getUTCDate(), olderDate.getUTCMonth() + 1, olderDate.getUTCFullYear());
   const olderFormatted = formatDateTime(olderKey, '11:20');
   // Must NOT contain time and must be only the date
-  assert.doesNotMatch(olderFormatted, /م|ص|:/);
+  // Month names such as نوفمبر contain م; detect a clock time, not isolated letters.
+  assert.doesNotMatch(olderFormatted, /\d{1,2}:\d{2}/);
   assert.strictEqual(olderFormatted, formatDate(olderKey));
+});
+
+test('display times use Western digits while Arabic input remains supported', () => {
+  assert.equal(formatTime('١٤:٣٠'), '2:30 م');
+  assert.equal(formatTime('09:05'), '9:05 ص');
+  assert.equal(formatTime('00:00'), '12:00 ص');
+});
+
+test('date-only summaries omit time and use relative Riyadh days', () => {
+  const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).split('-').map(Number);
+  const dateKey = offset => {
+    const date = new Date(Date.UTC(year, month - 1, day - offset));
+    return `${String(date.getUTCDate()).padStart(2,'0')}-${String(date.getUTCMonth()+1).padStart(2,'0')}-${date.getUTCFullYear()}`;
+  };
+  for (const [offset, expected] of [[0,'اليوم'],[1,'أمس'],[2,'أول أمس']]) assert.equal(formatDateTime(dateKey(offset)), expected);
+  assert.equal(formatDateTime(dateKey(3)), formatDate(dateKey(3)));
 });

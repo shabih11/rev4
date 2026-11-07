@@ -1,68 +1,90 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { ResultProblemReport } from '../components/ResultProblemReport';
+import { leaderboardEmployee } from '../lib/employeeBranches';
+import { useEmployeePresence } from '../hooks/useEmployeePresence';
+import { arabicReviewCount } from '../lib/arabicReviewCount';
+import { CrystalPlatform } from '../components/CrystalPlatform';
+import { praiseCycle, nextPraiseCycle, praisedEmployee, recentPraiseCount } from '../lib/praisedEmployee';
+import { EmployeeIdentity } from '../components/EmployeeIdentity';
+import { gemTheme } from '../lib/gems';
+import { employeeTier } from '../lib/employeeFeatures';
+import type { SceneryHandle } from '../components/LeaderboardScenery';
+import { LeaderboardScenery } from '../components/LeaderboardScenery';
+import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
+import { PageLoading } from '../components/Brand';
+import React, { lazy, Suspense, useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCreative, Autoplay } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { X, Building2, Users, Star, MessageSquareHeart, TrendingUp, UserRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Link, useSearchParams } from 'react-router-dom';
+import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, Podium, Waves } from 'lucide-react';
+import '../components/SeaMission.css';
 import 'swiper/css';
-import 'swiper/css/effect-creative';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
-import { useRecordScope } from '../hooks/useRecordScope';
-import { formatDateTime, isWithinLastDays, formatDate} from '../lib/formatDate';
+import { ActivityChart } from '../components/ActivityChart';
+import { ResultsPodium } from '../components/ResultsPodium';
+import { calculateEmployeeRewards } from '../lib/employeeRewards';
+import { formatTimestamp, isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
-import { isInCurrentMonth, isPositiveReview } from '../lib/reviewPeriod';
-import { favoritePartner, newestFirst, monthlyEmployeeOrder } from '../lib/employeeActivity';
+import { isInCurrentMonth, isPositiveReview, previousMonthEnd } from '../lib/reviewPeriod';
+import { favoritePartner, newestFirst, monthlyEmployeeOrder, weeklyActivity, periodReviewLeaders } from '../lib/employeeActivity';
 
-type SlideData = 
+type SlideData =
   | { type: 'employee'; data: UserAccount; rank: number }
   | { type: 'partnership'; branch: string; emp1: UserAccount; emp2: UserAccount; count: number }
   | { type: 'active_branch'; branch: string; count: number }
   | { type: 'active_employee'; employee: UserAccount; count: number }
-  | { type: 'praised_employee'; employee: UserAccount; count: number; texts: string[] };
+  | { type: 'praised_employee'; employee: UserAccount; count: number };
 
-const getBusinessDate = (dateStr: string, timeStr: string, branchStartStr: string) => {
-  if (!branchStartStr || !dateStr || !timeStr) return dateStr;
-  const bTime = parseInt(branchStartStr.replace(':', ''), 10);
-  const rTime = parseInt(timeStr.replace(':', ''), 10);
-  
-  if (rTime < bTime && rTime < 1200) {
-    const [d, m, y] = dateStr.split('-').map(Number);
-    const dateObj = new Date(y, m - 1, d);
-    dateObj.setDate(dateObj.getDate() - 1);
-    const pd = String(dateObj.getDate()).padStart(2, '0');
-    const pm = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const py = dateObj.getFullYear();
-    return `${pd}-${pm}-${py}`;
-  }
-  return dateStr;
-};
+const SeaMission = lazy(() => import('../components/SeaMission').then(module => ({ default: module.SeaMission })));
 
 export const Leaderboard: React.FC = () => {
-  const { users, reviews: privateReviews, reviewSummaries, timeline, branchSettings, recordsReady, syncError, currentAccount } = useData();
-  const reviews = useMemo(() => {
-    const details = new Map(privateReviews.map(review => [review.id, review]));
-    return reviewSummaries.map(summary => ({ ...summary, reviewerName: details.get(summary.id)?.reviewerName || '', comment: details.get(summary.id)?.comment || '' })).sort(newestFirst);
-  }, [privateReviews, reviewSummaries]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const seaMode = searchParams.get('view') === 'sea';
+  const { logout } = useAuth();
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+  const reduceMotion = false;
+  const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  const accountName = (currentAccount?.role === 'manager' ? currentAccount.branch : currentAccount?.name)?.trim() || 'حسابي';
+  const resultsMonth = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', calendar: 'gregory', month: 'long' })
+    .format(resultsMode ? resultsDate : previousMonthEnd(resultsDate));
+  useEffect(() => {
+    if (seaMode && resultsMode) setResultsMode(false);
+  }, [seaMode, resultsMode, setResultsMode]);
+  const users = useMemo(() => directoryUsers.map(employee => leaderboardEmployee(employee, coverageBranches)), [directoryUsers, coverageBranches]);
+  const reviews = useMemo(() => [...reviewSummaries].sort(newestFirst), [reviewSummaries]);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [showAllEmployeesModal, setShowAllEmployeesModal] = useState(false);
+  const employeePresence = useEmployeePresence(showAllEmployeesModal, currentAccount);
   const [showAllBranchesModal, setShowAllBranchesModal] = useState(false);
+  const branchPresence = useEmployeePresence(showAllBranchesModal, currentAccount, 'get_branch_last_presence');
+  const [selectedBranchPeriod, setSelectedBranchPeriod] = useState<{ branch: string; start: number; end: number } | null>(null);
   const [manualBranchName, setManualBranchName] = useState<string | null>(null);
-  const [branchModalSelectedDate, setBranchModalSelectedDate] = useState<string | null>(null);
-  
+
   const allEmployeesSorted = useMemo(() => {
     return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
   }, [users]);
+  const rewardSummary = useMemo(() => features ? calculateEmployeeRewards(allEmployeesSorted, features.settings.rounding === true) : null, [allEmployeesSorted, features]);
+
+  const [praisePeriod, setPraisePeriod] = useState(() => praiseCycle());
+  useEffect(() => {
+    if (resultsMode) return;
+    const timer = window.setTimeout(() => setPraisePeriod(praiseCycle()), Math.max(0, nextPraiseCycle(praisePeriod) - Date.now()) + 50);
+    return () => window.clearTimeout(timer);
+  }, [praisePeriod, resultsMode]);
 
   const slidesData = useMemo(() => {
+    if (resultsMode) return [];
     // 1. Top 10 Employees
     const sorted = allEmployeesSorted.slice(0, 10);
-    
+
     const sData: SlideData[] = sorted.map((emp, i) => ({ type: 'employee', data: emp, rank: i + 1 }));
 
     // 2. Partnerships (Best per branch)
     const branchReviewsMap: Record<string, typeof reviews> = {};
-    reviews.filter(review => isInCurrentMonth(review.date) && isPositiveReview(review.rating)).forEach(r => {
+    reviews.filter(review => isInCurrentMonth(review.date, resultsDate) && isPositiveReview(review.rating)).forEach(r => {
       if (!branchReviewsMap[r.branch]) branchReviewsMap[r.branch] = [];
       branchReviewsMap[r.branch].push(r);
     });
@@ -101,11 +123,11 @@ export const Leaderboard: React.FC = () => {
     });
 
     // 3. Most Active Branch (Last 4 days)
-    const recentReviews = reviews.filter(r => isWithinLastDays(r.date, 4));
+    const recentReviews = reviews.filter(r => isWithinLastDays(r.date, 4, resultsDate));
     let mostActiveBranch = '';
     let maxBranchCount = 0;
     const branchCounts: Record<string, number> = {};
-    
+
     let mostActiveEmployeeId = '';
     let maxEmpCount = 0;
     const empCounts: Record<string, number> = {};
@@ -125,7 +147,7 @@ export const Leaderboard: React.FC = () => {
         }
       });
     });
-    
+
     const mostActiveEmployee = users.find(u => u.id === mostActiveEmployeeId);
 
     if (mostActiveBranch && maxBranchCount > 0) {
@@ -135,251 +157,131 @@ export const Leaderboard: React.FC = () => {
       sData.push({ type: 'active_employee', employee: mostActiveEmployee, count: maxEmpCount });
     }
 
-    // 4. Most Praised Employee (Most reviews this week)
-    const weekReviews = reviews.filter(r => isWithinLastDays(r.date, 7));
-    let mostPraisedEmpId = '';
-    let maxPraiseCount = 0;
-    const praiseCounts: Record<string, { count: number, texts: string[] }> = {};
-
-    weekReviews.forEach(r => {
-      r.linkedEmployeeIds.forEach(id => {
-        if (!praiseCounts[id]) praiseCounts[id] = { count: 0, texts: [] };
-        praiseCounts[id].count++;
-        if (r.comment && r.comment.length > 3) {
-          praiseCounts[id].texts.push(r.comment);
-        }
-        if (praiseCounts[id].count > maxPraiseCount) {
-          maxPraiseCount = praiseCounts[id].count;
-          mostPraisedEmpId = id;
-        }
-      });
-    });
-
-    const mostPraisedEmployee = users.find(u => u.id === mostPraisedEmpId);
-    if (mostPraisedEmployee && maxPraiseCount > 0) {
-      sData.push({ 
-        type: 'praised_employee', 
-        employee: mostPraisedEmployee, 
-        count: maxPraiseCount, 
-        texts: praiseCounts[mostPraisedEmpId].texts.slice(0, 3) 
-      });
+    const praise = praisedEmployee(reviews, allEmployeesSorted, resultsMode ? praiseCycle(resultsDate.getTime()) : praisePeriod);
+    const mostPraisedEmployee = users.find(employee => employee.id === praise.id);
+    if (mostPraisedEmployee && praise.count > 0) {
+      sData.push({ type: 'praised_employee', employee: mostPraisedEmployee, count: recentPraiseCount(reviews, mostPraisedEmployee.id, resultsDate.getTime()) });
     }
 
-    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, partnership: 3, employee: 4 };
+    const order = { praised_employee: 0, active_employee: 1, active_branch: 2, employee: 3, partnership: 4 };
     return sData.sort((a, b) => order[a.type] - order[b.type] || (a.type === 'employee' && b.type === 'employee' ? a.rank - b.rank : a.type === 'partnership' && b.type === 'partnership' ? b.count - a.count : 0));
-  }, [allEmployeesSorted, users, reviews]);
+  }, [allEmployeesSorted, users, reviews, praisePeriod, resultsMode, resultsDate]);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeSlide = slidesData[activeIndex] || slidesData[0];
-  
-  const modalBranchName = manualBranchName || (activeSlide?.type === 'employee' ? activeSlide.data.branch 
-    : activeSlide?.type === 'partnership' ? activeSlide.branch 
-    : activeSlide?.type === 'active_branch' ? activeSlide.branch 
-    : undefined);
-  useRecordScope(showBranchModal && modalBranchName ? {
-    reviews: { branches: [modalBranchName] },
-    timeline: branchModalSelectedDate ? { branches: [modalBranchName] } : undefined,
-  } : {});
 
+  const modalBranchName = manualBranchName || (activeSlide?.type === 'employee' ? activeSlide.data.branch
+    : activeSlide?.type === 'partnership' ? activeSlide.branch
+    : activeSlide?.type === 'active_branch' ? activeSlide.branch
+    : undefined);
   const swiperRef = useRef<any>(null);
-  const hasInteracted = useRef(false);
-  const handleTouchStart = useCallback(() => {
-    hasInteracted.current = true;
-    swiperRef.current?.swiper?.autoplay.stop();
-  }, []);
-  const handleModalOpen = handleTouchStart;
-  const handleModalClose = useCallback(() => {}, []);
-  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries) : { id: '', count: 0 };
+  const sceneryRef = useRef<SceneryHandle>(null);
+  const sceneryDuration = useRef(0);
+  const goldSlides = useMemo(() => slidesData.map(slide => {
+    const employee = slide.type === 'employee' ? slide.data : slide.type === 'active_employee' || slide.type === 'praised_employee' ? slide.employee : null;
+    return Boolean(employee && features && employeeTier(employee.points, features.settings) === 'gold');
+  }), [slidesData, features]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const handleModalOpen = useCallback(() => setModalOpen(true), []);
+  const handleModalClose = useCallback(() => setModalOpen(false), []);
+  useEffect(() => {
+    const autoplay = swiperRef.current?.swiper?.autoplay;
+    if (!autoplay) return;
+    if (modalOpen || seaMode) autoplay.stop();
+    else autoplay.start();
+  }, [modalOpen, seaMode]);
+  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries, resultsDate) : { id: '', count: 0 };
   const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  if (slidesData.length === 0) return null;
+  const navigation = <header className="recognition-header relative z-30">
+        <nav className="recognition-header-actions sea-navigation" aria-label="التنقل">
+          {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
+            setLoggingOut(true); setLogoutError('');
+            try { await logout(); } catch { setLogoutError('تعذر تسجيل الخروج؛ أعيدي المحاولة.'); } finally { setLoggingOut(false); }
+          }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard"><UserRound size={16} aria-hidden="true" />{accountName}</Link>}
+          <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
+          <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
+          <button type="button" aria-label={`نتائج ${resultsMonth}`} aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><Podium size={16} aria-hidden="true" />{resultsMonth}</button>
+          <Link to={seaMode ? '/' : '/?view=sea'} aria-current={seaMode ? 'page' : undefined} aria-label={seaMode ? 'مهمة البحر، العودة إلى لوحة الترتيب' : 'مهمة البحر'} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
+        </nav>
+        {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
+      </header>;
+
+  if (!summaryReady) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
+  if (!seaMode && !resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
-    <div 
-      className="w-full min-h-screen min-h-[100dvh] bg-white overflow-y-auto overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y" 
+    <div
+      data-motion="full"
+      data-gem-theme={!seaMode && !resultsMode && activeSlide?.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
+      data-tier={!seaMode && !resultsMode && activeSlide?.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
+      className={seaMode ? 'sea-page font-alexandria' : resultsMode ? 'results-page' : 'recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y'}
       dir="rtl"
-      onPointerDownCapture={handleTouchStart}
-      onTouchStartCapture={handleTouchStart}
-      onKeyDownCapture={handleTouchStart}
     >
-      
-      <Link to="/dashboard" className="absolute right-4 top-4 z-40 inline-flex items-center gap-1 text-sm text-blue-600 font-bold bg-white/90 rounded-full px-3 py-2 shadow-sm" aria-label="صفحتي الخاصة"><UserRound size={18}/> صفحتي</Link>
-      <div className="absolute inset-x-3 top-[38%] sm:top-[42%] z-40 flex justify-between pointer-events-none" aria-label="تقليب البطاقات">
-        <button aria-label="البطاقة السابقة" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slidePrev(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronRight size={22}/></button>
-        <button aria-label="البطاقة التالية" onClick={() => { handleTouchStart(); swiperRef.current?.swiper?.slideNext(); }} className="pointer-events-auto rounded-full bg-white/80 border p-2 text-blue-600 shadow"><ChevronLeft size={22}/></button>
-      </div>
+
+      {navigation}
+      {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /></div>}
+      {seaMode ? <Suspense fallback={<PageLoading />}><SeaMission /></Suspense> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
+        renderAvatar={employee => <EmployeeAvatar employee={employee} />}
+        renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
+      /> : <>
+      <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
+        onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--panel-light', `${(event.clientX - box.left) / box.width * 100}%`); } }}>
+      <LeaderboardScenery ref={sceneryRef} goldSlides={goldSlides} reduceMotion={Boolean(reduceMotion)} />
       {/* Top Header - Contextual */}
-      <AnimatePresence mode="wait">
-        <motion.div 
+        <motion.div
           key={activeIndex + '-header'}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
-          className="w-full px-4 sm:px-8 pt-8 flex justify-end items-start z-10 font-bold text-gray-800"
+          initial={reduceMotion ? false : { opacity: 0.6 }} animate={{ opacity: 1 }} transition={{ duration: 0.15 }}
+          className="recognition-rank relative w-full px-4 pt-3 flex justify-center items-start z-10 font-bold text-gray-800"
         >
           <div className="text-3xl sm:text-5xl font-extrabold tracking-tight" dir="rtl">
             {activeSlide.type === 'employee' && <>
-              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p>
+              <p>{rankNames[activeSlide.rank - 1] || activeSlide.rank}</p><Overtaken employee={activeSlide.data} />
 
             </>}
             {activeSlide.type === 'partnership' && `شراكات الفروع`}
             {activeSlide.type === 'active_branch' && `إحصائية الأسبوع`}
-            {activeSlide.type === 'active_employee' && `نشاط الأسبوع`}
+            {activeSlide.type === 'active_employee' && `الموظفة الأنشط مؤخراً`}
             {activeSlide.type === 'praised_employee' && `نجمة الثناء`}
           </div>
         </motion.div>
-      </AnimatePresence>
 
-      {/* Center Image Swiper */}
-      <div className="w-full flex-1 flex items-center justify-center z-20 pt-4 sm:pt-6 pb-4 min-h-[360px] sm:min-h-[440px]">
-        <Swiper
-          ref={swiperRef}
-          dir="ltr"
-          effect={'creative'}
-          grabCursor={true}
-          allowTouchMove={true}
-          rewind={true}
-          centeredSlides={true}
-          slidesPerView={1}
-          autoplay={{ delay: 3000, disableOnInteraction: true }}
-          onAutoplayStart={swiper => { if (hasInteracted.current) swiper.autoplay.stop(); }}
-          onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
-          creativeEffect={{
-            limitProgress: 1,
-            prev: { translate: ['-110%', 0, -100], opacity: 0, scale: 0.9 },
-            next: { translate: ['110%', 0, -100], opacity: 0, scale: 0.9 },
-          }}
-          modules={[EffectCreative, Autoplay]}
-          className="w-full h-full max-w-xs sm:max-w-sm mx-auto"
-          style={{ overflow: 'visible' }}
-        >
-          {slidesData.map((slide, i) => (
-            <SwiperSlide key={i} className="flex justify-center items-center" style={{ overflow: 'visible' }}>
-              <div className="h-full flex justify-center items-center relative w-full px-4">
-                
-                {slide.type === 'employee' && (
-                  <img src={slide.data.imageUrl} alt={slide.data.name} className="h-[40vh] sm:h-[55vh] max-w-full object-contain drop-shadow-xl" />
-                )}
+      {/* White results panel */}
+      <div className="recognition-results w-full relative z-30 pointer-events-none">
+        <div className="recognition-panel w-full flex flex-col items-center justify-center text-slate-900 pointer-events-auto pb-3 sm:pb-6 relative min-h-[160px]">
 
-                {slide.type === 'partnership' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-blue-50 to-indigo-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
-                    <Users size={48} className="text-blue-500 opacity-20 absolute top-6 right-6" />
-                    <div className="flex items-center justify-center -space-x-6 sm:-space-x-8 rtl:space-x-reverse mt-2">
-                      <img src={slide.emp1.imageUrl} alt={slide.emp1.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-10" />
-                      <img src={slide.emp2.imageUrl} alt={slide.emp2.name} className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white z-0 -ml-6 sm:-ml-8" />
-                    </div>
-                    <div className="z-10 mt-2 sm:mt-4 bg-white/60 backdrop-blur-sm p-3 sm:p-4 rounded-2xl sm:rounded-3xl w-full shadow-sm">
-                      <h4 className="text-base sm:text-xl font-black text-gray-800 leading-tight">{slide.emp1.name}</h4>
-                      <p className="text-xs font-bold text-gray-500 my-0.5">&</p>
-                      <h4 className="text-base sm:text-xl font-black text-gray-800 leading-tight">{slide.emp2.name}</h4>
-                    </div>
-                  </div>
-                )}
-
-                {slide.type === 'active_branch' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-emerald-50 to-teal-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
-                    <Building2 size={48} className="text-teal-500 opacity-20 absolute top-6 left-6" />
-                    <div className="w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
-                      <TrendingUp size={32} className="text-teal-500 mb-1" />
-                      <p className="text-xl sm:text-3xl font-extrabold text-teal-600">+{slide.count}</p>
-                    </div>
-                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight">{slide.branch}</h3>
-                    <p className="text-teal-700 font-bold bg-teal-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-1 text-xs sm:text-sm shadow-inner">في آخر ٤ أيام</p>
-                  </div>
-                )}
-
-                {slide.type === 'active_employee' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-amber-50 to-orange-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl object-cover object-top bg-white mb-3 sm:mb-6 z-10" />
-                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10">{slide.employee.name}</h3>
-                    <p className="text-orange-700 font-bold bg-orange-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
-                  </div>
-                )}
-
-                {slide.type === 'praised_employee' && (
-                  <div className="w-[260px] sm:w-[300px] h-[40vh] sm:h-[50vh] bg-gradient-to-br from-pink-50 to-rose-100 rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-start items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
-                    <MessageSquareHeart size={48} className="text-pink-500 opacity-10 absolute bottom-6 left-6" />
-                    <img src={slide.employee.imageUrl} alt={slide.employee.name} className="w-16 h-16 sm:w-24 sm:h-24 rounded-full border-4 border-pink-200 shadow-lg object-cover object-top bg-white mb-2 sm:mb-4 z-10 shrink-0" />
-                    <h3 className="text-lg sm:text-2xl font-black text-gray-800 leading-tight z-10 shrink-0">{slide.employee.name}</h3>
-                    
-                    <div className="mt-2 sm:mt-4 flex flex-col gap-2 w-full z-10 overflow-y-auto flex-1">
-                      {slide.texts.length > 0 ? slide.texts.map((t, idx) => (
-                        <div key={idx} className="bg-white/90 backdrop-blur-sm p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm text-[11px] sm:text-xs text-gray-800 text-right line-clamp-2 italic border border-pink-50 relative">
-                          <span className="text-pink-300 text-lg sm:text-2xl absolute -top-1 -right-1 font-serif">"</span>
-                          {t}
-                        </div>
-                      )) : (
-                        <div className="bg-white/70 p-3 rounded-xl text-center">
-                          <p className="text-pink-600 font-bold text-sm">⭐ {slide.count} تقييم هذا الأسبوع</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-      </div>
-
-      {/* Bottom Blue Curved Card */}
-      <div className="w-full z-30 pointer-events-none flex flex-col justify-end mt-auto pt-2 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+2rem))]">
-        <svg viewBox="0 0 100 20" preserveAspectRatio="none" className="w-full h-10 sm:h-14 text-blue-500 fill-current block -mb-px">
-          <path d="M0,20 Q50,0 100,20 Z" />
-        </svg>
-        <div className="bg-blue-500 w-full flex flex-col items-center justify-center text-white pointer-events-auto pb-8 sm:pb-6 relative min-h-[200px]">
-          
-          {/* Left/Right Action Buttons */}
-          <button 
-            aria-label="جميع الموظفات" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }} 
-            className="absolute left-4 sm:left-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
-          >
-             <Users size={22} className="text-white" />
-          </button>
-          <button 
-            aria-label="الفروع" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }} 
-            className="absolute right-4 sm:right-6 top-6 bg-white/10 p-2.5 sm:p-4 rounded-full hover:bg-white/20 transition-all hover:scale-110 active:scale-95 shadow-lg backdrop-blur-sm z-40"
-          >
-             <Building2 size={22} className="text-white" />
-          </button>
-
-          <AnimatePresence mode="wait">
             <motion.div
               key={activeIndex + '-bottom'}
-              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}
+              initial={reduceMotion ? false : { opacity: 0.6, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}
               className="flex flex-col items-center w-full px-4 sm:px-6"
             >
-              
+
               {activeSlide.type === 'employee' && (
                 <>
-                  <div className="flex items-baseline justify-center gap-2 mb-2 flex-wrap">
-                    <EmployeeCard employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                      <button className="text-2xl sm:text-4xl font-bold hover:underline" aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button>
-                    </EmployeeCard>
-                    <button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>
-                  </div>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.data} className="items-center mb-3" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.data} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="employee-tier-name text-2xl sm:text-4xl font-bold hover:underline" data-tier={features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} aria-label={`فتح بيانات ${activeSlide.data.name}`}>{activeSlide.data.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.data.branch); setShowBranchModal(true); handleModalOpen(); }} className="text-lg sm:text-2xl font-medium hover:underline" aria-label={`فتح فرع ${activeSlide.data.branch}`}>({activeSlide.data.branch})</button>}/>
 
                   <div className="flex items-center justify-center gap-6 sm:gap-8 w-full mt-0.5 sm:mt-1">
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">النقاط</p>
                       <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.points.toFixed(1)}</p>
                     </div>
-                    <div className="w-px h-8 sm:h-10 bg-blue-300/50"></div>
+                    <div className="w-px h-8 sm:h-10 bg-slate-200"></div>
                     <div className="flex flex-col items-center">
                       <p className="text-blue-100 text-[10px] sm:text-xs font-bold">رصيد الشهر</p>
-                      <p className="text-xl sm:text-3xl font-extrabold">{activeSlide.data.monthReviewsCount != null ? (activeSlide.data.monthReviewsCount % 1 === 0 ? activeSlide.data.monthReviewsCount : activeSlide.data.monthReviewsCount.toFixed(1)) : 0} <span className="text-sm sm:text-base font-bold">تقييم</span></p>
+                      <p className="text-xl sm:text-3xl font-extrabold">{arabicReviewCount(activeSlide.data.monthReviewsCount ?? 0)} <BalanceGrowth employee={activeSlide.data} /></p>
                     </div>
                   </div>
                   <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
                   <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لازلت أعمل على ذلك'}</h2>
-                  {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {activePartner.count} تقييم خلال هذا الشهر</p>}
+                  {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {arabicReviewCount(activePartner.count)} خلال هذا الشهر</p>}
                 </>
               )}
 
               {activeSlide.type === 'partnership' && (
                 <>
                   <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-3">شراكة فعالة</h2>
+                  <p className="text-base sm:text-xl font-bold mb-2">{activeSlide.emp1.name} <span className="mx-1 text-slate-500">و</span> {activeSlide.emp2.name}</p>
                   <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-sm sm:text-xl font-medium hover:underline bg-white/20 px-3 sm:px-4 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
                     فرع {activeSlide.branch}
                   </button>
@@ -398,87 +300,157 @@ export const Leaderboard: React.FC = () => {
                   </button>
                   <div className="flex flex-col items-center mt-1 sm:mt-2">
                     <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسب في 4 أيام</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
+                    <p className="text-2xl sm:text-4xl font-extrabold">{arabicReviewCount(activeSlide.count)}</p>
                   </div>
                 </>
               )}
 
               {activeSlide.type === 'active_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2">الموظفة الأنشط مؤخراً</h2>
-                  <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
-                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
-                    </button>
-                  </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
-                    {activeSlide.employee.branch}
-                  </button>
-                  <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">اكتسبت في 4 أيام</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
-                  </div>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.employee} className="items-center my-2 text-emerald-950" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+
+                  <p className="text-sm sm:text-xl font-bold text-emerald-950">اكتسبت {arabicReviewCount(activeSlide.count)} في 4 أيام</p>
                 </>
               )}
 
               {activeSlide.type === 'praised_employee' && (
                 <>
-                  <h2 className="text-xl sm:text-4xl font-bold mb-1 sm:mb-2 text-pink-100">نجمة الثناء</h2>
-                  <EmployeeCard employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
-                    <button className="flex items-center gap-2 hover:scale-105 transition-transform group my-1 sm:my-2">
-                      <h3 className="text-lg sm:text-2xl font-extrabold underline decoration-white/30 underline-offset-4">{activeSlide.employee.name}</h3>
-                    </button>
-                  </EmployeeCard>
-                  <button onClick={() => { setShowBranchModal(true); handleModalOpen(); }} className="text-xs sm:text-base font-medium hover:underline bg-white/20 px-3 py-0.5 sm:py-1 rounded-full mb-1.5 sm:mb-3">
-                    {activeSlide.employee.branch}
-                  </button>
-                  <div className="flex flex-col items-center">
-                    <p className="text-blue-100 text-[10px] sm:text-xs font-bold">تقييمات هذا الأسبوع</p>
-                    <p className="text-2xl sm:text-4xl font-extrabold text-pink-100">{activeSlide.count} <span className="text-sm sm:text-lg">تقييم</span></p>
-                  </div>
+                  <EmployeeIdentity showCoverageBranch employee={activeSlide.employee} className="items-center my-2" nameContent={<EmployeeCard showCoverageBranch employee={activeSlide.employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button className="text-lg sm:text-2xl font-extrabold hover:underline">{activeSlide.employee.name}</button></EmployeeCard>} branchContent={<button onClick={() => { setManualBranchName(activeSlide.employee.branch); setShowBranchModal(true); handleModalOpen(); }} className="hover:underline">({activeSlide.employee.branch})</button>}/>
+                  <p className="text-sm sm:text-xl font-bold text-gray-800">اكتسبت {activeSlide.count.toLocaleString('ar-SA-u-nu-latn')} تقييم آخر 10 ايام</p>
+
                 </>
               )}
 
             </motion.div>
-          </AnimatePresence>
         </div>
       </div>
+
+      </section>
+
+      {/* Center Image Swiper */}
+      <div className="recognition-scene relative w-full flex-1 flex items-center justify-center z-20 pt-2 sm:pt-6 pb-3 min-h-0 sm:min-h-[440px]"
+        onPointerMove={event => { if (!reduceMotion) { const box = event.currentTarget.getBoundingClientRect(); event.currentTarget.style.setProperty('--crystal-light-x', `${(event.clientX - box.left) / box.width * 100}%`); } }}
+        onPointerLeave={event => event.currentTarget.style.setProperty('--crystal-light-x', '50%')}>
+        <div className="employee-backlight" aria-hidden="true" />
+        <div className="crystal-platform-anchor">
+          <CrystalPlatform visible={activeSlide.type === 'employee' || activeSlide.type === 'partnership'} tier={activeSlide.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'} reduceMotion={Boolean(reduceMotion)} />
+        </div>
+        <Swiper
+          ref={swiperRef}
+          dir="ltr"
+          grabCursor={true}
+          allowTouchMove={true}
+          rewind={true}
+          centeredSlides={true}
+          slidesPerView={1}
+          spaceBetween={0}
+          autoplay={{ delay: 5000, disableOnInteraction: false, waitForTransition: false }}
+          threshold={8}
+          touchAngle={55}
+          longSwipesRatio={0.2}
+          speed={reduceMotion ? 0 : 560}
+          onSlideChange={(swiper) => setActiveIndex(swiper.activeIndex)}
+          onSetTransition={(swiper, duration) => { sceneryDuration.current = duration; swiper.el.style.setProperty('--recognition-slide-duration', `${duration}ms`); }}
+          onSetTranslate={swiper => { const step = swiper.slidesGrid[1] - swiper.slidesGrid[0]; if (step) { const position = (-swiper.translate - swiper.slidesGrid[0]) / step; sceneryRef.current?.move(position, sceneryDuration.current); swiper.el.parentElement?.style.setProperty('--crystal-travel', String(Math.abs(Math.sin(position * Math.PI)))); } }}
+          modules={[Autoplay]}
+          className="recognition-carousel w-full min-w-0 mx-auto"
+          style={{ overflow: 'hidden' }}
+        >
+          {slidesData.map((slide, i) => (
+            <SwiperSlide key={i} className="flex justify-center items-center">
+              <div className="h-full flex justify-center items-center relative w-full px-4">
+
+                {slide.type === 'employee' && (
+                  <div className="crystal-employee-slide">
+                    <EmployeeAvatar employee={slide.data} className="crystal-standing-avatar" />
+                    <div className="crystal-avatar-reflection" aria-hidden="true"><EmployeeAvatar employee={slide.data} className="crystal-reflected-avatar" /></div>
+                  </div>
+                )}
+
+                {slide.type === 'partnership' && (
+                  <div className="crystal-employee-slide crystal-partnership" dir="rtl">
+                    {[slide.emp1, slide.emp2].map(employee => <div className="crystal-partner" key={employee.id}>
+                      <EmployeeAvatar employee={employee} className="crystal-standing-avatar" />
+                      <div className="crystal-avatar-reflection" aria-hidden="true"><EmployeeAvatar employee={employee} className="crystal-reflected-avatar" /></div>
+                    </div>)}
+                  </div>
+                )}
+
+                {slide.type === 'active_branch' && (
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-branch rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center gap-2 sm:gap-4 relative overflow-hidden rtl" dir="rtl">
+                    <Building2 size={48} className="text-teal-500 opacity-20 absolute top-6 left-6" />
+                    <div className="recognition-highlight-stat w-24 h-24 sm:w-36 sm:h-36 bg-white rounded-[1.5rem] sm:rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-2 border-teal-50 mb-2 sm:mb-4 rotate-3">
+                      <TrendingUp size={32} className="text-teal-500 mb-1" />
+                      <p className="text-xl sm:text-3xl font-extrabold text-teal-600">+{slide.count}</p>
+                    </div>
+                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight">{slide.branch}</h3>
+                    <p className="text-teal-700 font-bold bg-teal-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-1 text-xs sm:text-sm shadow-inner">في آخر 4 أيام</p>
+                  </div>
+                )}
+
+                {slide.type === 'active_employee' && (
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-employee rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <TrendingUp size={48} className="text-emerald-600 opacity-70 absolute top-6 right-6" />
+                    <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
+                    <h3 className="text-xl sm:text-3xl font-black text-emerald-950 leading-tight z-10">{slide.employee.name}</h3>
+                    <p className="text-emerald-900 font-bold bg-emerald-100 px-3 py-1 sm:px-4 sm:py-2 rounded-full mt-2 sm:mt-4 z-10 text-xs sm:text-sm shadow-inner">نشاط متصاعد بقوة</p>
+                  </div>
+                )}
+
+                {slide.type === 'praised_employee' && (
+                  <div className="w-[260px] max-w-full sm:w-[300px] h-[clamp(240px,38svh,360px)] sm:h-[50vh] recognition-highlight-card recognition-highlight-praise rounded-[2rem] sm:rounded-[3rem] shadow-xl border-4 border-white flex flex-col justify-center items-center p-4 sm:p-6 text-center relative overflow-hidden rtl" dir="rtl">
+                    <Star size={48} className="text-orange-500 opacity-20 absolute top-6 right-6" />
+                    <EmployeeAvatar employee={slide.employee} className="w-28 h-28 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-xl bg-white mb-3 sm:mb-6 z-10" />
+                    <h3 className="text-xl sm:text-3xl font-black text-gray-800 leading-tight z-10 break-words max-w-full">{slide.employee.name}</h3>
+                  </div>
+                )}
+
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+      </>}
 
       {/* All Employees Modal */}
       <AnimatePresence>
         {showAllEmployeesModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-alexandria touch-auto" dir="rtl">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => { setShowAllEmployeesModal(false); handleModalClose(); }}
             />
-            <motion.div 
+            <motion.div
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-lg glass-modal-shell rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Users size={24} /> جميع الموظفات</h3>
-                <button 
+                <button
                   onClick={() => { setShowAllEmployeesModal(false); handleModalClose(); }}
-                  className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                  aria-label="إغلاق نشاط الفرع"
+                      className="glass-modal-control p-2 rounded-full"
                 >
                   <X size={20} />
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
                 {allEmployeesSorted.map((emp, idx) => (
-                  <EmployeeCard key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                  <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">{idx + 1}</div>
-                      <img src={emp.imageUrl} alt={emp.name} className="w-12 h-12 rounded-full object-cover object-top border-2 border-gray-100 shrink-0" />
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-800">{emp.name}</h4>
-                        <p className="text-xs text-gray-500">{emp.branch}</p>
+                      <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{emp.name}</>}/>
+                        <Overtaken employee={emp} />
+                        {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
+                          آخر حضور: {!employeePresence ? 'جارٍ التحميل…' : employeePresence.error ? 'تعذر التحميل' : employeePresence.data?.[emp.id] === null ? 'لم يُسجل حضور بعد' : employeePresence.data?.[emp.id] ? formatTimestamp(Date.parse(employeePresence.data[emp.id]!)) : 'غير متاح'}
+                        </p>}
                       </div>
                       <div className="text-center shrink-0">
                         <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
                         <p className="text-[10px] text-gray-400">رصيد الشهر</p>
+                        {resultsMode ? rewardSummary ? (rewardSummary.rewards[emp.id]?.total > 0 && <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال</p>) : <p className="mt-1 text-xs text-slate-500">المكافأة غير متاحة</p> : <BalanceGrowth employee={emp} />}
                       </div>
                     </button>
                   </EmployeeCard>
@@ -493,31 +465,32 @@ export const Leaderboard: React.FC = () => {
       <AnimatePresence>
         {showAllBranchesModal && (() => {
           const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
-          
+
           return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-alexandria touch-auto" dir="rtl">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => { setShowAllBranchesModal(false); handleModalClose(); }}
             />
-            <motion.div 
+            <motion.div
               initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-              className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              className="relative w-full max-w-lg glass-modal-shell rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
             >
-              <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+              <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                 <h3 className="text-xl font-bold flex items-center gap-2"><Building2 size={24} /> الفروع</h3>
-                <button 
+                <button
                   onClick={() => { setShowAllBranchesModal(false); handleModalClose(); }}
-                  className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                  aria-label="إغلاق نشاط الفرع"
+                      className="glass-modal-control p-2 rounded-full"
                 >
                   <X size={20} />
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
-                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !recordsReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
-                {recordsReady && branches.map(branchName => {
-                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date));
+                {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !summaryReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
+                {summaryReady && branches.map(branchName => {
+                  const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date, resultsDate));
                   const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));
 
                   const empPositiveReviewCounts: Record<string, number> = {};
@@ -531,33 +504,37 @@ export const Leaderboard: React.FC = () => {
                   const top2 = branchEmps.sort((a, b) => (empPositiveReviewCounts[b.id] || 0) - (empPositiveReviewCounts[a.id] || 0)).slice(0, 2);
 
                   return (
-                    <div 
-                      key={branchName} 
+                    <div
+                      key={branchName}
                       className="bg-white p-4 rounded-xl border shadow-sm cursor-pointer hover:border-blue-300 transition-colors relative"
                       onClick={() => {
                         setShowAllBranchesModal(false);
                         setManualBranchName(branchName);
-                        setBranchModalSelectedDate(null);
                         setShowBranchModal(true);
                       }}
                     >
                       <div className="flex justify-between items-center mb-3 border-b pb-2">
-                        <h4 className="font-bold text-lg text-blue-800">{branchName}</h4>
+                        <div>
+                          <h4 className="font-bold text-lg text-blue-800">{branchName}</h4>
+                          {currentAccount?.role === 'admin' && <p className="mt-1 text-[10px] text-slate-500">
+                            آخر ظهور لحساب الفرع: {!branchPresence ? 'جارٍ التحميل…' : branchPresence.error ? 'تعذر التحميل' : branchPresence.data?.[branchName] === null ? 'لم يُسجل حضور بعد' : branchPresence.data?.[branchName] ? formatTimestamp(Date.parse(branchPresence.data[branchName]!)) : 'غير متاح'}
+                          </p>}
+                        </div>
                         <div className="text-left">
                           <p className="text-xs text-gray-500">إجمالي تقييمات الشهر</p>
                           <p className="text-xl font-black text-blue-600">{branchMonthReviews.length}</p>
                         </div>
                       </div>
-                      
+
                       <p className="text-sm text-gray-600 font-bold mb-2 mt-2">أكثر الموظفات تفاعلاً:</p>
                       {top2.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2 relative z-10">
                           {top2.map(emp => (
                             <div key={emp.id} className="w-full flex items-center gap-2 text-right">
-                              <img src={emp.imageUrl} alt={emp.name} className="w-8 h-8 rounded-full object-cover object-top border shrink-0" />
+                              <EmployeeAvatar employee={emp} className="w-8 h-8 rounded-full border shrink-0" />
                               <div className="overflow-hidden flex-1">
                                 <p className="text-xs font-bold text-gray-800 truncate">{emp.name}</p>
-                                <p className="text-[10px] text-blue-600 font-bold">{empPositiveReviewCounts[emp.id] || 0} التقييمات</p>
+                                <p className="text-[10px] text-blue-600 font-bold">{arabicReviewCount(empPositiveReviewCounts[emp.id] || 0)}</p>
                               </div>
                             </div>
                           ))}
@@ -578,28 +555,11 @@ export const Leaderboard: React.FC = () => {
       {/* Branch Modal (from slide) */}
       {(() => {
         if (!modalBranchName) return null;
-        const branchStart = branchSettings[modalBranchName]?.start || '16:00';
-        
-        const branchReviews = reviews.filter(r => r.branch === modalBranchName && isInCurrentMonth(r.date)).map(r => ({
-           ...r,
-           businessDate: getBusinessDate(r.date, r.time, branchStart)
-        }));
-        
-        const reviewCountsByDate: Record<string, number> = {};
-        branchReviews.forEach(r => {
-           reviewCountsByDate[r.businessDate] = (reviewCountsByDate[r.businessDate] || 0) + 1;
-        });
-        const maxDailyReviews = Math.max(0, ...Object.values(reviewCountsByDate));
-
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
-        const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-        const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
-        
-        const calendarCells = [];
-        for(let i = 0; i < firstDayOfWeek; i++) calendarCells.push(null);
-        for(let d = 1; d <= daysInMonth; d++) calendarCells.push(d);
+        const branchActivityReviews = reviewSummaries.filter(review => review.branch === modalBranchName);
+        const latestPeriod = weeklyActivity(branchActivityReviews, resultsDate).at(-1)!;
+        const period = selectedBranchPeriod?.branch === modalBranchName ? selectedBranchPeriod : { start: latestPeriod.start.getTime(), end: latestPeriod.end.getTime() };
+        const periodLeaders = periodReviewLeaders(branchActivityReviews, period.start, period.end);
+        const branchReviews = branchActivityReviews.filter(review => isInCurrentMonth(review.date, resultsDate));
 
         let shiningStar = { name: 'لا يوجد', count: 0 };
         let bestPartnership = { names: 'لا يوجد', count: 0 };
@@ -646,109 +606,27 @@ export const Leaderboard: React.FC = () => {
           <AnimatePresence>
             {showBranchModal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-alexandria touch-auto" dir="rtl">
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                  onClick={() => { setShowBranchModal(false); setManualBranchName(null); setBranchModalSelectedDate(null); handleModalClose(); }}
+                  onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
                 />
-                <motion.div 
+                <motion.div
                   initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 50, opacity: 0 }}
-                  className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] md:max-h-[85vh]"
+                  className="relative w-full max-w-2xl glass-modal-shell rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
-                  <div className="bg-blue-600 p-4 text-white flex justify-between items-center shrink-0">
+                  <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
                     <h3 className="text-xl font-bold">{modalBranchName}</h3>
-                    <button 
-                      onClick={() => { setShowBranchModal(false); setManualBranchName(null); setBranchModalSelectedDate(null); handleModalClose(); }}
-                      className="p-2 bg-blue-500/50 hover:bg-blue-500 rounded-full"
+                    <button
+                      onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
+                      aria-label="إغلاق نشاط الفرع"
+                      className="glass-modal-control p-2 rounded-full"
                     >
                       <X size={20} />
                     </button>
                   </div>
 
-                  {/* Employees List */}
-                  <div className="p-3 border-b border-gray-100 shrink-0">
-                     <div className="flex flex-wrap justify-center gap-1.5">
-                       {users.filter(u => u.branch === modalBranchName && u.role === 'employee').map(emp => (
-                         <div 
-                           key={emp.id}
-                           className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold text-blue-900 bg-transparent border border-blue-100 shadow-[0_0_6px_rgba(59,130,246,0.2)]"
-                         >
-                           {emp.name}
-                         </div>
-                       ))}
-                     </div>
-                  </div>
-
-                  {/* Visual Data (Calendar Heatmap) */}
-                  <div className="p-4 bg-gray-50 border-b border-gray-100 shrink-0">
-                     <p className="text-sm font-bold text-gray-700 mb-3">تقييمات الشهر الحالي (الخريطة الحرارية):</p>
-                     
-                     <div className="max-w-[280px] mx-auto">
-                       <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 text-center text-[10px] text-gray-400 font-bold">
-                         <div>أحد</div><div>إثنين</div><div>ثلاثاء</div><div>أربعاء</div><div>خميس</div><div>جمعة</div><div>سبت</div>
-                       </div>
-                       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-                         {calendarCells.map((day, idx) => {
-                           if (!day) return <div key={`empty-${idx}`} className="w-full aspect-square"></div>;
-                           
-                           const dateStr = `${String(day).padStart(2, '0')}-${String(currentMonth + 1).padStart(2, '0')}-${currentYear}`;
-                           const count = reviewCountsByDate[dateStr] || 0;
-                           
-                           // Calculate shade of blue
-                           let bgClass = "bg-transparent text-gray-400";
-                           if (count > 0) {
-                             const ratio = count / (maxDailyReviews || 1);
-                             if (ratio > 0.8) bgClass = "bg-blue-700 text-white shadow-sm";
-                             else if (ratio > 0.5) bgClass = "bg-blue-500 text-white shadow-sm";
-                             else if (ratio > 0.2) bgClass = "bg-blue-400 text-white shadow-sm";
-                             else bgClass = "bg-blue-200 text-blue-900 shadow-sm";
-                           }
-
-                           const isSelected = branchModalSelectedDate === dateStr;
-
-                           return (
-                             <button 
-                               key={day}
-                               onClick={() => setBranchModalSelectedDate(isSelected ? null : dateStr)}
-                               className={`w-full aspect-square flex items-center justify-center rounded-md transition-all ${bgClass} ${isSelected ? 'ring-2 ring-offset-1 ring-blue-600 scale-105 shadow-md z-10 relative' : 'hover:opacity-80'}`}
-                             >
-                               <span className="text-[10px] font-bold">{day}</span>
-                             </button>
-                           );
-                         })}
-                       </div>
-                       <div className="mt-4 flex justify-between items-center text-[9px] text-gray-400 font-bold px-2">
-                         <span>أقل تفاعلاً</span>
-                         <div className="flex-1 mx-3 h-1.5 bg-gradient-to-l from-blue-700 via-blue-400 to-transparent border border-gray-100 rounded-full"></div>
-                         <span>ذروة التفاعل</span>
-                       </div>
-                     </div>
-                  </div>
-
-                  {branchModalSelectedDate && (
-                    <div className="bg-blue-50 p-4 border-b border-blue-100 shadow-inner shrink-0">
-                       <p className="text-xs font-bold text-blue-800 mb-2">الفريق المداوم في {formatDate(branchModalSelectedDate)}:</p>
-                       <div className="flex flex-wrap gap-2">
-                         {(() => {
-                           const dayShifts = timeline.filter(t => t.branch === modalBranchName && t.type === 'shift' && t.date === branchModalSelectedDate);
-                           const empIds = new Set<string>();
-                           dayShifts.forEach(s => s.employees?.forEach(e => empIds.add(e.id)));
-                           const emps = users.filter(u => empIds.has(u.id));
-                           
-                           if (emps.length === 0) return <p className="text-xs text-gray-500">{currentAccount?.role === 'admin' || (currentAccount?.role === 'manager' && currentAccount.branch === modalBranchName) ? 'لا توجد شفتات مسجلة.' : 'لا توجد شفتات متاحة ضمن صلاحيات حسابك لهذا اليوم.'}</p>;
-                           
-                           return emps.map(emp => (
-                             <div key={emp.id} className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-blue-100 text-xs text-blue-700 font-bold shadow-sm">
-                               <img src={emp.imageUrl} alt={emp.name} className="w-5 h-5 rounded-full object-cover object-top" />
-                               {emp.name}
-                             </div>
-                           ));
-                         })()}
-                       </div>
-                    </div>
-                  )}
-
-                  <div className="bg-white p-4 border-b border-blue-100 grid grid-cols-3 gap-2 text-center shrink-0">
+                  <div aria-label="ملخص الفرع" className="bg-white p-4 border-b border-blue-100 grid grid-cols-3 gap-2 text-center shrink-0">
                     <div className="bg-gray-50 rounded-xl p-2 shadow-sm border border-blue-100 flex flex-col justify-center">
                       <p className="text-[10px] sm:text-xs text-blue-600 font-bold mb-1">تقييمات الشهر</p>
                       <p className="text-lg sm:text-xl font-extrabold">{branchReviews.length}</p>
@@ -756,39 +634,38 @@ export const Leaderboard: React.FC = () => {
                     <div className="bg-gray-50 rounded-xl p-2 shadow-sm border border-yellow-100 flex flex-col justify-center">
                       <p className="text-[10px] sm:text-xs text-yellow-600 font-bold mb-1">المتألقة</p>
                       <p className="text-xs sm:text-sm font-bold truncate">{shiningStar.name}</p>
-                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-1">{shiningStar.count} تقييم</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-1">{arabicReviewCount(shiningStar.count)}</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-2 shadow-sm border border-green-100 flex flex-col justify-center">
                       <p className="text-[10px] sm:text-xs text-green-600 font-bold mb-1">شراكة فعالة</p>
                       <p className="text-[10px] sm:text-[11px] font-bold leading-tight">{bestPartnership.names}</p>
-                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-1">{bestPartnership.count} مشترك</p>
+                      <p className="text-[9px] sm:text-[10px] text-gray-400 mt-1">{arabicReviewCount(bestPartnership.count, 'shared')}</p>
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 overflow-y-auto flex-1 min-h-0 space-y-3">
-                    {(branchModalSelectedDate 
-                      ? branchReviews.filter(r => r.businessDate === branchModalSelectedDate)
-                      : branchReviews
-                    ).map(r => (
-                      <div key={r.id} className="bg-white p-4 rounded-xl border shadow-sm relative">
-                        <div className="flex justify-between items-start">
-                          <div className="flex text-yellow-400 mb-2">★★★★★</div>
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
-                            {formatDateTime(r.date, r.time)}
-                          </span>
-                        </div>
-                        <p className="text-gray-700 text-sm">{r.comment || (privateReviews.some(review => review.id === r.id) ? 'تقييم بدون تعليق' : `تقييم ${r.rating} نجوم في فرع ${r.branch}، مرتبط بـ ${r.linkedEmployeeIds.length} من الموظفات.`)}</p>
-                        <p className="text-xs text-green-700 font-bold mt-2">
-                          {r.linkedEmployeeIds && r.linkedEmployeeIds.length > 0 
-                            ? `الموظفات: ${r.linkedEmployeeIds.map(id => users.find(u => u.id === id)?.name).join('، ')}`
-                            : 'غير مرتبط'}
-                        </p>
-                      </div>
-                    ))}
-                    {branchReviews.length === 0 && (
-                      <p className="text-center text-gray-500 py-10">لا توجد تقييمات لهذا الفرع.</p>
-                    )}
+                  {/* Employees List */}
+                  <div aria-label="موظفات الفرع" className="p-3 border-t border-gray-100 shrink-0">
+                     <div className="flex flex-wrap justify-center gap-1.5">
+                       {users.filter(u => u.role === 'employee' && ((u.branch === modalBranchName && (u.monthReviewsCount ?? 0) > 3) || periodLeaders.ids.includes(u.id))).map(emp => (
+                         <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
+                         <button type="button" aria-label={`عرض سجل ${emp.name}${periodLeaders.ids.includes(emp.id) ? '، الأكثر جلبًا للتقييمات في الفترة المحددة' : ''}`}
+                           data-period-leader={periodLeaders.ids.includes(emp.id)}
+                           title={periodLeaders.ids.includes(emp.id) ? `${arabicReviewCount(periodLeaders.count)} خلال الفترة المحددة` : undefined}
+                           className="px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold text-blue-900 bg-transparent border border-blue-100 shadow-[0_0_6px_rgba(59,130,246,0.2)] hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                         >
+                           {emp.name}
+                         </button>
+                         </EmployeeCard>
+                       ))}
+                     </div>
                   </div>
+
+                  <div className="p-4 bg-teal-50/50 border-b border-teal-100 shrink-0">
+                    <ActivityChart key={modalBranchName} reviews={branchActivityReviews} subject="branch" onPeriodSelect={period => setSelectedBranchPeriod({ branch: modalBranchName, ...period })} />
+                  </div>
+
+
+
                 </motion.div>
               </div>
             )}

@@ -10,7 +10,6 @@ export const toEnglishNumerals = (str: string | number): string => {
 };
 
 const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-const arabicDigits = (value: string | number) => String(value).replace(/\d/g, digit => '٠١٢٣٤٥٦٧٨٩'[Number(digit)]);
 
 export const formatDate = (dateStr?: string): string => {
   if (!dateStr) return '';
@@ -35,7 +34,7 @@ export const formatTime = (timeStr?: string): string => {
   const minutes = timeMinutes(timeStr);
   if (minutes === null) return timeStr || '';
   const hour = Math.floor(minutes / 60);
-  return `${arabicDigits(hour % 12 || 12)}:${arabicDigits(String(minutes % 60).padStart(2, '0'))} ${hour >= 12 ? 'م' : 'ص'}`;
+  return `${toEnglishNumerals(hour % 12 || 12)}:${toEnglishNumerals(String(minutes % 60).padStart(2, '0'))} ${hour >= 12 ? 'م' : 'ص'}`;
 };
 export const shiftName = (start?: string): string => {
   const minutes = timeMinutes(start);
@@ -96,12 +95,9 @@ export const parseDateStr = (dateStr: string): Date | null => {
   }
 };
 
-export const isWithinLastDays = (dateStr: string, days: number): boolean => {
+export const isWithinLastDays = (dateStr: string, days: number, now = new Date()): boolean => {
   const date = parseDateStr(dateStr);
   if (!date) return false;
-  
-  // Use current date for the app context, or a fixed reference if testing
-  const now = new Date();
   
   const diffTime = Math.abs(now.getTime() - date.getTime());
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

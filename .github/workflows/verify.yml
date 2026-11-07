@@ -1,0 +1,80 @@
+name: Verify application
+on:
+  workflow_call:
+    inputs:
+      pages:
+        type: boolean
+        default: false
+    outputs:
+      publish:
+        description: Whether the change requires a new application build
+        value: ${{ jobs.scope.outputs.app }}
+permissions:
+  contents: read
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      app: ${{ steps.changes.outputs.app }}
+      browser: ${{ steps.changes.outputs.browser }}
+      database: ${{ steps.changes.outputs.database }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: changes
+        run: node automation/check-scope.mjs
+        env:
+          CHECK_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          GH_TOKEN: ${{ github.token }}
+  app:
+    needs: scope
+    if: needs.scope.outputs.app == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+        if: needs.scope.outputs.browser == 'true'
+      - run: npm run test:browser
+        if: needs.scope.outputs.browser == 'true'
+      - run: npm run build
+        env:
+          VITE_ACCOUNT_SETUP_TARGET: ${{ inputs.pages && 'github-pages' || '' }}
+      - uses: actions/upload-pages-artifact@v3
+        if: inputs.pages
+        with:
+          path: dist
+  database:
+    needs: scope
+    if: needs.scope.outputs.database == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Start isolated Supabase and apply repository migrations
+        run: npx --yes supabase@3.0.0 start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit
+      - run: npm run test:db
+      - name: Stop isolated stack
+        if: always()
+        run: npx --yes supabase@3.0.0 stop --no-backup
