@@ -4,7 +4,7 @@ import { useRiyadhWeather } from '../hooks/useRiyadhWeather';
 import { seaWeather, weatherAt, type RiyadhWeather } from '../lib/riyadhWeather';
 import { seaMission, seaOpening, SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
 import { seaBranchScene, seaSceneBerths, seaLight, SEA_SCENE_LABELS } from '../lib/seaScene';
-import { SEA_BACKDROPS, SEA_SCENE_ASSETS } from './seaSceneAssets';
+import { SEA_BACKDROPS, seaSceneAsset } from './seaSceneAssets';
 import island from '../assets/sea/island-horizon.webp';
 import boatWake from '../assets/sea/boat-wake.webp';
 import waterContact from '../assets/sea/boat-water-contact.webp';
@@ -20,6 +20,7 @@ export function SeaMissionView({ reviews, now, weather = null }: { reviews: read
   const light = seaLight(now);
   const atmosphere = seaWeather(weather);
   const berths = seaSceneBerths(mission.branches, now);
+  const rescueCount = mission.branches.filter(branch => seaBranchScene(branch, now) === 'rescue').length;
   const berth = (name: string): CSSProperties => {
     const position = berths.find(berth => berth.name === name)!;
     return {
@@ -33,7 +34,7 @@ export function SeaMissionView({ reviews, now, weather = null }: { reviews: read
 
   return <main className="sea-mission" id="sea-mission-content">
     <h1 className="sr-only">مهمة البحر</h1>
-    <section className="sea-map" data-light={light} data-weather={weather ? atmosphere : 'unavailable'} aria-label="رحلة الفروع إلى الجزيرة" style={{ '--journey-progress': mission.journeyProgress } as CSSProperties}>
+    <section className="sea-map" data-light={light} data-rescuing={rescueCount > 0} data-weather={weather ? atmosphere : 'unavailable'} aria-label="رحلة الفروع إلى الجزيرة" style={{ '--journey-progress': mission.journeyProgress, '--rescue-rows': Math.ceil(rescueCount / 2) } as CSSProperties}>
       <picture className="sea-backdrop" aria-hidden="true">
         <source media="(max-width:760px)" srcSet={SEA_BACKDROPS[light].mobile} />
         <img src={SEA_BACKDROPS[light].desktop} alt="" width="1536" height="1024" fetchPriority="high" />
@@ -50,7 +51,7 @@ export function SeaMissionView({ reviews, now, weather = null }: { reviews: read
               <span className="sea-water-shadow" aria-hidden="true" />
               <img className="sea-water-contact" src={waterContact} alt="" width="768" height="256" />
               {(scene === 'adventure' || scene === 'halfway' || scene === 'celebrate') && <img className="sea-vessel-wake" src={boatWake} alt="" width="640" height="640" />}
-              <img className="sea-vessel-boat" src={SEA_SCENE_ASSETS[item.name][scene]} alt={SEA_SCENE_LABELS[scene]} width="640" height="896" />
+              <img className="sea-vessel-boat" src={seaSceneAsset(item, scene, now)} alt={SEA_SCENE_LABELS[scene]} width="640" height="896" />
               <img className="sea-water-front" src={waterContact} alt="" width="768" height="256" />
             </span>
             {(scene === 'celebrate' || selected === item.name) && <span className="sea-branch-name">{item.name}</span>}
