@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
-import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, Upload, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, RefreshCw, Globe, Link, GitMerge } from 'lucide-react';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Copy, Check, RefreshCw, Globe, Link, GitMerge } from 'lucide-react';
 import { WINDSOR_API_EXAMPLE, WINDSOR_REVIEW_FIELDS } from '../lib/windsorIntegration';
 import employeeImg from '../assets/employee.png';
 import { formatDateTime, formatDate, formatTime, shiftName } from '../lib/formatDate';
@@ -44,9 +44,6 @@ export const SystemAdminDashboard: React.FC = () => {
   const effectiveTimelineBranch = globalBranch !== 'all' ? globalBranch : selectedTimelineBranch;
 
   const branchEmployees = users.filter(u => (effectiveBranch === 'موظفة خارجية' ? u.branch === 'موظفة خارجية' : u.branch === effectiveBranch) && u.role === 'employee');
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingEmpId, setUploadingEmpId] = useState<string | null>(null);
 
   // Merge Employees State
   const [showMergeModal, setShowMergeModal] = useState(false);
@@ -118,60 +115,6 @@ export const SystemAdminDashboard: React.FC = () => {
 
   // handleSaveTimes was moved inline into the branch list map
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && uploadingEmpId) {
-      showToast('جاري معالجة الصورة...'); // Show immediate feedback
-      
-      // Use createObjectURL for instant, non-blocking image load
-      const imageUrl = URL.createObjectURL(file);
-      const img = new Image();
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        
-        // Maintain high resolution but cap at 1200px to prevent freeze & localStorage quota issues
-        const MAX_DIMENSION = 1200;
-        if (width > height && width > MAX_DIMENSION) {
-          height = Math.round((height * MAX_DIMENSION) / width);
-          width = MAX_DIMENSION;
-        } else if (height > MAX_DIMENSION) {
-          width = Math.round((width * MAX_DIMENSION) / height);
-          height = MAX_DIMENSION;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        // Convert to WebP format with high quality (0.95) to preserve visual quality
-        // but significantly reduce base64 size so it doesn't freeze the app
-        try {
-          const webpDataUrl = canvas.toDataURL('image/webp', 0.95);
-          updateUser(uploadingEmpId, { imageUrl: webpDataUrl });
-          setUploadingEmpId(null);
-          showToast('تم رفع الصورة بنجاح');
-        } catch (err) {
-          console.error('Error saving image:', err);
-          alert('تعذر حفظ الصورة، قد تكون الذاكرة ممتلئة. يرجى تجربة صورة أصغر.');
-          setUploadingEmpId(null);
-        } finally {
-          URL.revokeObjectURL(imageUrl); // Free memory
-        }
-      };
-      
-      img.src = imageUrl;
-    }
-  };
-
-  const triggerUpload = (id: string) => {
-    setUploadingEmpId(id);
-    fileInputRef.current?.click();
-  };
-
   const handleAddEmployee = () => {
     if (!newEmpName.trim()) return;
     const id = 'emp_' + Date.now();
@@ -235,9 +178,6 @@ export const SystemAdminDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-alexandria" dir="rtl">
-      {/* Hidden File Input */}
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/png,image/jpeg,image/webp,image/*" onChange={handleFileUpload} />
-
       {/* Toast Notification */}
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in font-bold text-sm">
@@ -478,7 +418,7 @@ export const SystemAdminDashboard: React.FC = () => {
                           <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
                             {currentBranchEmployees.map(emp => (
                               <div key={emp.id} className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
-                                <img src={emp.imageUrl || employeeImg} alt={emp.name} className="w-10 h-10 rounded-full object-cover border" />
+                                <img src={employeeImg} alt={emp.name} className="w-10 h-10 rounded-full object-cover border" />
                                 <div>
                                   <p className="font-bold text-sm text-gray-800">{emp.name}</p>
                                   <p className="text-xs text-gray-500 mt-1">
@@ -672,7 +612,7 @@ export const SystemAdminDashboard: React.FC = () => {
                 <table className="w-full text-right border-collapse min-w-[700px]">
                   <thead>
                     <tr className="bg-gray-100 text-xs">
-                      <th className="p-2 border">الصورة</th>
+                      <th className="p-2 border">الأفاتار الموحد</th>
                       <th className="p-2 border">الموظفة</th>
                       <th className="p-2 border">الفرع (نقل)</th>
                       <th className="p-2 border" title="إجمالي التقييمات">كلي</th>
@@ -687,12 +627,9 @@ export const SystemAdminDashboard: React.FC = () => {
                   <tbody>
                     {branchEmployees.map(emp => (
                       <tr key={emp.id} className="border-b hover:bg-gray-50">
-                        <td className="p-3 border text-center w-20 relative group cursor-pointer" onClick={() => triggerUpload(emp.id)}>
+                        <td className="p-3 border text-center w-20">
                           <div className="w-12 h-12 mx-auto rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50 flex items-center justify-center relative">
-                            <img src={emp.imageUrl || employeeImg} alt={emp.name} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
-                              <Upload className="text-white opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
-                            </div>
+                            <img src={employeeImg} alt={emp.name} className="w-full h-full object-cover" />
                           </div>
                         </td>
                         <td className="p-3 border">
