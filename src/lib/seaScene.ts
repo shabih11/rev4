@@ -38,6 +38,10 @@ export function seaBranchScene(branch: SeaBranch, now: number): SeaScene {
   // Elimination is confirmed at the next business-day boundary. It persists overnight.
   if (branch.status === 'sunk') return 'capsized';
   const clock = seaBranchClock(branch.name, now);
+  // Keep the late distress scene overnight until the business day is resolved at opening.
+  if (!clock.isOpen && branch.status === 'sailing' && branch.current && !branch.current.uncertain
+    && now >= branch.current.start && now < branch.current.end
+    && branch.current.count < Math.ceil(branch.current.target / 2)) return 'distress';
   // Sleeping uses the same image in daylight and at night; the scene controls lighting.
   if (branch.status === 'waiting' || !clock.isOpen) return 'sleep';
   if (branch.status === 'arrived') return 'celebrate';

@@ -2,6 +2,8 @@ import { test, expect, login, mockService } from './fixtures.js';
 
 for (const scenario of [
   { name: 'sinking', time: '2026-11-05T23:30:00', scene: 'distress', mobile: false },
+  { name: 'sinking-after-midnight', time: '2026-11-06T00:00:00', scene: 'distress', mobile: false },
+  { name: 'sinking-before-opening-mobile', time: '2026-11-06T13:59:59', scene: 'distress', mobile: true },
   { name: 'eliminated', time: '2026-11-06T14:00:00', scene: 'capsized', mobile: false },
   { name: 'eliminated-night-mobile', time: '2026-11-07T01:00:00', scene: 'capsized', mobile: true },
 ]) {
@@ -23,6 +25,6 @@ for (const scenario of [
     await expect(boats.first()).toHaveAttribute('aria-pressed', 'true');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     expect(service.unexpected).toEqual([]);
-    await page.screenshot({ path: `/tmp/rev4-sea-${scenario.name}.png` });
+    await page.screenshot({ path: test.info().outputPath(`sea-${scenario.name}.png`) });
   });
 }

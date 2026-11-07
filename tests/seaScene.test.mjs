@@ -138,16 +138,30 @@ test('next opening crosses month and year boundaries without tying the visual cl
 });
 
 
-test('confirmed elimination capsizes at the next opening and remains visible on later nights', () => {
+test('distress persists after midnight until elimination capsizes at the next opening and on later nights', () => {
   for (const name of SEA_BRANCHES) {
     const nextOpening = seaBranchClock(name, at('2026-11-06T08:00:00')).nextOpening;
-    const before = seaMission([], nextOpening - 1).branches.find(item => item.name === name);
-    assert.equal(before.status, 'sailing');
-    assert.equal(seaBranchScene(before, nextOpening - 1), 'sleep');
+    for (const now of [at('2026-11-05T23:59:59'), at('2026-11-06T00:00:00'), at('2026-11-06T06:30:00'), nextOpening - 1]) {
+      const before = seaMission([], now).branches.find(item => item.name === name);
+      assert.equal(before.status, 'sailing');
+      assert.equal(seaBranchScene(before, now), 'distress');
+    }
     for (const now of [nextOpening, at('2026-11-07T00:00:00'), at('2026-11-08T03:00:00')]) {
       const item = seaMission([], now).branches.find(item => item.name === name);
       assert.equal(item.failedDay.day, 5);
       assert.equal(seaBranchScene(item, now), 'capsized');
+    }
+  }
+});
+
+test('overnight distress does not replace sleep for completed, halfway, or uncertain results', () => {
+  const now = at('2026-11-06T01:00:00');
+  for (const name of SEA_BRANCHES) {
+    const review = { id: 'review', branch: name, rating: '5', date: '2026-11-05', time: '15:00:00' };
+    for (const reviews of [[review], [review, { ...review, id: 'second' }], [{ ...review, time: '' }]]) {
+      const item = seaMission(reviews, now).branches.find(item => item.name === name);
+      assert.equal(seaBranchScene(item, now), 'sleep');
+      assert.equal(seaBranchScene({ ...item, status: 'unverified' }, now), 'sleep');
     }
   }
 });
