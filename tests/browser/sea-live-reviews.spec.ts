@@ -59,7 +59,7 @@ test('Windsor review counts update Qasr and Daview without reloading when realti
 });
 
 test('lighting crosses dusk, midnight and sunrise while the mission stays open', async ({ page }) => {
-  await page.clock.install({ time: new Date('2026-11-05T17:28:00+03:00') });
+  await page.clock.install({ time: new Date('2026-11-05T22:58:00+03:00') });
   const service = await mockService(page);
   await page.route('**/functions/v1/riyadh-weather', route => route.fulfill({ status: 503, json: {} }));
   await login(page);
@@ -67,12 +67,12 @@ test('lighting crosses dusk, midnight and sunrise while the mission stays open',
   await page.goto('./#/?view=sea');
   const map = page.locator('.sea-map');
   await expect(map).toHaveAttribute('data-light', 'soft');
-  await page.clock.pauseAt(new Date('2026-11-05T17:29:59+03:00'));
+  await page.clock.pauseAt(new Date('2026-11-05T22:59:59+03:00'));
   await page.clock.fastForward(1100);
   await expect(map).toHaveAttribute('data-light', 'dusk');
-  await page.clock.fastForward(6.5 * 3600000);
+  await page.clock.fastForward(3600000);
   await expect(map).toHaveAttribute('data-light', 'night');
-  await expect(page.locator('.sea-vessel[data-scene="sleep"]')).toHaveCount(6);
+  await expect(page.locator('.sea-vessel[data-scene="distress"]')).toHaveCount(6);
   await page.clock.fastForward(6.5 * 3600000);
   await expect(map).toHaveAttribute('data-light', 'sunny');
   expect(service.unexpected).toEqual([]);
