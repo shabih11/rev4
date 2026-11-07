@@ -133,3 +133,12 @@
 }
 @keyframes sea-rainfall { to { background-position:-65px 180px; } }
 @keyframes sea-wind-sway { from { transform:rotate(-2deg); } to { transform:rotate(2deg); } }
+
+/* Wide rescue cutouts use reserved foreground slots, never the portrait boat frame. */
+.sea-map[data-rescuing="true"] { min-height:max(38rem,calc(20rem + var(--rescue-rows)*14rem)); }
+.sea-vessel[data-scene="rescue"] { width:min(var(--berth-width),18rem); max-width:none; }
+.sea-vessel[data-scene="rescue"] .sea-vessel-art { aspect-ratio:1754/897; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-vessel-boat { aspect-ratio:auto; -webkit-mask-image:none; mask-image:none; }
+.sea-vessel[data-scene="wreck"] .sea-vessel-art { aspect-ratio:auto; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) :is(.sea-water-contact,.sea-water-front,.sea-water-shadow) { display:none; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-branch-name { top:100%; }

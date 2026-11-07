@@ -1,4 +1,30 @@
-import type { SeaLight, SeaScene } from '../lib/seaScene';
+import gallery_wreck_0 from '../assets/sea/scenarios/gallery-wreck-overturned.webp';
+import gallery_wreck_1 from '../assets/sea/scenarios/gallery-wreck-half-submerged.webp';
+import gallery_wreck_2 from '../assets/sea/scenarios/gallery-wreck-broken-sails.webp';
+import gallery_wreck_3 from '../assets/sea/scenarios/gallery-wreck-vertical.webp';
+import daview_wreck_0 from '../assets/sea/scenarios/daview-wreck-overturned.webp';
+import daview_wreck_1 from '../assets/sea/scenarios/daview-wreck-half-submerged.webp';
+import daview_wreck_2 from '../assets/sea/scenarios/daview-wreck-broken-sails.webp';
+import daview_wreck_3 from '../assets/sea/scenarios/daview-wreck-vertical.webp';
+import salam_wreck_0 from '../assets/sea/scenarios/salam-wreck-overturned.webp';
+import salam_wreck_1 from '../assets/sea/scenarios/salam-wreck-half-submerged.webp';
+import salam_wreck_2 from '../assets/sea/scenarios/salam-wreck-broken-sails.webp';
+import salam_wreck_3 from '../assets/sea/scenarios/salam-wreck-vertical.webp';
+import qasr_wreck_0 from '../assets/sea/scenarios/qasr-wreck-overturned.webp';
+import qasr_wreck_1 from '../assets/sea/scenarios/qasr-wreck-half-submerged.webp';
+import qasr_wreck_2 from '../assets/sea/scenarios/qasr-wreck-broken-sails.webp';
+import qasr_wreck_3 from '../assets/sea/scenarios/qasr-wreck-vertical.webp';
+import kingdom_wreck_0 from '../assets/sea/scenarios/kingdom-wreck-overturned.webp';
+import kingdom_wreck_1 from '../assets/sea/scenarios/kingdom-wreck-half-submerged.webp';
+import kingdom_wreck_2 from '../assets/sea/scenarios/kingdom-wreck-broken-sails.webp';
+import kingdom_wreck_3 from '../assets/sea/scenarios/kingdom-wreck-vertical.webp';
+import east_wreck_0 from '../assets/sea/scenarios/east-wreck-overturned.webp';
+import east_wreck_1 from '../assets/sea/scenarios/east-wreck-half-submerged.webp';
+import east_wreck_2 from '../assets/sea/scenarios/east-wreck-broken-sails.webp';
+import east_wreck_3 from '../assets/sea/scenarios/east-wreck-vertical.webp';
+import { seaWreckVariant, type SeaLight, type SeaScene } from '../lib/seaScene';
+import type { SeaBranch } from '../lib/seaMission';
+import rescue from '../assets/sea/scenarios/rescue.webp';
 import sunnyDesktop from '../assets/sea/ocean-sunny-desktop.webp';
 import sunnyMobile from '../assets/sea/ocean-sunny-mobile.webp';
 import softDesktop from '../assets/sea/ocean-soft-desktop.webp';
@@ -56,10 +82,23 @@ export const SEA_BACKDROPS: Record<SeaLight, { desktop: string; mobile: string }
 };
 
 export const SEA_SCENE_ASSETS: Record<string, Record<SeaScene, string>> = {
-  'جاليري': { sleep: gallery_sleep, coffee: gallery_coffee, adventure: gallery_adventure, halfway: gallery_halfway, celebrate: gallery_celebrate, distress: gallery_distress, capsized: gallery_capsized },
-  'ذافيو': { sleep: daview_sleep, coffee: daview_coffee, adventure: daview_adventure, halfway: daview_halfway, celebrate: daview_celebrate, distress: daview_distress, capsized: daview_capsized },
-  'سلام': { sleep: salam_sleep, coffee: salam_coffee, adventure: salam_adventure, halfway: salam_halfway, celebrate: salam_celebrate, distress: salam_distress, capsized: salam_capsized },
-  'القصر': { sleep: qasr_sleep, coffee: qasr_coffee, adventure: qasr_adventure, halfway: qasr_halfway, celebrate: qasr_celebrate, distress: qasr_distress, capsized: qasr_capsized },
-  'المملكة': { sleep: kingdom_sleep, coffee: kingdom_coffee, adventure: kingdom_adventure, halfway: kingdom_halfway, celebrate: kingdom_celebrate, distress: kingdom_distress, capsized: kingdom_capsized },
-  'شرق': { sleep: east_sleep, coffee: east_coffee, adventure: east_adventure, halfway: east_halfway, celebrate: east_celebrate, distress: east_distress, capsized: east_capsized },
+  'جاليري': { sleep: gallery_sleep, coffee: gallery_coffee, adventure: gallery_adventure, halfway: gallery_halfway, celebrate: gallery_celebrate, distress: gallery_distress, capsized: gallery_capsized, rescue, wreck: gallery_wreck_0 },
+  'ذافيو': { sleep: daview_sleep, coffee: daview_coffee, adventure: daview_adventure, halfway: daview_halfway, celebrate: daview_celebrate, distress: daview_distress, capsized: daview_capsized, rescue, wreck: daview_wreck_0 },
+  'سلام': { sleep: salam_sleep, coffee: salam_coffee, adventure: salam_adventure, halfway: salam_halfway, celebrate: salam_celebrate, distress: salam_distress, capsized: salam_capsized, rescue, wreck: salam_wreck_0 },
+  'القصر': { sleep: qasr_sleep, coffee: qasr_coffee, adventure: qasr_adventure, halfway: qasr_halfway, celebrate: qasr_celebrate, distress: qasr_distress, capsized: qasr_capsized, rescue, wreck: qasr_wreck_0 },
+  'المملكة': { sleep: kingdom_sleep, coffee: kingdom_coffee, adventure: kingdom_adventure, halfway: kingdom_halfway, celebrate: kingdom_celebrate, distress: kingdom_distress, capsized: kingdom_capsized, rescue, wreck: kingdom_wreck_0 },
+  'شرق': { sleep: east_sleep, coffee: east_coffee, adventure: east_adventure, halfway: east_halfway, celebrate: east_celebrate, distress: east_distress, capsized: east_capsized, rescue, wreck: east_wreck_0 },
 };
+
+const SEA_WRECK_ASSETS: Record<string, readonly string[]> = {
+  'جاليري': [gallery_wreck_0, gallery_wreck_1, gallery_wreck_2, gallery_wreck_3],
+  'ذافيو': [daview_wreck_0, daview_wreck_1, daview_wreck_2, daview_wreck_3],
+  'سلام': [salam_wreck_0, salam_wreck_1, salam_wreck_2, salam_wreck_3],
+  'القصر': [qasr_wreck_0, qasr_wreck_1, qasr_wreck_2, qasr_wreck_3],
+  'المملكة': [kingdom_wreck_0, kingdom_wreck_1, kingdom_wreck_2, kingdom_wreck_3],
+  'شرق': [east_wreck_0, east_wreck_1, east_wreck_2, east_wreck_3],
+};
+
+export function seaSceneAsset(branch: SeaBranch, scene: SeaScene, now: number) {
+  return scene === 'wreck' ? SEA_WRECK_ASSETS[branch.name][seaWreckVariant(branch, now)] : SEA_SCENE_ASSETS[branch.name][scene];
+}

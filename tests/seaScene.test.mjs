@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { moduleUrl } from './helpers/typescript.mjs';
-const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight } = await import(moduleUrl('seaScene'));
+const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaWreckVariant } = await import(moduleUrl('seaScene'));
 const { seaMission, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const at = value => Date.parse(value + '+03:00');
 const branch = (overrides = {}) => ({ name: 'شرق', status: 'sailing', current: { count: 0, target: 2, uncertain: false }, ...overrides });
@@ -138,7 +138,7 @@ test('next opening crosses month and year boundaries without tying the visual cl
 });
 
 
-test('distress persists after midnight until elimination capsizes at the next opening and on later nights', () => {
+test('distress persists until elimination, followed by the rescue and empty wreck days', () => {
   for (const name of SEA_BRANCHES) {
     const nextOpening = seaBranchClock(name, at('2026-11-06T08:00:00')).nextOpening;
     for (const now of [at('2026-11-05T23:59:59'), at('2026-11-06T00:00:00'), at('2026-11-06T06:30:00'), nextOpening - 1]) {
@@ -149,7 +149,7 @@ test('distress persists after midnight until elimination capsizes at the next op
     for (const now of [nextOpening, at('2026-11-07T00:00:00'), at('2026-11-08T03:00:00')]) {
       const item = seaMission([], now).branches.find(item => item.name === name);
       assert.equal(item.failedDay.day, 5);
-      assert.equal(seaBranchScene(item, now), 'capsized');
+      assert.equal(seaBranchScene(item, now), now < at('2026-11-07T00:00:00') ? 'capsized' : now < at('2026-11-08T00:00:00') ? 'rescue' : 'wreck');
     }
   }
 });
@@ -207,4 +207,43 @@ test('halfway counts distinct positive reviews in the current business day and r
   assert.equal(fresh.current.count, 0);
   assert.equal(fresh.status, 'sailing');
   assert.equal(seaBranchScene(fresh, next), 'coffee');
+});
+
+
+test('all six branches retain day-one art, rescue on day two and cycle four empty wrecks from day three', () => {
+  for (const name of SEA_BRANCHES) {
+    const item = seaMission([], at('2026-11-06T14:00:00')).branches.find(item => item.name === name);
+    for (const [stamp, expected] of [
+      ['2026-11-06T23:59:59', 'capsized'],
+      ['2026-11-07T00:00:00', 'rescue'], ['2026-11-07T23:59:59', 'rescue'],
+      ['2026-11-08T00:00:00', 'wreck'], ['2026-11-12T00:00:00', 'wreck'],
+    ]) assert.equal(seaBranchScene(item, at(stamp)), expected, `${name} ${stamp}`);
+    for (let offset = 0; offset < 8; offset++) {
+      const now = at(`2026-11-${String(8 + offset).padStart(2, '0')}T00:00:00`);
+      assert.equal(seaWreckVariant(item, now), offset % 4);
+      assert.equal(seaWreckVariant(item, now + 86399999), offset % 4);
+    }
+    const rollover = { ...item, failedDay: { ...item.failedDay, end: at('2026-11-30T14:00:00') } };
+    assert.equal(seaBranchScene(rollover, at('2026-12-01T00:00:00')), 'rescue');
+    assert.equal(seaBranchScene(rollover, at('2026-12-02T00:00:00')), 'wreck');
+    assert.equal(seaWreckVariant(rollover, at('2026-12-02T00:00:00')), 0);
+  }
+});
+
+test('rescue slots are separate foreground anchors for one through six simultaneous rescues', () => {
+  const now = at('2026-11-07T12:00:00');
+  const eliminated = seaMission([], now).branches;
+  for (let count = 1; count <= 6; count++) {
+    const branches = eliminated.map((item, index) => index < count ? item : { ...item, status: 'sailing', failedDay: undefined });
+    const positions = seaSceneBerths(branches, now);
+    assert.deepEqual(positions, seaSceneBerths(branches, now + 1));
+    const rescues = positions.slice(0, count);
+    const others = positions.slice(count);
+    for (const rescue of rescues) {
+      assert.ok(others.every(other => other.y < rescue.y));
+      assert.equal(rescue.width, 44);
+      assert.ok(rescue.x - rescue.width / 2 >= 0 && rescue.x + rescue.width / 2 <= 100);
+    }
+    assert.equal(new Set(rescues.map(p => `${p.x}:${p.y}`)).size, count);
+  }
 });
