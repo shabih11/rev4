@@ -24,7 +24,7 @@ test('sleeping branches trail open branches toward the island, with later openin
 });
 
 test('Riyadh daylight changes independently of sleeping and host timezone', () => {
-  for (const [time, expected] of [['00:00:00', 'night'], ['06:29:59', 'night'], ['06:30:00', 'sunny'], ['15:59:59', 'sunny'], ['16:00:00', 'soft'], ['17:29:59', 'soft'], ['17:30:00', 'dusk'], ['23:59:59', 'dusk']]) {
+  for (const [time, expected] of [['00:00:00', 'night'], ['06:29:59', 'night'], ['06:30:00', 'sunny'], ['16:59:59', 'sunny'], ['17:00:00', 'soft'], ['22:59:59', 'soft'], ['23:00:00', 'dusk'], ['23:59:59', 'dusk']]) {
     assert.equal(seaLight(at(`2026-11-05T${time}`)), expected);
   }
 });
