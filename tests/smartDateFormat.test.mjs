@@ -38,7 +38,8 @@ test('smart formatDateTime formats today, yesterday, day before yesterday with t
   const olderKey = makeDateKey(olderDate.getUTCDate(), olderDate.getUTCMonth() + 1, olderDate.getUTCFullYear());
   const olderFormatted = formatDateTime(olderKey, '11:20');
   // Must NOT contain time and must be only the date
-  assert.doesNotMatch(olderFormatted, /م|ص|:/);
+  // Month names such as نوفمبر contain م; detect a clock time, not isolated letters.
+  assert.doesNotMatch(olderFormatted, /\d{1,2}:\d{2}/);
   assert.strictEqual(olderFormatted, formatDate(olderKey));
 });
 
