@@ -46,10 +46,13 @@
 .sea-map:is([data-weather="rain"],[data-weather="storm"]) .sea-rain { display:block; }
 .sea-map[data-weather="storm"] .sea-rain { opacity:.32; background-size:75px 140px; }
 .sea-island {
-  /* Overlap the shoreline's transparent edge with the backdrop horizon. */
-  position:absolute; z-index:1; width:min(72%,940px); left:50%; top:calc(21.5% + 4px);
-  transform-origin:50% 100%;
-  transform:translate(-50%,-100%) scale(calc(.68 + var(--journey-progress)*.14));
+  /* Day 15 is ten of the journey's 25 steps; hold at the center thereafter. */
+  --island-approach:clamp(0,calc(var(--journey-progress)*2.5),1);
+  --island-horizon:21.5%;
+  position:absolute; z-index:1; width:min(72%,940px); left:50%;
+  top:calc(var(--island-horizon) + (50% - var(--island-horizon))*var(--island-approach));
+  transform-origin:50% calc(100% - var(--island-approach)*50%);
+  transform:translate(-50%,calc(-100% + var(--island-approach)*50%)) scale(calc(.68 + var(--island-approach)*.62));
   pointer-events:none;
 }
 .sea-island img { display:block; width:100%; height:auto; }
@@ -113,7 +116,7 @@
 }
 .sea-error { align-self:flex-start; margin:1rem; padding:1rem; border-radius:.8rem; background:white; color:#9f2929; }
 @media (max-width:760px) {
-  .sea-island { top:calc(20.8% + 2px); }
+  .sea-island { --island-horizon:20.8%; }
   .recognition-header .sea-navigation { display:grid; width:100%; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem; }
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
@@ -123,6 +126,7 @@
 }
 @media (prefers-reduced-motion:no-preference) {
   .sea-island,.sea-fleet > li { transition:transform 1s ease; }
+  .sea-island { transition:top 1s ease,transform 1s ease; }
   .sea-atmosphere { transition:opacity 2s ease; }
   .sea-rain { animation:sea-rainfall .8s linear infinite; }
   .sea-map[data-weather="wind"] .sea-vessel-art { animation:sea-wind-sway 3s ease-in-out infinite alternate; }
