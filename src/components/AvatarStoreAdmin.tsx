@@ -6,6 +6,23 @@ import { AvatarImage } from './AvatarImage';
 import type { AvatarCollection } from '../lib/employeeFeatures';
 const refresh = () => window.dispatchEvent(new Event('rev4-cache-changed'));
 const field = 'block mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm bg-white';
+const saudiModernAvatars = Array.from({ length: 30 }, (_, index) => String(index + 1).padStart(2, '0'));
+
+function BundledAvatarGallery() {
+  return <section aria-labelledby="bundled-avatar-heading" className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
+    <div>
+      <h4 id="bundled-avatar-heading" className="font-bold text-slate-900">الذوق السعودي الحديث · {saudiModernAvatars.length} شكلًا</h4>
+      <p className="mt-1 text-sm text-slate-600">معاينة المجموعة للإدارة فقط.</p>
+    </div>
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {saudiModernAvatars.map(number => <li key={number} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+        <img src={`${import.meta.env.BASE_URL}avatars/saudi-modern-v1/avatar-${number}.png`} alt={`أفاتار الذوق السعودي الحديث ${number}`} width={1024} height={1536} loading="lazy" decoding="async" className="h-40 w-full object-contain" />
+        <p className="mt-2 text-sm font-bold">الشكل {number}</p>
+      </li>)}
+    </ul>
+  </section>;
+}
+
 export function AvatarStoreAdmin() {
   const { features, currentAccount } = useData();
   const [name, setName] = useState('');
@@ -13,9 +30,11 @@ export function AvatarStoreAdmin() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   if (currentAccount?.role !== 'admin') return null;
-  if (!features?.store) return <section className="rounded-2xl border bg-white p-5"><h3 className="font-bold">إدارة متجر الأفاتار</h3><p className="text-sm text-slate-600 mt-2">المتجر غير متاح حاليًا. تحققي من الاتصال وتطبيق تحديث المتجر.</p></section>;
   return <section className="space-y-5 border-t pt-6">
-    <div><h3 className="font-black text-xl text-slate-900">إدارة متجر الأفاتار</h3><p className="mt-2 text-sm leading-7 text-slate-600">ارفعي شخصية كاملة بعدة أشكال. يُباع كل شكل مرة واحدة بسعر الأفاتار، ويظهر اسم مالكته. الصور المرفوعة ثابتة لحماية حصرية المشتريات.</p></div>
+    <h3 className="font-black text-xl text-slate-900">إدارة متجر الأفاتار</h3>
+    <BundledAvatarGallery />
+    {!features?.store ? <p className="rounded-2xl border bg-white p-5 text-sm text-slate-600">تعذر تحميل المجموعات المسجلة في المتجر. تحققي من الاتصال.</p> : <>
+    <p className="text-sm leading-7 text-slate-600">يُباع كل شكل مسجل مرة واحدة بسعر الأفاتار، ويظهر اسم مالكته. الصور المرفوعة ثابتة لحماية حصرية المشتريات.</p>
     <form className="grid sm:grid-cols-[1fr_9rem_auto] items-end gap-3 rounded-2xl bg-slate-50 p-4" onSubmit={async event => {
       event.preventDefault(); if (busy) return;
       setBusy(true); setMessage('');
@@ -28,8 +47,9 @@ export function AvatarStoreAdmin() {
       <button disabled={busy} className="action-primary">{busy ? 'جارٍ الإنشاء…' : 'إضافة أفاتار'}</button>
     </form>
     {message && <p role="status" className="text-sm text-indigo-900">{message}</p>}
-    {features.store.collections.length === 0 && <p className="rounded-xl border border-dashed p-5 text-slate-600">لا توجد أفاتارات بعد. أضيفي أول أفاتار وحددي سعره، ثم ارفعي أشكاله.</p>}
+    {features.store.collections.length === 0 && <p className="rounded-xl border border-dashed p-5 text-slate-600">لا توجد مجموعات مسجلة في المتجر بعد.</p>}
     {features.store.collections.map(collection => <CollectionEditor key={`${collection.id}:${collection.name}:${collection.price}:${collection.enabled}`} collection={collection}/>)}
+    </>}
   </section>;
 }
 function CollectionEditor({ collection }: { collection: AvatarCollection }) {
