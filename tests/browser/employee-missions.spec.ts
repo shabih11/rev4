@@ -29,10 +29,10 @@ test('review missions display level, shared effort rewards and reset daily progr
   await expect(missions.getByText('امحي أثر تقييم سلبي', { exact: true })).toHaveCount(0);
   await missions.getByText('كيف تُحسب المستويات والمكافآت؟', { exact: true }).click();
   await expect(missions.getByRole('table')).toContainText('1,664');
-  await page.screenshot({ path: '/private/tmp/rev4-employee-missions-mobile.png', fullPage: true });
+  await page.screenshot({ path: test.info().outputPath('employee-missions-mobile.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.screenshot({ path: '/private/tmp/rev4-employee-missions-desktop.png', fullPage: true });
+  await page.screenshot({ path: test.info().outputPath('employee-missions-desktop.png'), fullPage: true });
   await page.clock.setFixedTime(new Date('2026-11-05T00:01:00+03:00'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(missions.getByText('مجموعك 9 نجمة', { exact: false })).toBeVisible();
