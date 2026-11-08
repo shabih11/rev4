@@ -1,12 +1,17 @@
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes } from './formatDate';
-import { seaBranchName, seaForegroundBerths, type SeaBranch } from './seaMission';
+import { SEA_MISSION, seaBranchName, seaForegroundBerths, type SeaBranch } from './seaMission';
 
 export type SeaLight = 'sunny' | 'soft' | 'dusk' | 'night';
 export type SeaScene = 'sleep' | 'coffee' | 'adventure' | 'halfway' | 'celebrate' | 'distress' | 'capsized' | 'rescue' | 'wreck';
 const HOUR = 3600000;
 const DAY = 24 * HOUR;
 const RIYADH = 3 * HOUR;
+
+export function seaViewDistance(now: number): 'distant' | 'near' {
+  const approachStartsAt = Date.UTC(SEA_MISSION.year, SEA_MISSION.month - 1, 16) - RIYADH;
+  return now < approachStartsAt ? 'distant' : 'near';
+}
 
 export function seaSinkingAge(branch: SeaBranch, now: number) {
   return branch.failedDay ? Math.floor((now + RIYADH) / DAY) - Math.floor((branch.failedDay.end + RIYADH) / DAY) : 0;
@@ -24,6 +29,10 @@ export function seaLight(now: number): SeaLight {
   if (minutes < 17 * 60) return 'sunny';
   if (minutes < 23 * 60) return 'soft';
   return 'dusk';
+}
+
+export function seaSunGlare(now: number) {
+  return seaLight(now) === 'sunny' && new Date(now + RIYADH).getUTCHours() < 15;
 }
 
 function openingOn(calendar: number, name: string) {
@@ -82,9 +91,13 @@ export function seaSceneBerths(branches: readonly SeaBranch[], now: number) {
   // Stable campaign order avoids moving scenes as results update during the rescue day.
   return berths.map(berth => {
     const index = rescuing.findIndex(branch => branch.name === berth.name);
+    if (rescuing.length === 1) return index === 0 ? { ...berth, x: 68, y: 48, width: 50 }
+      : { ...berth, y: 65 + (berth.y - 65) * .95 };
     if (index >= 0) return { ...berth, x: index % 2 === 0 ? 25 : 75,
       y: (rescueRows === 1 ? 90 : 94 - (rescueRows - 1) * 16) + Math.floor(index / 2) * 16, width: 44 };
-    return { ...berth, y: rescueRows === 3 ? 34 + (berth.y - 65) * .18 : 38 + (berth.y - 65) * .25 };
+    // Spread the remaining boats across the open water above the rescue rows.
+    return { ...berth, y: rescueRows === 3 ? 36 + (berth.y - 65) * .4
+      : rescueRows === 2 ? 40 + (berth.y - 65) * .65 : 44 + (berth.y - 65) };
   });
 }
 

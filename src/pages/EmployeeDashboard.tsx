@@ -11,6 +11,7 @@ import { useData } from '../context/DataContext';
 import { LogOut, Award, User, Shirt } from 'lucide-react';
 import { AvatarStore } from '../components/AvatarStore';
 import { UserProfileTab } from '../components/UserProfileTab';
+import { EmployeeMissions } from '../components/EmployeeMissions';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -57,6 +58,7 @@ export const EmployeeDashboard: React.FC = () => {
         </div>
       </div>
 
+      {summaryReady && !syncError && features?.settings.missions === true && <EmployeeMissions key={user.id} employeeId={user.id} />}
       <EmployeeResults user={displayedEmployee} ready={summaryReady} error={syncError} />
       <div className="px-6 mb-8"><MissingShiftRequest currentMonthOnly /></div>
 

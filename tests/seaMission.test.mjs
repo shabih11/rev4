@@ -4,6 +4,17 @@ import assert from 'node:assert/strict';
 import { moduleUrl } from './helpers/typescript.mjs';
 const { seaMission, seaForegroundBerths, seaBerths, seaOpening, seaJourneyProgress, seaDailyRule, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const instant = value => Date.parse(value + '+03:00');
+test('a branch moves ahead as soon as its daily target is reached', () => {
+  const now = instant('2026-11-05T15:00:00');
+  const initial = seaMission([], now).branches;
+  const before = seaForegroundBerths(initial, now);
+  const trailing = before.reduce((last, item) => item.y > last.y ? item : last).name;
+  const updated = initial.map(item => item.name === trailing ? { ...item,
+    current: { ...item.current, count: item.current.target } } : item);
+  const after = seaForegroundBerths(updated, now);
+  const leader = after.find(item => item.name === trailing);
+  assert.ok(after.filter(item => item.name !== trailing).every(item => leader.y < item.y));
+});
 let id = 0;
 function review(branch, stamp, rating = '5') {
   const local = new Date(stamp + 3 * 3600000).toISOString();

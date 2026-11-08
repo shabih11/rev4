@@ -14,7 +14,8 @@ const aliases: Record<string, string> = { 'الرياض جاليري': 'جالي
 export const seaBranchName = (branch: string) => aliases[branch.trim()] || branch.trim();
 
 type Review = { id: string; branch: string; rating: string; date: string; time: string };
-export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; completedAt?: number; uncertain: boolean; graceUsed: boolean };
+export type SeaCompletion = { branch: string; day: number; approved_at: string };
+export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; completedAt?: number; uncertain: boolean; graceUsed: boolean; manuallyCompleted?: boolean };
 export type SeaBranch = {
   name: string; status: 'waiting' | 'sailing' | 'sunk' | 'arrived' | 'unverified';
   days: SeaDay[]; current: SeaDay | undefined; failedDay: SeaDay | undefined; progress: number;
@@ -73,10 +74,12 @@ export function seaBerths(branches: readonly SeaBranch[], now = Date.now()) {
 // Daily, irregular foreground anchors preserve stable positions and achievement depth.
 export function seaForegroundBerths(branches: readonly SeaBranch[], now = Date.now(), sleepingUntil: ReadonlyMap<string, number> = new Map()) {
   const seed = new Date(now + RIYADH_OFFSET).toISOString().slice(0, 10);
-  const anchors = [{ x: 17, y: 73 }, { x: 49, y: 68 }, { x: 81, y: 76 },
-    { x: 23, y: 91 }, { x: 57, y: 87 }, { x: 86, y: 95 }].sort((a, b) => a.y - b.y);
+  const anchors = [{ x: 27, y: 67 }, { x: 75, y: 70 }, { x: 20, y: 81 },
+    { x: 77, y: 83 }, { x: 28, y: 94 }, { x: 73, y: 95 }].sort((a, b) => a.y - b.y);
   // The race heads toward the island (smaller y); sleeping branches trail near the viewer.
-  const order = [...branches].sort((a, b) => Number(sleepingUntil.has(a.name)) - Number(sleepingUntil.has(b.name))
+  const achieved = (branch: SeaBranch) => branch.status === 'arrived' || Boolean(branch.current && branch.current.count >= branch.current.target);
+  const order = [...branches].sort((a, b) => Number(achieved(b)) - Number(achieved(a))
+    || Number(sleepingUntil.has(a.name)) - Number(sleepingUntil.has(b.name))
     || (sleepingUntil.get(a.name) ?? 0) - (sleepingUntil.get(b.name) ?? 0)
     || laneHash(`foreground:${seed}:${a.name}`) - laneHash(`foreground:${seed}:${b.name}`)
     || a.name.localeCompare(b.name, 'ar'));
@@ -134,7 +137,7 @@ function reviewInstant(review: Review) {
   return calendar + minutes * 60000 + seconds * 1000 - RIYADH_OFFSET;
 }
 
-export function seaMission(reviews: readonly Review[], now = Date.now()) {
+export function seaMission(reviews: readonly Review[], now = Date.now(), completions: readonly SeaCompletion[] = []) {
   const seen = new Set<string>();
   const dated: { branch: string; timestamp: number }[] = [];
   const undated: { branch: string; calendar: number }[] = [];
@@ -156,7 +159,11 @@ export function seaMission(reviews: readonly Review[], now = Date.now()) {
       const start = seaOpening(name, day), end = seaOpening(name, day + 1);
       const rule = seaDailyRule(day);
       const timestamps = dated.filter(review => review.branch === name && review.timestamp >= start && review.timestamp < end).map(review => review.timestamp).sort((a, b) => a - b);
-      return { day, ...rule, start, end, graceUsed: false, count: timestamps.length, completedAt: timestamps[rule.target - 1],
+      const approval = completions.find(item => item.branch === name && item.day === day
+        && Number.isFinite(Date.parse(item.approved_at)) && Date.parse(item.approved_at) <= now);
+      const manuallyCompleted = Boolean(approval && now >= start);
+      return { day, ...rule, start, end, graceUsed: false, count: manuallyCompleted ? Math.max(rule.target, timestamps.length) : timestamps.length, manuallyCompleted,
+        completedAt: timestamps[rule.target - 1] ?? (manuallyCompleted ? Math.max(start, Math.min(Date.parse(approval!.approved_at), end - 1)) : undefined),
         uncertain: undated.some(review => review.branch === name && review.calendar < end + RIYADH_OFFSET && review.calendar + DAY > start + RIYADH_OFFSET) };
     });
     const usedGraces = new Set<number>();

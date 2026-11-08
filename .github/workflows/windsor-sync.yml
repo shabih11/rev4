@@ -1,7 +1,9 @@
 name: Windsor to Supabase
 on:
   schedule:
-    - cron: '*/5 * * * *' # Every 5 minutes, including overnight reviews; GitHub may delay starts.
+    # GitHub cron uses UTC. Riyadh is UTC+3; scheduled starts may be delayed.
+    - cron: '*/5 13-23 * * *' # 16:00–02:55 Riyadh: every 5 minutes.
+    - cron: '0 0-12 * * *' # 03:00–15:00 Riyadh: hourly.
   push:
     branches: [main, codex/supabase-production]
     paths: ['.github/workflows/windsor-sync.yml', 'automation/windsor-sync.mjs', 'supabase/functions/windsor-import/**']

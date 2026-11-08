@@ -67,9 +67,11 @@ for (const mobile of [false, true]) {
     await expect.poll(() => page.locator('.sea-vessel-boat').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete))).toBe(true);
     const box = await rescue.boundingBox();
     const otherBoxes = await page.locator('.sea-vessel:not([data-scene="rescue"])').evaluateAll(elements => elements.map(element => {
-      const r = element.getBoundingClientRect(); return { bottom: r.bottom };
+      const r = element.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
     }));
-    expect(otherBoxes.every(other => other.bottom <= box!.y)).toBe(true);
+    expect(otherBoxes.every(other => box!.y + box!.height < other.bottom)).toBe(true);
+    expect(otherBoxes.every(other => box!.x + box!.width <= other.left || other.right <= box!.x
+      || box!.y + box!.height <= other.top || other.bottom <= box!.y)).toBe(true);
     await page.screenshot({ path: test.info().outputPath(`sea-mixed-rescue-${mobile ? 'mobile' : 'desktop'}.png`) });
     expect(service.unexpected).toEqual([]);
   });

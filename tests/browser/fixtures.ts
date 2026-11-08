@@ -32,6 +32,7 @@ export async function mockService(page: Page, { role = 'admin', denied = false, 
     }
     if (url.pathname === '/auth/v1/user') return reply({ id: uid, email: 'test@example.invalid', aud: 'authenticated', role: 'authenticated' });
     if (url.pathname === '/auth/v1/logout') return route.fulfill({ status: 204 });
+    if (url.pathname === '/rest/v1/sea_mission_completions') return reply([]);
     if (url.pathname === '/rest/v1/app_state') return reply({ version: 1 });
     const name = url.pathname.split('/rpc/')[1];
     const args = request.postDataJSON() || {};

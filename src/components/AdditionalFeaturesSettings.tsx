@@ -1,5 +1,4 @@
 import { MagicStoreAdmin } from './MagicStoreAdmin';
-import { AvatarStoreAdmin } from './AvatarStoreAdmin';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
@@ -11,12 +10,13 @@ const switches = [
   ['balanceGrowth', 'زيادة رصيد التقييمات', 'عرض الزيادة اليومية باللون الأخضر بجانب الرصيد.'],
   ['tiers', 'شارات الفئات', 'خبيرة للفئة الفضية ومتميزة للفئة الذهبية.'],
   ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
+  ['missions', 'المهام والمستويات', 'رحلة إنجاز مرتبطة بالتقييمات المستوردة، مع نجوم ومهام ومستويات للموظفات. تعطيلها يخفيها دون حذف التقدم المحسوب من التقييمات.'],
   ['rounding', 'نظام الجبر', 'جبر نقاط الفئة إلى العدد الصحيح الأعلى، ودمج زيادة المكافأة مع الزيادة الجماعية. المكافأة من مضاعفات العشرة، وسقف الزيادة 20 ريال إلا عند الحاجة لضمان الحد الأدنى 100 ريال للمستحقة.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
   if (!features) return <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">إعدادات الميزات غير متاحة. تحققي من الاتصال وتطبيق تحديث قاعدة البيانات.</p>;
-  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><MagicStoreAdmin/><AvatarStoreAdmin/></div>;
+  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><MagicStoreAdmin/></div>;
 }
 function SettingsForm({ initial }: { initial: FeatureSettings }) {
   const [settings, setSettings] = useState(initial);
@@ -29,7 +29,7 @@ function SettingsForm({ initial }: { initial: FeatureSettings }) {
     setBusy(true); setMessage('');
     const { error } = await supabase.rpc('save_employee_features', { requested: settings, expected: initial });
     setBusy(false);
-    setMessage(error ? error.code === '22023' && settings.rounding !== undefined ? 'تعذر حفظ نظام الجبر؛ تأكدي من تطبيق تحديث إعدادات المكافآت في قاعدة البيانات.' : 'تعذر الحفظ. تحققي من الصلاحيات والاتصال، أو حدّثي الصفحة إذا عدّل مدير آخر الإعدادات.' : 'تم حفظ الميزات لجميع الموظفات.');
+    setMessage(error ? error.code === '22023' ? 'تعذر حفظ الميزات؛ تأكدي من صحة الإعدادات وتطبيق تحديث الميزات في قاعدة البيانات.' : 'تعذر الحفظ. تحققي من الصلاحيات والاتصال، أو حدّثي الصفحة إذا عدّل مدير آخر الإعدادات.' : 'تم حفظ الميزات لجميع الموظفات.');
     if (!error) window.dispatchEvent(new Event('rev4-cache-changed'));
   }}>
     <div><p className="text-sm font-bold text-purple-700">مساحة التميّز</p><h2 className="text-2xl font-black mt-1">الميزات الإضافية</h2><p className="text-slate-600 mt-2">تحكّمي بتجربة الموظفات. تُطبّق الإعدادات على جميع الفروع.</p></div>

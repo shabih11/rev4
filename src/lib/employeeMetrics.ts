@@ -50,8 +50,10 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
       safetyScore += (manual.safety || 0);
       monthReviewsBalance += (manual.monthReviews || 0);
 
+      // Surplus monthly review shares remain available for later negative reviews.
+      const recovery = Math.max(0, monthReviewsBalance - 20) * 0.125;
+      negativeScore = Math.min(2, Math.max(0, negativeScore + recovery));
       if (positiveScore > 5) positiveScore = 5;
-      if (negativeScore < 0) negativeScore = 0;
 
       let qualityScore = 4 - (complaintsScore + safetyScore);
       if (qualityScore < 0) qualityScore = 0;

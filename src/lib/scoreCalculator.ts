@@ -44,10 +44,10 @@ export function calculateEmployeeScore(
     // Rating 3 is neutral, does nothing.
   });
 
+  // Each surplus positive share restores one quarter of a negative review's loss.
+  negativeScore = Math.min(2, Math.max(0, negativeScore + Math.max(0, positiveScore * 4 - 20) * 0.125));
   // Cap positive score at 5 max
   if (positiveScore > 5) positiveScore = 5;
-  // Floor negative score at 0 min
-  if (negativeScore < 0) negativeScore = 0;
 
   // 2. Process Complaints
   complaints.forEach(complaint => {

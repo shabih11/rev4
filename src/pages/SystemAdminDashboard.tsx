@@ -7,6 +7,7 @@ import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
+import { AvatarStoreAdmin } from '../components/AvatarStoreAdmin';
 import { EmployeeAccountActions } from '../components/EmployeeAccountActions';
 import { MergeAccountPicker } from '../components/MergeAccountPicker';
 import { BranchEmployees } from '../components/BranchEmployees';
@@ -19,7 +20,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
-import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, GitMerge } from 'lucide-react';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, GitMerge, Store } from 'lucide-react';
 import employeeImg from '../assets/employee.png';
 import { formatTime } from '../lib/formatDate';
 import { newestFirst } from '../lib/employeeActivity';
@@ -27,7 +28,7 @@ import { newestFirst } from '../lib/employeeActivity';
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, mergeEmployees, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
-  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features'>('shifts');
+  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features' | 'avatars'>('shifts');
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
   const [globalBranch, setGlobalBranch] = useState<string>('all');
@@ -79,6 +80,7 @@ export const SystemAdminDashboard: React.FC = () => {
     { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'stats', label: 'التقييمات', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'notes', label: 'الملاحظات', icon: MessageSquareWarning, color: 'text-amber-600', activeBg: 'bg-amber-50 text-amber-700 border-r-4 border-amber-600' },
+    { id: 'avatars', label: 'متجر الأفتارات', icon: Store, color: 'text-teal-600', activeBg: 'bg-teal-50 text-teal-700 border-r-4 border-teal-600' },
     { id: 'features', label: 'الميزات الإضافية', icon: Zap, color: 'text-purple-600', activeBg: 'bg-purple-50 text-purple-700 border-r-4 border-purple-600' },
   ] as const;
 
@@ -757,6 +759,8 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
           )}
 
+
+          {activeTab === 'avatars' && <AvatarStoreAdmin />}
 
           {/* Windsor.ai Integration Tab */}
           {activeTab === 'features' && (

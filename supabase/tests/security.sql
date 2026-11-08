@@ -104,6 +104,18 @@ end $$;
 select public.save_employee_features((select data-'rounding' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
 do $$ begin if (select data->'rounding' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Legacy save reset rounding'; end if; end $$;
 select public.save_employee_features((select data||'{"rounding":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+-- Mission settings use the same admin authorization, validation and conflict guard.
+select public.save_employee_features((select data||'{"missions":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin
+ if (public.get_employee_features()#>'{settings,missions}') is distinct from 'true'::jsonb then raise exception 'Missions flag not exposed'; end if;
+ begin perform public.save_employee_features((select data||'{"missions":"true"}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'String missions accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.save_employee_features((select data||'{"missions":null}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1)); raise exception 'Null missions accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.save_employee_features((select data||'{"missions":false}' from public.employee_feature_settings where id=1),'{}'); raise exception 'Stale missions write accepted'; exception when sqlstate 'PT409' then null; end;
+end $$;
+select public.save_employee_features((select data-'missions' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin if (select data->'missions' from public.employee_feature_settings where id=1) is distinct from 'true'::jsonb then raise exception 'Legacy save reset missions'; end if; end $$;
+select public.save_employee_features((select data||'{"missions":false}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+do $$ begin if (select data->'missions' from public.employee_feature_settings where id=1) is distinct from 'false'::jsonb then raise exception 'Missions disable failed'; end if; end $$;
 do $$ begin
  begin perform public.save_employee_features('{"competition":true,"balanceGrowth":true,"tiers":true,"avatars":true,"silverAt":11,"goldAt":8}',(select data from public.employee_feature_settings where id=1)); raise exception 'Invalid thresholds accepted'; exception when invalid_parameter_value then null; end;
  begin perform public.save_employee_features((select data from public.employee_feature_settings where id=1),'{}'); raise exception 'Feature conflict accepted'; exception when sqlstate 'PT409' then null; end;

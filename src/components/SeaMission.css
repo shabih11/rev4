@@ -36,7 +36,20 @@
 .sea-map[data-light="dusk"] .sea-backdrop { filter:brightness(.62) saturate(.65); }
 .sea-map[data-light="dusk"] .sea-backdrop::after { content:""; position:absolute; inset:0; background:linear-gradient(#46446b66,#1f426b33 45%,#18355855); }
 .sea-map[data-light="night"] { --scene-brightness:.62; --scene-saturation:.72; background-color:#102646; }
-.sea-island,.sea-vessel-art { filter:brightness(var(--scene-brightness)) saturate(var(--scene-saturation)); }
+.sea-map[data-distance="distant"][data-light="soft"] .sea-backdrop { filter:brightness(.88) saturate(.87); }
+.sea-distant-water {
+  position:absolute; inset:33% 0 0; z-index:0; overflow:hidden; pointer-events:none;
+  -webkit-mask-image:linear-gradient(transparent,#000 18%);
+  mask-image:linear-gradient(transparent,#000 18%);
+}
+/* Crop away the original sky; keep the turquoise light and waves around the boats. */
+.sea-distant-water img { position:absolute; bottom:0; width:100%; height:149.25%; object-fit:fill; }
+.sea-map[data-light="dusk"] .sea-distant-water { filter:brightness(.62) saturate(.65); }
+@media (min-width:761px) {
+  .sea-map[data-distance="distant"] .sea-backdrop img { position:absolute; bottom:0; height:106.25%; }
+  .sea-map[data-distance="distant"][data-light="night"] .sea-backdrop img { height:100%; }
+}
+.sea-island { filter:brightness(var(--scene-brightness)) saturate(var(--scene-saturation)); }
 .sea-atmosphere,.sea-rain { position:absolute; inset:0; z-index:2000; pointer-events:none; }
 .sea-atmosphere { opacity:0; }
 .sea-map[data-weather="cloudy"] .sea-atmosphere { opacity:.42; background:linear-gradient(#8998adbb,transparent 35%); }
@@ -46,28 +59,34 @@
 .sea-map:is([data-weather="rain"],[data-weather="storm"]) .sea-rain { display:block; }
 .sea-map[data-weather="storm"] .sea-rain { opacity:.32; background-size:75px 140px; }
 .sea-island {
-  /* Day 15 is ten of the journey's 25 steps; hold at the center thereafter. */
+  /* Keep even the higher shoreline edges below the backdrop's water horizon. */
   --island-approach:clamp(0,calc(var(--journey-progress)*2.5),1);
-  --island-horizon:21.5%;
-  position:absolute; z-index:1; width:min(72%,940px); left:50%;
-  top:calc(var(--island-horizon) + (50% - var(--island-horizon))*var(--island-approach));
-  transform-origin:50% calc(100% - var(--island-approach)*50%);
-  transform:translate(-50%,calc(-100% + var(--island-approach)*50%)) scale(calc(.68 + var(--island-approach)*.62));
+  position:absolute; z-index:1; width:calc(108% + var(--island-approach)*32%); left:50%;
+  top:calc(38% + var(--island-approach)*2%);
+  transform:translate(-50%,-100%);
   pointer-events:none;
 }
-.sea-island img { display:block; width:100%; height:auto; }
+.sea-island img { display:block; width:100%; height:auto; max-height:45dvh; }
 .sea-fleet { list-style:none; margin:0; padding:0; }
 .sea-fleet > li {
+  --vessel-x:clamp(calc(15% + var(--berth-depth)*5%),var(--berth-x),calc(85% - var(--berth-depth)*5%));
   position:absolute; z-index:var(--berth-z); left:0; top:0; height:100%; width:100%;
-  transform:translate(var(--berth-x),var(--berth-y)); pointer-events:none;
+  transform:translate(var(--fleet-x,var(--vessel-x)),var(--fleet-y,var(--berth-y))); pointer-events:none;
+}
+.sea-map[data-rescuing="false"] .sea-fleet > li {
+  transform:translate(var(--fleet-x,var(--vessel-x)),var(--fleet-y,calc(52% + (var(--berth-y) - 65%)*1.45)));
 }
 .sea-vessel {
   position:relative; display:flex; justify-content:center; align-items:center;
-  width:min(var(--berth-width),calc(80px + var(--berth-depth)*64px)); max-width:10rem; min-height:44px;
+  width:min(var(--berth-width),calc(140px + var(--berth-depth)*60px)); max-width:13rem; min-height:44px;
   transform:translate(-50%,-75%); padding:0; border:0; background:transparent;
   color:#142b54; pointer-events:auto; cursor:pointer; border-radius:40%;
 }
 .sea-vessel-art { position:relative; display:block; width:100%; aspect-ratio:3/5; isolation:isolate; pointer-events:none; }
+.sea-vessel:not([data-scene="rescue"]) {
+  transform:translate(-50%,-100%) scale(calc(1.3*var(--fleet-fit,1)));
+  transform-origin:50% 100%;
+}
 .sea-vessel-boat {
   position:relative; z-index:1; display:block; width:100%; aspect-ratio:3/4; height:auto; object-fit:contain;
   /* Submerge the projecting rudder tip at the same waterline as the hull. */
@@ -116,17 +135,16 @@
 }
 .sea-error { align-self:flex-start; margin:1rem; padding:1rem; border-radius:.8rem; background:white; color:#9f2929; }
 @media (max-width:760px) {
-  .sea-island { --island-horizon:20.8%; }
   .recognition-header .sea-navigation { display:grid; width:100%; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.25rem; }
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
   .sea-page .recognition-header { flex-direction:column; align-items:stretch; gap:.5rem; padding:.6rem .65rem; }
-  .sea-vessel { width:min(var(--berth-width),calc(56px + var(--berth-depth)*40px)); }
+  .sea-vessel { width:min(var(--berth-width),calc(78px + var(--berth-depth)*30px)); }
   .sea-branch-name { font-size:.75rem; }
 }
 @media (prefers-reduced-motion:no-preference) {
-  .sea-island,.sea-fleet > li { transition:transform 1s ease; }
-  .sea-island { transition:top 1s ease,transform 1s ease; }
+  .sea-island { transition:transform 1s ease; }
+  .sea-island { transition:top 1s ease,width 1s ease; }
   .sea-atmosphere { transition:opacity 2s ease; }
   .sea-rain { animation:sea-rainfall .8s linear infinite; }
   .sea-map[data-weather="wind"] .sea-vessel-art { animation:sea-wind-sway 3s ease-in-out infinite alternate; }
@@ -136,9 +154,19 @@
 
 /* Wide rescue cutouts use reserved foreground slots, never the portrait boat frame. */
 .sea-map[data-rescuing="true"] { min-height:max(38rem,calc(20rem + var(--rescue-rows)*14rem)); }
-.sea-vessel[data-scene="rescue"] { width:min(var(--berth-width),18rem); max-width:none; }
+.sea-vessel[data-scene="rescue"] {
+  width:min(var(--berth-width),var(--rescue-vessel-max-width)); max-width:none;
+  transform:translate(-50%,-100%) scale(calc(.935*var(--fleet-fit,1))); transform-origin:50% 100%;
+}
 .sea-vessel[data-scene="rescue"] .sea-vessel-art { aspect-ratio:1754/897; }
 .sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-vessel-boat { aspect-ratio:auto; -webkit-mask-image:none; mask-image:none; }
 .sea-vessel[data-scene="wreck"] .sea-vessel-art { aspect-ratio:auto; }
 .sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) :is(.sea-water-contact,.sea-water-front,.sea-water-shadow) { display:none; }
 .sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-branch-name { top:100%; }
+
+.sea-admin-panel { position:fixed; bottom:1rem; left:1rem; z-index:100; width:min(25rem,calc(100% - 2rem)); padding:1rem; border:1px solid #b6d5d9; border-radius:1rem; background:#fff; color:#163e46; box-shadow:0 8px 32px #163e4633; }
+.sea-admin-panel strong { display:block; margin-bottom:.6rem; }
+.sea-admin-panel select { margin-inline-start:.5rem; padding:.4rem; border:1px solid #9ebfc4; border-radius:.5rem; }
+.sea-admin-panel p { margin:.6rem 0; font-size:.875rem; }
+.sea-admin-panel button { padding:.6rem 1rem; border-radius:.6rem; background:#146c70; color:white; }
+.sea-admin-panel button:disabled { opacity:.6; cursor:default; }

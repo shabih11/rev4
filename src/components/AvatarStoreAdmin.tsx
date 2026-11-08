@@ -1,26 +1,47 @@
 import { useState } from 'react';
+import { Settings, LockKeyhole } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 import { uploadAvatarArt } from '../lib/avatarUploads';
 import { AvatarImage } from './AvatarImage';
 import type { AvatarCollection } from '../lib/employeeFeatures';
+import { bundledAvatars, bundledAvatarPrice } from '../lib/bundledAvatars';
 const refresh = () => window.dispatchEvent(new Event('rev4-cache-changed'));
 const field = 'block mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm bg-white';
-const saudiModernAvatars = Array.from({ length: 30 }, (_, index) => String(index + 1).padStart(2, '0'));
+const amount = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 
-function BundledAvatarGallery() {
-  return <section aria-labelledby="bundled-avatar-heading" className="rounded-2xl border border-slate-200 bg-white p-5 space-y-4">
-    <div>
-      <h4 id="bundled-avatar-heading" className="font-bold text-slate-900">الذوق السعودي الحديث · {saudiModernAvatars.length} شكلًا</h4>
-      <p className="mt-1 text-sm text-slate-600">معاينة المجموعة للإدارة فقط.</p>
-    </div>
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {saudiModernAvatars.map(number => <li key={number} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
-        <img src={`${import.meta.env.BASE_URL}avatars/saudi-modern-v1/avatar-${number}.png`} alt={`أفاتار الذوق السعودي الحديث ${number}`} width={1024} height={1536} loading="lazy" decoding="async" className="h-40 w-full object-contain" />
-        <p className="mt-2 text-sm font-bold">الشكل {number}</p>
-      </li>)}
-    </ul>
-  </section>;
+const bundledCollection: AvatarCollection = {
+  id: 'bundled-saudi-modern', name: 'الذوق السعودي الحديث', price: bundledAvatarPrice, enabled: false,
+  variants: bundledAvatars.map(avatar => ({ id: avatar.id, name: avatar.name,
+    imagePath: `${import.meta.env.BASE_URL}avatars/saudi-modern-v1/${avatar.image}`,
+    enabled: false, ownerId: null, ownerName: null })),
+};
+
+function CollectionPreview({ collection, bundled = false }: { collection: AvatarCollection; bundled?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+  const image = (path: string | null, alt: string, className: string) => bundled
+    ? <img src={path || undefined} alt={alt} loading="lazy" decoding="async" className={className}/>
+    : <AvatarImage path={path} alt={alt} className={className}/>;
+  return <article className="rounded-2xl border border-slate-200 overflow-hidden">
+    <button type="button" aria-expanded={expanded} aria-controls={`admin-avatar-group-${collection.id}`} onClick={() => setExpanded(value => !value)} className="w-full text-right p-4 flex items-center gap-4 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+      {image(collection.variants[0]?.imagePath || null, '', 'h-24 w-16 object-contain shrink-0')}
+      <span className="flex-1 min-w-0"><span className="block font-bold text-lg text-slate-900 break-words">{collection.name}</span>
+        <span className="block mt-2 text-sm text-slate-600">{bundled ? `${collection.variants.length} شكلًا للمعاينة` : `${collection.variants.filter(variant => !variant.ownerId && variant.enabled && collection.enabled).length} أشكال متاحة`}</span>
+        <span className="block mt-2 text-xs text-teal-800 font-bold">{expanded ? 'إخفاء الأشكال −' : 'استكشاف الأشكال +'}</span>
+      </span>
+      <span className="text-center shrink-0 text-teal-900 font-black">{amount(collection.price)}<span className="block text-xs font-normal mt-1">{bundled ? 'سعر مقترح / شكل' : 'رصيد / شكل'}</span></span>
+    </button>
+    {expanded && <div id={`admin-avatar-group-${collection.id}`} className="border-t bg-slate-50 p-4 grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
+      {bundled && <p className="col-span-full text-sm text-slate-600">معاينة المجموعة بسعر مقترح؛ لم تُضف هذه الأشكال للبيع بعد.</p>}
+      {collection.variants.length === 0 && <p className="col-span-full text-sm text-slate-600">ستُضاف أشكال هذه المجموعة قريبًا.</p>}
+      {collection.variants.map(variant => <div key={variant.id} className="rounded-2xl border border-slate-200 p-3 bg-white space-y-3">
+        <div className="shop-art-stage">{image(variant.imagePath, variant.name, 'h-40 w-full object-contain relative z-10')}<span className="shop-art-plinth"/></div>
+        <h4 className="text-sm font-bold text-slate-900 break-words">{variant.name}</h4>
+        {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : <p className="text-xs text-slate-600">{bundled ? 'للمعاينة' : variant.enabled && collection.enabled ? 'نسخة واحدة متاحة' : 'غير معروض للبيع'}</p>}
+        <p className="rounded-xl bg-teal-50 px-2 py-3 text-center text-sm font-bold text-teal-900">{amount(collection.price)} عملات{bundled ? ' · سعر مقترح' : ''}</p>
+      </div>)}
+    </div>}
+  </article>;
 }
 
 export function AvatarStoreAdmin() {
@@ -29,10 +50,22 @@ export function AvatarStoreAdmin() {
   const [price, setPrice] = useState('5');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [settingsOpen, setSettingsOpen] = useState(false);
   if (currentAccount?.role !== 'admin') return null;
-  return <section className="space-y-5 border-t pt-6">
-    <h3 className="font-black text-xl text-slate-900">إدارة متجر الأفاتار</h3>
-    <BundledAvatarGallery />
+  return <section aria-label="إدارة متجر الأفتارات" className="space-y-5" dir="rtl">
+    <div className="avatar-shop rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-black text-2xl text-slate-900">متجر الأفتارات</h2>
+        <button type="button" aria-expanded={settingsOpen} aria-controls="avatar-store-settings" onClick={() => setSettingsOpen(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800"><Settings size={18}/>الإعدادات</button>
+      </div>
+      <div className="space-y-4">
+        {features?.store?.collections.map(collection => <CollectionPreview key={collection.id} collection={collection}/>)}
+        <CollectionPreview collection={bundledCollection} bundled/>
+      </div>
+    </div>
+    {settingsOpen && <section id="avatar-store-settings" aria-label="إعدادات متجر الأفتارات" className="space-y-5 rounded-3xl border bg-white p-5 sm:p-6">
+    <h3 className="text-xl font-black text-slate-900">إعدادات متجر الأفتارات</h3>
+    <p className="text-sm text-slate-600">تفعيل متجر الموظفات من تبويب الميزات الإضافية.</p>
     {!features?.store ? <p className="rounded-2xl border bg-white p-5 text-sm text-slate-600">تعذر تحميل المجموعات المسجلة في المتجر. تحققي من الاتصال.</p> : <>
     <p className="text-sm leading-7 text-slate-600">يُباع كل شكل مسجل مرة واحدة بسعر الأفاتار، ويظهر اسم مالكته. الصور المرفوعة ثابتة لحماية حصرية المشتريات.</p>
     <form className="grid sm:grid-cols-[1fr_9rem_auto] items-end gap-3 rounded-2xl bg-slate-50 p-4" onSubmit={async event => {
@@ -50,6 +83,7 @@ export function AvatarStoreAdmin() {
     {features.store.collections.length === 0 && <p className="rounded-xl border border-dashed p-5 text-slate-600">لا توجد مجموعات مسجلة في المتجر بعد.</p>}
     {features.store.collections.map(collection => <CollectionEditor key={`${collection.id}:${collection.name}:${collection.price}:${collection.enabled}`} collection={collection}/>)}
     </>}
+    </section>}
   </section>;
 }
 function CollectionEditor({ collection }: { collection: AvatarCollection }) {

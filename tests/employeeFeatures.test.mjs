@@ -4,6 +4,13 @@ import assert from 'node:assert/strict';
 const { defaultFeatures, employeeTier, validFeatureSettings, dailyProgress: progressAtDate, comparisonFromRecords, riyadhDay } = await import(moduleUrl('employeeFeatures'));
 const dailyProgress = (employee, employees, state, now = new Date('2026-10-24T12:00:00Z')) => progressAtDate(employee, employees, state, now);
 const enabled = { ...defaultFeatures, tiers: true };
+test('missions default to disabled and accept only optional boolean values', () => {
+  assert.equal(defaultFeatures.missions, false);
+  const { missions: _missions, ...legacy } = enabled;
+  assert.equal(validFeatureSettings(legacy), true);
+  for (const missions of [true, false]) assert.equal(validFeatureSettings({ ...legacy, missions }), true);
+  for (const missions of ['true', null, 1]) assert.equal(validFeatureSettings({ ...legacy, missions }), false);
+});
 test('tier boundaries and disabled tiers preserve bronze', () => {
   assert.equal(employeeTier(7.99, enabled), 'bronze');
   assert.equal(employeeTier(8, enabled), 'silver');

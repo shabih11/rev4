@@ -2,10 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { moduleUrl } from './helpers/typescript.mjs';
-const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaWreckVariant } = await import(moduleUrl('seaScene'));
+const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaSunGlare, seaWreckVariant, seaViewDistance } = await import(moduleUrl('seaScene'));
 const { seaMission, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const at = value => Date.parse(value + '+03:00');
+test('sun glare ends at 15:00 Riyadh without changing the existing light schedule', () => {
+  for (const [time, glare, light] of [['06:29:59', false, 'night'], ['06:30:00', true, 'sunny'],
+    ['14:59:59.999', true, 'sunny'], ['15:00:00', false, 'sunny'], ['16:59:59', false, 'sunny'],
+    ['17:00:00', false, 'soft'], ['23:00:00', false, 'dusk']]) {
+    const now = at(`2026-11-08T${time}`);
+    assert.equal(seaSunGlare(now), glare);
+    assert.equal(seaLight(now), light);
+  }
+});
 const branch = (overrides = {}) => ({ name: 'شرق', status: 'sailing', current: { count: 0, target: 2, uncertain: false }, ...overrides });
+
+test('distant scenery stays through the fifteenth and approaches at Riyadh midnight on the sixteenth', () => {
+  assert.equal(seaViewDistance(at('2026-11-08T15:00:00')), 'distant');
+  assert.equal(seaViewDistance(at('2026-11-15T23:59:59.999')), 'distant');
+  assert.equal(seaViewDistance(at('2026-11-16T00:00:00')), 'near');
+  assert.equal(seaViewDistance(at('2026-11-30T23:59:59')), 'near');
+});
 
 test('sleeping branches trail open branches toward the island, with later openings last', () => {
   for (const time of ['09:00:00', '11:00:00', '13:00:00', '14:00:00', '23:59:59']) {
@@ -240,8 +256,12 @@ test('rescue slots are separate foreground anchors for one through six simultane
     const rescues = positions.slice(0, count);
     const others = positions.slice(count);
     for (const rescue of rescues) {
-      assert.ok(others.every(other => other.y < rescue.y));
-      assert.equal(rescue.width, 44);
+      assert.ok(others.every(other => count === 1 ? other.y > rescue.y : other.y < rescue.y));
+      assert.equal(rescue.width, count === 1 ? 50 : 44);
+      if (count === 1) {
+        assert.equal(rescue.x, 68);
+        assert.equal(rescue.y, 48);
+      }
       assert.ok(rescue.x - rescue.width / 2 >= 0 && rescue.x + rescue.width / 2 <= 100);
     }
     assert.equal(new Set(rescues.map(p => `${p.x}:${p.y}`)).size, count);
