@@ -1,3 +1,4 @@
+import { BranchMilestoneBadge } from './BranchMilestoneBadge';
 import { EmployeeProgress } from './EmployeeProgress';
 import { employeeQualityPoints } from '../lib/employeeQuality';
 import { EmployeeIdentity } from './EmployeeIdentity';
@@ -224,8 +225,12 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               </div>
             ) : activeTab === 'summary' ? (
               summaryReady && !syncError ? <section className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] items-center gap-3 sm:gap-6 min-h-full text-slate-800" aria-label="ملخص بيانات الموظفة">
+                <EmployeeProgress employeeId={employee.id} />
                 <div className="min-w-0 space-y-4 text-right">
-                  <EmployeeIdentity employee={employee} showCoverageBranch={showCoverageBranch} className="items-start text-lg sm:text-2xl" />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <EmployeeIdentity employee={employee} showCoverageBranch={showCoverageBranch} className="items-start text-lg sm:text-2xl" />
+                    <BranchMilestoneBadge branch={employee.isCoverage ? undefined : employee.branch} />
+                  </div>
                   <dl className="space-y-3 text-sm">
                     <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
                     <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{roundedPoints.toFixed(1)}</button></dd></div>
@@ -240,7 +245,6 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   </dl>
                 </div>
                 <EmployeeAvatar employee={employee} className="block w-full h-[clamp(240px,38svh,360px)]" />
-                <EmployeeProgress employeeId={employee.id} />
               </section> : null
             ) : activeTab === 'points' ? (
               <div className="space-y-4">

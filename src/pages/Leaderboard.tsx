@@ -1,3 +1,7 @@
+import { SeaMissionBadge } from '../components/SeaMissionBadge';
+import { RocketLaunchBadge } from '../components/RocketLaunchBadge';
+import { SundayCoffeeBadge } from '../components/SundayCoffeeBadge';
+import { BranchMilestoneBadge } from '../components/BranchMilestoneBadge';
 import { ResultProblemReport } from '../components/ResultProblemReport';
 import { leaderboardEmployee } from '../lib/employeeBranches';
 import { useEmployeePresence } from '../hooks/useEmployeePresence';
@@ -542,6 +546,12 @@ export const Leaderboard: React.FC = () => {
                       ) : (
                         <p className="text-xs text-gray-400">لا يوجد موظفات مسجلات</p>
                       )}
+                      <div className="text-left [&>img]:mt-2">
+                        <BranchMilestoneBadge branch={branchName} />
+                        <SundayCoffeeBadge branch={branchName} />
+                        <RocketLaunchBadge branch={branchName} />
+                        <SeaMissionBadge branch={branchName} />
+                      </div>
                     </div>
                   );
                 })}
@@ -616,7 +626,7 @@ export const Leaderboard: React.FC = () => {
                   className="relative w-full max-w-2xl glass-modal-shell rounded-3xl shadow-2xl overflow-y-auto flex flex-col max-h-[90vh] md:max-h-[85vh]"
                 >
                   <div className="glass-modal-header p-4 flex justify-between items-center shrink-0">
-                    <h3 className="text-xl font-bold">{modalBranchName}</h3>
+                    <h3 className="flex flex-wrap items-center gap-2 text-xl font-bold">{modalBranchName}<BranchMilestoneBadge branch={modalBranchName} /><SundayCoffeeBadge branch={modalBranchName} /><RocketLaunchBadge branch={modalBranchName} /><SeaMissionBadge branch={modalBranchName} /></h3>
                     <button
                       onClick={() => { setShowBranchModal(false); setSelectedBranchPeriod(null); setManualBranchName(null); handleModalClose(); }}
                       aria-label="إغلاق نشاط الفرع"

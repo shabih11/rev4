@@ -1,3 +1,4 @@
+import { BranchMilestoneBadge } from '../components/BranchMilestoneBadge';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
@@ -38,7 +39,7 @@ export const EmployeeDashboard: React.FC = () => {
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
             <Brand compact />
-            <h1 className="text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={displayedEmployee}/></h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={displayedEmployee}/><BranchMilestoneBadge branch={displayedEmployee.isCoverage ? undefined : displayedEmployee.branch} /></h1>
           </div>
           <div className="flex items-center gap-2">
             <LeaderboardLink />

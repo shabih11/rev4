@@ -1,3 +1,4 @@
+import { BranchMilestoneBadge } from './BranchMilestoneBadge';
 import { EmployeeIdentity } from './EmployeeIdentity';
 import { MysteryStore } from './MysteryStore';
 import { LeaderboardLink } from './LeaderboardLink';
@@ -76,7 +77,7 @@ export const UserProfileTab: React.FC = () => {
               <Shield size={13} />
               {roleTitle}
             </div>
-            <h2 className="text-2xl font-black">{user.role === 'manager' ? user.branch : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}</h2>
+            <h2 className="flex flex-wrap items-center gap-2 text-2xl font-black">{user.role === 'manager' ? user.branch : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}{(user.role === 'manager' || (user.role === 'employee' && !user.isCoverage)) && <BranchMilestoneBadge branch={user.branch} />}</h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
               {user.username && <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">اسم المستخدم: <bdi className="select-text">{user.username}</bdi></span>}
               {user.email && (

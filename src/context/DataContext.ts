@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { useSeaCompletions } from '../hooks/useSeaCompletions';
 import type { UserAccount } from '../lib/mockData';
 import type { FeatureState } from '../lib/employeeFeatures';
 import type { RecordDemand } from '../lib/cloudReadPlan';
@@ -71,6 +72,11 @@ export interface DataContextType {
   resetTimelineToInjectedShifts: () => void;
   resetReviewsToInjected: () => void;
   reviewSummaries: ReviewSummary[];
+  seaApprovals: ReturnType<typeof useSeaCompletions>;
+  seaWinningBranches: ReadonlySet<string>;
+  rocketLaunchWinningBranches: ReadonlySet<string>;
+  sundayCoffeeWinningBranch: string | null;
+  branchesWithReviewMilestone: ReadonlySet<string>;
   recordsReady: boolean;
   summaryReady: boolean;
   summaryGeneratedAt: string;

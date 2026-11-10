@@ -28,6 +28,17 @@ for (const width of [390, 1280]) {
     await expect(modal.getByRole('region', { name: 'مستوى الموظفة' })).toContainText('85 نجمة تقدم');
     await expect(modal.getByRole('progressbar', { name: 'تقدم مستوى الموظفة' })).toHaveAttribute('aria-valuenow', '35');
     await expect(modal.getByRole('region', { name: 'إنجازات الموظفة' })).toContainText('مكتسب');
+    const harvest = modal.getByRole('region', { name: 'إنجازات الموظفة' }).locator('details').filter({ hasText: 'حصاد الشهر' });
+    await harvest.locator('summary').click();
+    await expect(harvest).toContainText('30 نجمة + 25 عملة');
+    await expect(harvest.locator('img')).toHaveAttribute('src', /ten-4\.png$/);
+    await expect.poll(() => harvest.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+    await harvest.locator('summary').click();
+    await page.clock.setFixedTime(new Date('2026-12-01T12:00:00+03:00'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await expect(harvest.locator('img')).toHaveAttribute('src', /ten-4\.png$/);
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00+03:00'));
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     const collection = modal.getByRole('region', { name: 'مجموعة أفاتارات الموظفة' });
     await expect(collection).toContainText('125 عملة');
     await expect(collection).toContainText('أفاتار مقتنى');

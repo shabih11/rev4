@@ -1,5 +1,6 @@
+import { AchievementBadge } from './AchievementBadge';
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, Flag, Star, Trophy } from 'lucide-react';
+import { ChevronDown, Flag, Trophy } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { employeeMissions, levelCost } from '../lib/employeeMissions';
 import { formatDate } from '../lib/formatDate';
@@ -49,7 +50,7 @@ export function EmployeeMissions({ employeeId }: { employeeId: string }) {
           const done = mission.current + 1e-9 >= mission.target;
           return <details key={`${state.today}-${mission.id}`} className="group py-3">
             <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-700">
-              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${done ? 'bg-emerald-100 text-emerald-700' : 'bg-cyan-50 text-cyan-800'}`} aria-hidden="true">{done ? <Check size={20} /> : <Star size={20} />}</span>
+              <AchievementBadge progress={mission.current / mission.target} missionId={mission.id}/>
               <span className="min-w-0 flex-1"><span className="block font-bold text-slate-800">{mission.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{mission.description}</span>
                 <span className={`mt-1 block text-xs font-bold ${done ? 'text-emerald-700' : 'text-cyan-800'}`}>{done ? 'مكتملة' : 'عرض المهمة'} · {number(mission.current)}/{number(mission.target)} · +{number(mission.stars)} نجمة للمستوى · +{number(mission.coins)} عملة</span></span>
               <ChevronDown aria-hidden="true" className="shrink-0 text-slate-500 group-open:rotate-180" size={18} />

@@ -3,6 +3,8 @@ import { createTimelineActions } from '../lib/timelineActions';
 import { createReviewActions } from '../lib/reviewActions';
 import { enrichEmployees } from '../lib/employeeMetrics';
 import { comparisonFromRecords } from '../lib/employeeFeatures';
+import { useSeaCompletions } from '../hooks/useSeaCompletions';
+import { seaMission } from '../lib/seaMission';
 import { useCoverageBranches } from '../hooks/useCoverageBranches';
 import { useDailyReadModel } from '../lib/dailyReadModel';
 import { supabase } from '../lib/supabase';
@@ -13,7 +15,7 @@ import employeeImg from '../assets/employee.png';
 import { stripReviewTranslation } from '../lib/windsorIntegration';
 import { useCloudSession, useCloudList } from '../lib/cloudSync';
 import { combineRecordScopes, type RecordDemand } from '../lib/cloudReadPlan';
-import { recordsThroughDate, previousMonthEnd } from '../lib/reviewPeriod';
+import { recordsThroughDate, previousMonthEnd, rocketLaunchBranches, sundayCoffeeWinner } from '../lib/reviewPeriod';
 
 import { DataContext, type CustomerReview, type ReviewSummary, type TimelineEvent } from './DataContext';
 
@@ -44,6 +46,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const userCloud = useCloudList<UserAccount>('users', readSession, daily.ready && demands.some(d => d.users) ? { all: true } : null);
   const reviewCloud = useCloudList<CustomerReview>('reviews', readSession, daily.ready ? reviewScope : null);
   const allReviewSignals = daily.data?.reviews || emptyReviews;
+  const branchesWithReviewMilestone = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    const qualified = new Set<string>();
+    for (const { branch } of allReviewSignals) {
+      const count = (counts.get(branch) ?? 0) + 1;
+      counts.set(branch, count);
+      if (count === 1000) qualified.add(branch);
+    }
+    return qualified;
+  }, [allReviewSignals]);
+  const seaApprovals = useSeaCompletions(session.account?.id);
+  const { completions, ready: seaApprovalsReady } = seaApprovals;
+  const seaWinningBranches = React.useMemo(() => {
+    if (!seaApprovalsReady) return new Set<string>();
+    const mission = seaMission(allReviewSignals, Date.now(), completions);
+    return new Set(mission.finished ? mission.branches.filter(branch => branch.status === 'arrived').map(branch => branch.name) : []);
+  }, [allReviewSignals, completions, seaApprovalsReady]);
+  const rocketLaunchWinningBranches = React.useMemo(() => rocketLaunchBranches(allReviewSignals, today), [allReviewSignals, today]);
+  const sundayCoffeeWinningBranch = React.useMemo(() => sundayCoffeeWinner(allReviewSignals), [allReviewSignals]);
   const allNoteSignals = daily.data?.notes || emptyTimeline;
   const reviewSignals = { rows: React.useMemo(() => resultsMode ? recordsThroughDate(allReviewSignals, resultsDate) : allReviewSignals, [allReviewSignals, resultsMode, resultsDate]) };
   const noteSignals = { rows: React.useMemo(() => resultsMode ? recordsThroughDate(allNoteSignals, resultsDate) : allNoteSignals, [allNoteSignals, resultsMode, resultsDate]) };
@@ -123,6 +144,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
+      seaApprovals, seaWinningBranches,
+      rocketLaunchWinningBranches,
+      sundayCoffeeWinningBranch,
+      branchesWithReviewMilestone,
       reviewSummaries: reviewSignals.rows, recordsReady: (Boolean(reviewScope || timelineScope) || demands.some(d => d.users)) && userCloud.ready && reviewCloud.ready && timelineCloud.ready,
       summaryReady: Boolean(daily.data), summaryGeneratedAt: daily.data?.generatedAt || '', employeeHours: resultsMode ? {} : daily.data?.hours || {},
       currentAccount: session.account, authReady: session.ready, syncStatus, syncError
