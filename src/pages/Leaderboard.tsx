@@ -70,6 +70,9 @@ export const Leaderboard: React.FC = () => {
   const allEmployeesSorted = useMemo(() => {
     return users.filter(u => u.role === 'employee').sort(monthlyEmployeeOrder);
   }, [users]);
+  const listedEmployees = currentAccount?.role === 'admin'
+    ? allEmployeesSorted
+    : allEmployeesSorted.filter(employee => (employee.monthReviewsCount ?? 0) !== 0);
   const rewardSummary = useMemo(() => features ? calculateEmployeeRewards(allEmployeesSorted, features.settings.rounding === true) : null, [allEmployeesSorted, features]);
 
   const [praisePeriod, setPraisePeriod] = useState(() => praiseCycle());
@@ -440,7 +443,7 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {allEmployeesSorted.map((emp, idx) => (
+                {listedEmployees.map((emp, idx) => (
                   <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
                       <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />

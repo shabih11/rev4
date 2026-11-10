@@ -8,20 +8,46 @@ export function SimulationBar() {
   const simulation = useSyncExternalStore(subscribeSimulation, simulationSnapshot);
   const [targets, setTargets] = useState<UserAccount[]>([]);
   const [selected, setSelected] = useState('');
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   useEffect(() => {
-    if (!simulation && user?.role !== 'admin') return;
+    if (simulation || user?.role !== 'admin') return;
+    let active = true;
+    void supabase.rpc('get_simulation_enabled').then(({ data, error }) => {
+      if (!active) return;
+      setEnabled(error ? null : data === true);
+      if (error) setError('تعذر تحميل إعداد المحاكاة.');
+    });
+    return () => { active = false; };
+  }, [simulation, user?.role, user?.id]);
+  useEffect(() => {
+    if (!simulation && (!enabled || user?.role !== 'admin')) return;
     let active = true;
     void supabase.rpc('simulation_targets').then(({ data, error }) => {
       if (!active) return;
-      if (error) setError('المحاكاة غير متاحة حاليًا؛ يلزم تفعيلها على الخادم.');
+      if (error) {
+        setTargets([]);
+        setSelected('');
+        setError('تعذر تحميل الحسابات المتاحة للمحاكاة.');
+      }
       else setTargets(data || []);
     });
     return () => { active = false; };
-  }, [simulation, user?.role]);
+  }, [enabled, simulation, user?.role, user?.id]);
   if (!simulation && user?.role !== 'admin') return null;
+  const changeEnabled = async (next: boolean) => {
+    setBusy(true); setError('');
+    try {
+      const { error } = await supabase.rpc('set_simulation_enabled', { new_enabled: next });
+      if (error) throw error;
+      setEnabled(next);
+      setTargets([]);
+      setSelected('');
+    } catch { setError('تعذر حفظ إعداد المحاكاة.'); }
+    finally { setBusy(false); }
+  };
   const start = async () => {
-    if ((!user && !simulation) || !selected || busy) return;
+    if ((!simulation && (!enabled || !user)) || !selected || busy) return;
     setBusy(true); setError('');
     try {
       const { data, error } = await supabase.rpc('start_simulation', { target_profile: selected });
@@ -53,6 +79,12 @@ export function SimulationBar() {
       </label>
       <button disabled={busy} onClick={() => void stop()} className="rounded-lg border border-amber-700 px-4 py-2 font-bold disabled:opacity-50">العودة إلى المسؤول</button>
     </div> : <div className="flex flex-wrap items-center gap-3">
+      <label className="flex items-center gap-2 font-bold">
+        <input type="checkbox" className="accent-amber-900" checked={enabled === true}
+          disabled={busy || enabled === null} onChange={event => void changeEnabled(event.target.checked)} />
+        تفعيل المحاكاة
+      </label>
+      {enabled && <>
       <label htmlFor="simulation-target" className="font-bold">عرض كما تظهر للحساب</label>
       <select id="simulation-target" value={selected} onChange={event => setSelected(event.target.value)} disabled={busy} className="max-w-full rounded-lg border border-amber-300 bg-white p-2">
         <option value="">اختاري موظفة أو مديرة فرع</option>
@@ -60,6 +92,7 @@ export function SimulationBar() {
       </select>
       <button onClick={() => void start()} disabled={!selected || busy} className="rounded-lg bg-amber-900 px-4 py-2 text-white disabled:opacity-40">بدء المحاكاة</button>
       <span>للقراءة فقط · العودة والتبديل دون تسجيل خروج</span>
+      </>}
     </div>}
     {error && <p role="alert" className="mt-2">{error}</p>}
   </aside>;

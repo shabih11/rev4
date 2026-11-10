@@ -15,6 +15,9 @@ insert into public.user_access(uid,profile_id,role,branch) values
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated","session_id":"sim-auth-session"}',true);
 do $$ declare started jsonb; sid uuid; result jsonb; begin
+ if public.get_simulation_enabled() then raise exception 'Simulation enabled by default'; end if;
+ begin perform public.start_simulation('sim-employee'); raise exception 'Disabled simulation started'; exception when insufficient_privilege then null; end;
+ perform public.set_simulation_enabled(true);
  started:=public.start_simulation('sim-employee'); sid:=(started->>'id')::uuid;
  perform set_config('test.simulation',sid::text,true);
  result:=public.simulation_read(sid,'get_my_account');
@@ -44,6 +47,7 @@ do $$ begin
 end $$;
 select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000002","role":"authenticated","session_id":"sim-auth-session"}',true);
 do $$ begin
+ begin perform public.set_simulation_enabled(false); raise exception 'Employee changed simulation setting'; exception when insufficient_privilege then null; end;
  begin perform public.start_simulation('sim-manager'); raise exception 'Employee simulation allowed'; exception when insufficient_privilege then null; end;
  begin perform public.simulation_read(current_setting('test.simulation')::uuid,'get_my_account'); raise exception 'Other actor allowed'; exception when insufficient_privilege then null; end;
  begin perform 1 from private.admin_simulations; raise exception 'Audit exposed'; exception when insufficient_privilege then null; end;
@@ -64,6 +68,13 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"30000000-0000-4000-8000-000000000001","role":"authenticated","session_id":"sim-auth-session"}',true);
 do $$ begin
  begin perform public.simulation_read(current_setting('test.simulation')::uuid,'get_my_account'); raise exception 'Expired simulation allowed'; exception when insufficient_privilege then null; end;
+end $$;
+do $$ declare sid uuid; begin
+ sid:=(public.start_simulation('sim-employee')->>'id')::uuid;
+ perform public.set_simulation_enabled(false);
+ begin perform public.simulation_read(sid,'get_my_account'); raise exception 'Disabled simulation read allowed'; exception when insufficient_privilege then null; end;
+ perform public.set_simulation_enabled(true);
+ begin perform public.simulation_read(sid,'get_my_account'); raise exception 'Revoked simulation restored'; exception when insufficient_privilege then null; end;
 end $$;
 reset role;
 do $$ begin

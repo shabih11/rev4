@@ -3,12 +3,15 @@ import { test, expect, mockService, login, employee } from './fixtures.js';
 test('admin simulates employee and manager, blocks writes and presence, and returns without logout', async ({ page }) => {
   const service = await mockService(page);
   const manager = { ...employee, id: 'test-manager-target', role: 'manager', name: 'مديرة اختبار' };
+  let enabled = false;
   let target = employee, activeId = '', counter = 0;
   const reads: string[] = [], control: string[] = [];
   await page.route(/\/rest\/v1\/rpc\/[^/]*simulation[^/?]*(\?.*)?$/, async route => {
     const request = route.request(), name = new URL(request.url()).pathname.split('/').pop();
     const args = request.postDataJSON() || {};
     const reply = (json: unknown, status = 200) => route.fulfill({ status, json });
+    if (name === 'get_simulation_enabled') return reply(enabled);
+    if (name === 'set_simulation_enabled') { enabled = args.new_enabled; return reply(null); }
     if (name === 'simulation_targets') return reply([employee, manager]);
     if (name === 'start_simulation') {
       target = args.target_profile === manager.id ? manager : employee;
@@ -32,6 +35,10 @@ test('admin simulates employee and manager, blocks writes and presence, and retu
   });
   await login(page);
   const bar = page.getByRole('complementary', { name: 'محاكاة الحسابات' });
+  await expect(bar.getByRole('button', { name: 'بدء المحاكاة' })).toHaveCount(0);
+  const toggle = bar.getByRole('checkbox', { name: 'تفعيل المحاكاة' });
+  await toggle.click();
+  await expect(toggle).toBeChecked();
   await bar.getByLabel('عرض كما تظهر للحساب').selectOption(employee.id);
   await bar.getByRole('button', { name: 'بدء المحاكاة', exact: true }).click();
   await expect(bar).toContainText('محاكاة للقراءة فقط: موظفة اختبار');
@@ -56,6 +63,9 @@ test('admin simulates employee and manager, blocks writes and presence, and retu
   await expect(bar).toContainText('محاكاة للقراءة فقط');
   await page.getByRole('button', { name: 'تسجيل الخروج', exact: true }).click();
   await expect(bar.getByRole('button', { name: 'بدء المحاكاة' })).toBeVisible();
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+  await expect(bar.getByRole('button', { name: 'بدء المحاكاة' })).toHaveCount(0);
   expect(control).toEqual(['start', 'start', 'stop', 'start', 'stop']);
   expect(reads).not.toContain('record_employee_page_presence');
   expect(service.writes).toEqual([]);

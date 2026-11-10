@@ -1,6 +1,6 @@
 -- Isolated local / CI test; all settings and accounts roll back.
 begin;
-insert into public.profiles(id,data) values('badges-admin','{"id":"badges-admin","name":"Badge test","role":"admin"}');
+insert into public.profiles(id,data) values('badges-admin','{"id":"badges-admin","name":"Badge test","role":"admin","branch":""}');
 insert into auth.users(id,email) values('22000000-0000-4000-8000-000000000001','badges-admin@example.invalid');
 insert into public.user_access(uid,profile_id,role,branch) values('22000000-0000-4000-8000-000000000001','badges-admin','admin',null);
 select set_config('request.jwt.claims','{"sub":"22000000-0000-4000-8000-000000000001","role":"authenticated"}',true);

@@ -36,6 +36,7 @@ export async function mockService(page: Page, { role = 'admin', denied = false, 
     if (url.pathname === '/rest/v1/app_state') return reply({ version: 1 });
     const name = url.pathname.split('/rpc/')[1];
     const args = request.postDataJSON() || {};
+    if (name === 'get_simulation_enabled') return reply(false);
     if (name === 'simulation_targets') return reply([]);
     if (name === 'get_my_account') return denied ? reply({ code: '42501', message: 'Membership required' }, 403) : reply(account);
     if (name === 'get_read_model') return reply({ generatedAt: '2026-11-04T12:00:00+03:00', directory, reviews: [], notes: [], hours: {}, disabledEmployeeIds: [] });
