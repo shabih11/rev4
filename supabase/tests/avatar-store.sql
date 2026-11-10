@@ -14,16 +14,17 @@ insert into public.reviews(id,data) select 'shop-test-review-'||n,jsonb_build_ob
 do $$ declare stars integer; expected integer; begin
  for stars in 1..5 loop
   update public.reviews set data=jsonb_set(data,'{rating}',to_jsonb(stars::text)) where id='shop-test-review-1';
-  expected:=case when stars>=3 then stars else 0 end;
+  expected:=case when stars>=4 then 5 else 0 end;
   if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>expected then raise exception 'Star currency mismatch'; end if;
  end loop;
  update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a","shop-test-b"]') where id='shop-test-review-1';
  if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>5 or (private.avatar_wallet('shop-test-b')->>'earned')::numeric<>5 then raise exception 'Shared stars incorrectly divided'; end if;
  update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a"]') where id='shop-test-review-1';
 end $$;
+update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb where id in ('shop-test-a','shop-test-b','shop-test-duplicate');
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select public.save_employee_features((select data||'{"avatars":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
+select public.save_employee_features((select data||'{"avatars":true,"tiers":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
 select set_config('shop.collection',public.save_avatar_collection(null,'Shop test',2,true)::text,true);
 insert into storage.objects(bucket_id,name,metadata) select 'avatar-store',path,'{"mimetype":"image/webp"}'::jsonb from (values
  ('10000000-0000-4000-8000-000000000011.webp'),('10000000-0000-4000-8000-000000000012.webp'),('10000000-0000-4000-8000-000000000013.webp'),('10000000-0000-4000-8000-000000000014.webp')) f(path);
@@ -53,6 +54,16 @@ do $$ begin
  begin insert into public.avatar_purchases(variant_id,profile_id,price_paid) values(current_setting('shop.v1')::uuid,'shop-test-a',0); raise exception 'Direct purchase bypass'; exception when insufficient_privilege then null; end;
  begin insert into storage.objects(bucket_id,name) values('avatar-store','10000000-0000-4000-8000-000000000099.webp'); raise exception 'Employee uploads artwork'; exception when insufficient_privilege then null; end;
 end $$;
+-- A funded bronze employee must be rejected by SQL, regardless of client controls.
+reset role;
+update public.profiles set data=data||'{"manualStats":{"positive":0}}'::jsonb where id='shop-test-a';
+set local role authenticated;
+do $$ begin
+ begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,2); raise exception 'Bronze employee purchased an avatar'; exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb where id='shop-test-a';
+set local role authenticated;
 select public.purchase_avatar(current_setting('shop.v1')::uuid,2);
 select public.purchase_avatar(current_setting('shop.v2')::uuid,2);
 do $$ begin

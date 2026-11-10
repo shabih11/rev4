@@ -1,3 +1,4 @@
+import { EmployeeProgress } from './EmployeeProgress';
 import { employeeQualityPoints } from '../lib/employeeQuality';
 import { EmployeeIdentity } from './EmployeeIdentity';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
@@ -239,6 +240,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                   </dl>
                 </div>
                 <EmployeeAvatar employee={employee} className="block w-full h-[clamp(240px,38svh,360px)]" />
+                <EmployeeProgress employeeId={employee.id} />
               </section> : null
             ) : activeTab === 'points' ? (
               <div className="space-y-4">

@@ -3,6 +3,7 @@ import { ShoppingBag, Check, LockKeyhole, Wallet } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { supabase } from '../lib/supabase';
 import type { UserAccount } from '../lib/mockData';
+import { employeeTier } from '../lib/employeeFeatures';
 import type { AvatarCollection, AvatarVariant } from '../lib/employeeFeatures';
 import { AvatarImage } from './AvatarImage';
 import { EmployeeAvatar } from './EmployeeFeatures';
@@ -17,6 +18,7 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   const store = features.store;
   if (!store || !store.wallet) return <section className="rounded-2xl border bg-white p-6"><h3 className="font-bold">متجر الأفاتار</h3><p role="status" className="mt-2 text-sm text-slate-600">المتجر غير متاح حاليًا. تحققي من الاتصال.</p></section>;
   const wallet = store.wallet;
+  const canPurchase = employeeTier(employee.points, features.settings) !== 'bronze';
   async function equip(variant: string | null) {
     if (busy) return; setBusy(true); setMessage('');
     try {
@@ -29,6 +31,8 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   return <section className="avatar-shop rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-6">
     <div className="flex items-center gap-4"><EmployeeAvatar employee={employee} className="h-28 w-20 shrink-0"/><div><h3 className="text-2xl font-black text-slate-900 mt-1">متجر الأفاتار</h3></div></div>
     <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="flex items-center gap-2 font-bold text-teal-950"><Wallet size={18}/>رصيد المتجر</p><p className="text-2xl font-black text-teal-900">{amount(wallet.available)} <span className="text-xs">عملة</span></p></div></div>
+    <p className="text-xs leading-6 text-slate-600">5 عملات لكل تقييم إيجابي منذ أول تقييم مستورد، إضافة إلى مكافآت المهام. الشراء للفضية فأعلى؛ تبقى مقتنياتك متاحة للاستخدام عند تغير الفئة.</p>
+    {!canPurchase && <p role="status" className="text-sm font-bold text-amber-800">الشراء متاح للفئة الفضية فأعلى. يمكنكِ مواصلة جمع العملات.</p>}
     <button type="button" disabled={busy || !store.selectedVariant} onClick={() => void equip(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 disabled:opacity-50">استخدام الأفاتار الافتراضي</button>
     {message && <p role="status" className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-900">{message}</p>}
     {store.collections.length === 0 && <p className="rounded-2xl border border-dashed p-6 text-center text-slate-600">لا توجد أفاتارات متاحة حاليًا.</p>}
@@ -46,7 +50,7 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
             <div className="shop-art-stage"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/><span className="shop-art-plinth"/></div>
             <h4 className="text-sm font-bold text-slate-900 break-words">{variant.name}</h4>
             {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : <p className="text-xs text-slate-600">{unavailable ? 'غير معروض للبيع' : 'نسخة واحدة متاحة'}</p>}
-            {owned ? <button type="button" disabled={busy || selected} onClick={() => void equip(variant.id)} className="w-full rounded-xl border border-teal-300 bg-teal-50 px-2 py-3 text-xs font-bold text-teal-900 disabled:opacity-60">{selected ? <span className="inline-flex items-center gap-1"><Check size={14}/>الأفاتار الحالي</span> : 'استخدام هذا الشكل'}</button> : <button type="button" disabled={busy || unavailable || wallet.available < collection.price} onClick={() => setPending({ collection, variant })} className="w-full rounded-xl bg-slate-900 text-white px-2 py-3 text-xs font-bold disabled:bg-slate-100 disabled:text-slate-500">{unavailable ? 'محجوز' : wallet.available < collection.price ? 'الرصيد غير كافٍ' : `اقتناء بـ ${amount(collection.price)}`}</button>}
+            {owned ? <button type="button" disabled={busy || selected} onClick={() => void equip(variant.id)} className="w-full rounded-xl border border-teal-300 bg-teal-50 px-2 py-3 text-xs font-bold text-teal-900 disabled:opacity-60">{selected ? <span className="inline-flex items-center gap-1"><Check size={14}/>الأفاتار الحالي</span> : 'استخدام هذا الشكل'}</button> : <button type="button" disabled={busy || !canPurchase || unavailable || wallet.available < collection.price} onClick={() => setPending({ collection, variant })} className="w-full rounded-xl bg-slate-900 text-white px-2 py-3 text-xs font-bold disabled:bg-slate-100 disabled:text-slate-500">{unavailable ? 'محجوز' : !canPurchase ? 'للفضية فأعلى' : wallet.available < collection.price ? 'الرصيد غير كافٍ' : `اقتناء بـ ${amount(collection.price)}`}</button>}
           </div>;
         })}
       </div>}

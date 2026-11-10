@@ -1,5 +1,5 @@
 // Display metadata for the bundled preview; prices are not published to the store.
-export const bundledAvatarPrice = 5;
+export const bundledAvatarPrice = 300;
 export const bundledAvatars = [
   {
     "id": "saudi-modern-01",

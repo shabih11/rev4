@@ -47,7 +47,7 @@ function CollectionPreview({ collection, bundled = false }: { collection: Avatar
 export function AvatarStoreAdmin() {
   const { features, currentAccount } = useData();
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('5');
+  const [price, setPrice] = useState('300');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);

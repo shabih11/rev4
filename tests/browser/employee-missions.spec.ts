@@ -19,8 +19,8 @@ test('review missions display level, shared effort rewards and reset daily progr
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
   const missions = page.getByRole('region', { name: 'رحلة الإنجاز' });
-  await expect(missions.getByText('المستوى 2', { exact: true })).toBeVisible();
-  await expect(missions.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '4');
+  await expect(missions.getByText('المستوى 1', { exact: true })).toBeVisible();
+  await expect(missions.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '30');
   const pair = missions.locator('details').filter({ has: page.locator('summary', { hasText: 'ثنائي متألق' }) });
   await expect(pair.locator('summary')).toContainText('مكتملة');
   await pair.locator('summary').click();
@@ -28,14 +28,14 @@ test('review missions display level, shared effort rewards and reset daily progr
   await expect(missions.getByText('جاهزة للانطلاق')).toHaveCount(0);
   await expect(missions.getByText('امحي أثر تقييم سلبي', { exact: true })).toHaveCount(0);
   await missions.getByText('كيف تُحسب المستويات والمكافآت؟', { exact: true }).click();
-  await expect(missions.getByRole('table')).toContainText('1,664');
+  await expect(missions.getByRole('table')).toContainText('50');
   await page.screenshot({ path: test.info().outputPath('employee-missions-mobile.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: test.info().outputPath('employee-missions-desktop.png'), fullPage: true });
   await page.clock.setFixedTime(new Date('2026-11-05T00:01:00+03:00'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(missions.getByText('مجموعك 9 نجمة', { exact: false })).toBeVisible();
+  await expect(missions.getByText('مجموعك 30 نجمة', { exact: false })).toBeVisible();
   const daily = missions.locator('summary').filter({ hasText: 'أثران في يوم واحد' });
   await expect(daily).toContainText('0/2');
   await expect(pair.locator('summary')).toContainText('مكتملة');
@@ -52,7 +52,7 @@ test('an imported negative exposes recovery with actual surplus-share progress',
   await login(page);
   const recovery = page.getByRole('region', { name: 'رحلة الإنجاز' }).locator('summary').filter({ hasText: 'امحي أثر تقييم سلبي' });
   await expect(recovery).toContainText('3/4');
-  await expect(recovery).toContainText('+8 نجمة للمستوى');
+  await expect(recovery).toContainText('+25 نجمة للمستوى');
   await expect(recovery).not.toContainText('مكتملة');
   expect(service.unexpected).toEqual([]);
 });
