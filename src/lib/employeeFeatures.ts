@@ -6,6 +6,7 @@ export interface FeatureSettings {
   avatars: boolean;
   rounding?: boolean;
   missions?: boolean;
+  branchBadges?: boolean;
   silverAt: number;
   goldAt: number;
 }
@@ -17,7 +18,7 @@ export interface FeatureState {
   comparisonSource?: 'records' | 'snapshot';
   store?: AvatarStoreState | null;
 }
-export const defaultFeatures: FeatureSettings = { competition: false, balanceGrowth: false, tiers: false, avatars: false, rounding: false, missions: false, silverAt: 8, goldAt: 11 };
+export const defaultFeatures: FeatureSettings = { competition: false, balanceGrowth: false, tiers: false, avatars: false, rounding: false, missions: false, branchBadges: false, silverAt: 8, goldAt: 11 };
 export function employeeTier(points: number, settings: FeatureSettings): Tier {
   if (!settings.tiers || !Number.isFinite(points) || points < 8) return 'bronze';
   return points >= settings.goldAt ? 'gold' : points >= settings.silverAt ? 'silver' : 'bronze';
@@ -26,6 +27,7 @@ export function validFeatureSettings(value: FeatureSettings) {
   return ['competition', 'balanceGrowth', 'tiers', 'avatars'].every(key => typeof value[key as keyof FeatureSettings] === 'boolean') &&
     (value.rounding === undefined || typeof value.rounding === 'boolean') &&
     (value.missions === undefined || typeof value.missions === 'boolean') &&
+    (value.branchBadges === undefined || typeof value.branchBadges === 'boolean') &&
     Number.isFinite(value.silverAt) && Number.isFinite(value.goldAt) && value.silverAt > 0 && value.silverAt < value.goldAt && value.goldAt <= 11;
 }
 export interface AvatarVariant {

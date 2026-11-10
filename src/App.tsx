@@ -1,3 +1,4 @@
+import { SimulationBar } from './components/SimulationBar';
 import { lazy, Suspense } from 'react';
 import { PageLoading } from './components/Brand';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -8,6 +9,7 @@ import { useData } from './context/DataContext';
 import { useAuth } from './context/AuthContext';
 import { AccountSetup } from './components/AccountSetup';
 import { requireAccountSetup } from './lib/accountSetupConfig';
+import { useUsageAnalytics } from './hooks/useUsageAnalytics';
 import { usePagePresence } from './hooks/usePagePresence';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -21,9 +23,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function App() {
   const { syncError, currentAccount, resultsMode, resultsDate } = useData();
   usePagePresence(currentAccount);
+  useUsageAnalytics(currentAccount?.id);
   const periodKey = resultsMode ? resultsDate.toISOString() : 'current';
   return (
     <div>
+    <SimulationBar />
     {currentAccount && syncError && <div role="alert" dir="rtl" className={`px-4 py-2 text-sm text-center ${syncError ? "bg-red-100 text-red-900" : "bg-emerald-50 text-emerald-900"}`}>{syncError}</div>}
     <HashRouter>
       <Suspense fallback={<PageLoading />}><Routes>

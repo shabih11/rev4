@@ -31,8 +31,8 @@ const secondShoeVariants = [
 const bundledCollections: AvatarCollection[] = bundledAvatarShoes.map((shoe, index) => {
   const number = String(index + 1).padStart(2, '0');
   const id = `bundled-shoe-${number}`;
-  const variants = index === 0 ? firstShoeVariants : index === 1 ? secondShoeVariants : (index < 23 ? ['a', 'b', 'c', 'd', 'e', 'f'] : ['a', 'b', 'c']).map((variant, position) => [variant, `العباءة ${position + 1}`]);
-  const directory = index === 0 ? 'saudi-abaya-nike-v2k-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : index < 23 ? 'saudi-dark-v1' : 'saudi-modern-abaya-v1';
+  const variants = index === 0 ? firstShoeVariants : index === 1 ? secondShoeVariants : ['a', 'b', 'c', 'd', 'e', 'f'].map((variant, position) => [variant, `العباءة ${position + 1}`]);
+  const directory = index === 0 ? 'saudi-abaya-nike-v2k-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : 'saudi-dark-v1';
   return {
     id, name: shoe, price: bundledAvatarPrice, enabled: false,
     variants: variants.map(([variant, name], position) => ({
@@ -72,7 +72,7 @@ function ShoeBundleCatalog() {
   return <section aria-labelledby="bundled-shoes-heading" className="space-y-4">
     <div>
       <h3 id="bundled-shoes-heading" className="text-lg font-bold text-slate-900">باقات الأحذية</h3>
-      <p className="mt-1 text-sm text-slate-600">{bundledCollections.length} باقة. اكتملت أول 23 باقة بست عبايات ونقابات سعودية لكل حذاء للمعاينة، وتبقى 7 باقات قيد الاستكمال.</p>
+      <p className="mt-1 text-sm text-slate-600">{bundledCollections.length} باقة. لكل حذاء ست عبايات ونقابات سعودية بأسماء خاصة، للمعاينة الإدارية.</p>
     </div>
     <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
       {bundledCollections.map(collection => <li key={collection.id} className="min-w-0">

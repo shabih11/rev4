@@ -48,7 +48,7 @@ export function MissingShiftRequest({ currentMonthOnly = false }: { currentMonth
         const assigned = shifts.rows.filter(s => s.date === selected && ((timeMinutes(s.time) ?? 0) < 960) === (slot === 'first')).flatMap(s => s.employees || []);
         const already = assigned.some(e => e.id === user.id);
         const pending = requests.some(r => r.date === selected && r.requestedShift === slot && r.requestStatus !== 'rejected');
-        return <div key={slot} className="border-t py-3"><strong>الشفت {slot === 'first' ? 'الأول' : 'الثاني'}</strong><p className="my-2">{assigned.map(e => e.name).join('، ') || 'لا توجد موظفات مسجلات'}</p><button disabled={!canRequestShift(selected) || already || pending || !recordsReady || !!syncError} className="action-primary" onClick={() => {
+        return <div key={slot} className="border-t py-3"><strong>الشفت {slot === 'first' ? 'الأول' : 'الثاني'}</strong><p className="my-2">{assigned.map(e => e.name).join('، ') || 'لا توجد موظفات مسجلات'}</p><button data-usage-action="submit_request" disabled={!canRequestShift(selected) || already || pending || !recordsReady || !!syncError} className="action-primary" onClick={() => {
           if (!canRequestShift(selected)) { setMessage('التذكير متاح لاخر ثلاثة ايام فقط'); return; }
           addTimelineEvent({ branch: user.branch, type: 'gap', title: `طلب تسجيل شفت مفقود - ${user.name}`, date: selected, time: slot === 'first' ? '10:00' : '16:00', employees: [{ id: user.id, name: user.name }], requestedShift: slot, requestStatus: 'pending' });
           setMessage('أُضيف الطلب للمزامنة مع مديرة الفرع');

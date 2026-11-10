@@ -51,7 +51,7 @@ import salam_celebrate from '../assets/sea/scenarios/salam-celebrate.webp';
 import salam_distress from '../assets/sea/scenarios/salam-distress.webp';
 import qasr_sleep from '../assets/sea/scenarios/qasr-sleep.webp';
 import qasr_coffee from '../assets/sea/scenarios/qasr-coffee.webp';
-import qasr_adventure from '../assets/sea/scenarios/qasr-adventure.webp';
+import qasr_adventure from '../assets/sea/scenarios/qasr-adventure-corrected.png';
 import qasr_halfway from '../assets/sea/scenarios/qasr-halfway.webp';
 import qasr_celebrate from '../assets/sea/scenarios/qasr-celebrate.webp';
 import qasr_distress from '../assets/sea/scenarios/qasr-distress.webp';

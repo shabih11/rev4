@@ -1,4 +1,5 @@
 import type React from 'react';
+import { simulationSnapshot, setSimulation } from '../lib/simulationState';
 import { AuthContext } from './AuthContext';
 import { requireAccountSetup } from '../lib/accountSetupConfig';
 import { supabase } from '../lib/supabase';
@@ -10,6 +11,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const directoryEntry = users.find(account => account.id === currentAccount?.id);
   const user = currentAccount ? { ...currentAccount, ...directoryEntry, role: currentAccount.role, branch: currentAccount.branch, email: currentAccount.email, username: currentAccount.username, mustSetUsername: currentAccount.mustSetUsername, mustChangePassword: currentAccount.mustChangePassword } : null;
   const login = async (email: string, password: string) => {
+    if (simulationSnapshot()) return { success: false, error: 'عودي إلى حساب المسؤول قبل تسجيل دخول آخر.' };
     try {
       const identifier = normalizeLoginEmail(email);
       let accessToken = '';
@@ -33,6 +35,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (accessError === 'denied') await supabase.auth.signOut({ scope: 'local' });
         return { success: false, error: accountAccessMessages[accessError] };
       }
+      // A failed analytics request must never block authentication.
+      void supabase.rpc('record_usage_login').then(() => {}, () => {});
       return { success: true };
     } catch (error) {
       const code = error && typeof error === 'object' && 'code' in error ? String(error.code) : '';
@@ -40,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const completeAccountSetup = async (username: string, password?: string) => {
+    if (simulationSnapshot()) return { success: false, error: 'المحاكاة للقراءة فقط.' };
     if (!user || !requireAccountSetup) return { success: false, error: 'إعداد بيانات الدخول غير متاح في هذه النسخة' };
     try {
       const { data, error } = await supabase.functions.invoke('account-setup', { body: { username, ...(password !== undefined ? { password: normalizeLoginPassword(password) } : {}) } });
@@ -63,7 +68,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { error } = await supabase.rpc('rename_me', { new_name: name, previous_name: user.name });
     return error ? { success: false, error: 'لم يُحفظ الاسم. تحققي من الاتصال أو حدّثي البيانات بعد تعارض التعديل.' } : { success: true };
   };
-  const logout = async () => { const { error } = await supabase.auth.signOut({ scope: 'local' }); if (error) throw error; };
+  const logout = async () => {
+    const simulation = simulationSnapshot();
+    if (simulation) {
+      const { error } = await supabase.rpc('stop_simulation', { simulation_id: simulation.id });
+      if (error) throw error;
+      setSimulation(null); window.location.hash = '/dashboard';
+      return;
+    }
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    if (error) throw error;
+  };
   const changePassword = async (newPass: string): Promise<{ success: boolean; error?: string }> => {
     try {
       if (!user || user.role !== 'admin') return { success: false, error: 'تغيير كلمة المرور متاح للإدارة العامة فقط' };

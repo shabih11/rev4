@@ -1,3 +1,4 @@
+import { simulationSnapshot } from './simulationState';
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase';
 import { getMyAccount, accountAccessMessages } from './accountAccess';
@@ -98,7 +99,7 @@ export function useCloudList<T extends { id: string }>(name: Source, session: Cl
   }, [key, argsKey, name, enabled, identity, retry, accountRole]);
   const ready = !enabled || (state.key === key && state.ready);
   const change = (action: React.SetStateAction<T[]>) => {
-    if (session.account?.role === 'viewer') { setWriteError('هذا الحساب مخصص للعرض فقط'); return; }
+    if (simulationSnapshot() || session.account?.role === 'viewer') { setWriteError('هذا الحساب مخصص للعرض فقط'); return; }
     if (!ready || !session.account || !enabled || name === 'profiles') { setWriteError('انتظري اكتمال تحميل البيانات قبل التعديل'); return; }
     const before = latest.current, after = typeof action === 'function' ? action(before) : action;
     let changes;

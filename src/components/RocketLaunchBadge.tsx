@@ -1,8 +1,8 @@
 import { useData } from '../context/DataContext';
 
 export function RocketLaunchBadge({ branch }: { branch?: string }) {
-  const { rocketLaunchWinningBranches } = useData();
-  if (!branch || !rocketLaunchWinningBranches.has(branch)) return null;
+  const { features, rocketLaunchWinningBranches } = useData();
+  if (!features?.settings.branchBadges || !branch || !rocketLaunchWinningBranches.has(branch)) return null;
 
   return (
     <img

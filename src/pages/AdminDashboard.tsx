@@ -1,3 +1,4 @@
+import { useUsagePage } from '../hooks/useUsageAnalytics';
 import { SeaMissionBadge } from '../components/SeaMissionBadge';
 import { RocketLaunchBadge } from '../components/RocketLaunchBadge';
 import { SundayCoffeeBadge } from '../components/SundayCoffeeBadge';
@@ -72,6 +73,7 @@ export const AdminDashboard: React.FC = () => {
   const { recordsReady, users, reviews, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent, acceptShiftRequest, resultsDate } = useData();
 
   const [activeTab, setActiveTab] = useState<'shifts' | 'employees' | 'profile'>('shifts');
+  useUsagePage(activeTab);
   useRecordScope(activeTab !== 'profile' ? { users: true, reviews: { branches: [user?.branch || ''] }, timeline: { branches: [user?.branch || ''] } } : {});
 
   // Month state for heatmap
@@ -803,7 +805,7 @@ export const AdminDashboard: React.FC = () => {
       {/* Bottom Navigation: 2 tabs (Shifts Calendar & Profile) */}
       <nav aria-label="التبويبات" className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white/95 backdrop-blur-lg px-4 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto flex max-w-lg gap-2">
-          {([{ id: 'employees', label: 'الموظفات', Icon: User }, { id: 'shifts', label: 'الشفتات', Icon: CalendarClock }, { id: 'profile', label: 'شخصي', Icon: User }] as const).map(({ id, label, Icon }) => <button key={id} aria-current={activeTab === id ? 'page' : undefined} onClick={() => setActiveTab(id)} className={`tab-button ${activeTab === id ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}><Icon size={22} /><span>{label}</span></button>)}
+          {([{ id: 'employees', label: 'الموظفات', Icon: User }, { id: 'shifts', label: 'الشفتات', Icon: CalendarClock }, { id: 'profile', label: 'شخصي', Icon: User }] as const).map(({ id, label, Icon }) => <button key={id} aria-current={activeTab === id ? 'page' : undefined} data-usage-action="navigation" onClick={() => setActiveTab(id)} className={`tab-button ${activeTab === id ? 'bg-blue-50 text-blue-700' : 'text-slate-500 hover:bg-slate-50'}`}><Icon size={22} /><span>{label}</span></button>)}
         </div>
       </nav>
     </div>

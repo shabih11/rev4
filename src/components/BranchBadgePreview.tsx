@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useData } from '../context/DataContext';
 
 const badges = [
   { file: 'branch-500-reviews.png', name: '٥٠٠ تقييم للفرع', coins: 1000 },
@@ -12,6 +13,8 @@ const formatCoins = new Intl.NumberFormat('ar-SA-u-nu-arab');
 
 export function BranchBadgePreview() {
   const detailsId = useId();
+  const { features } = useData();
+  if (!features?.settings.branchBadges) return null;
 
   return (
     <section className="rounded-xl border border-dashed border-slate-300 bg-white p-4" aria-label="فرع تجريبي لمعاينة الشارات">

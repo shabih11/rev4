@@ -11,7 +11,11 @@ Deno.serve(async req => {
     if (typeof email !== 'string' || !email) return reply(401, { error: 'invalid_credentials' });
     const client = publicClient();
     const { data, error: loginError } = await client.auth.signInWithPassword({ email, password: normalizePassword(body.password) });
-    if (loginError || !data.session) return reply(401, { error: 'invalid_credentials' });
+    if (loginError || !data.session) {
+      // No username, email, password, IP or error message is stored.
+      try { await serviceClient().rpc('record_usage_login_failure', { requested_username: username }); } catch { /* Authentication remains available. */ }
+      return reply(401, { error: 'invalid_credentials' });
+    }
     const { data: account, error: denied } = await client.rpc('get_my_account');
     if (denied || !account) { await client.auth.signOut({ scope: 'local' }); return reply(401, { error: 'invalid_credentials' }); }
     return reply(200, { access_token: data.session.access_token, refresh_token: data.session.refresh_token });

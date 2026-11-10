@@ -1,8 +1,8 @@
 import { useData } from '../context/DataContext';
 
 export function SundayCoffeeBadge({ branch }: { branch?: string }) {
-  const { sundayCoffeeWinningBranch } = useData();
-  if (!branch || branch !== sundayCoffeeWinningBranch) return null;
+  const { features, sundayCoffeeWinningBranch } = useData();
+  if (!features?.settings.branchBadges || !branch || branch !== sundayCoffeeWinningBranch) return null;
 
   return (
     <img

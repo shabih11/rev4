@@ -1,8 +1,8 @@
 import { useData } from '../context/DataContext';
 
 export function BranchMilestoneBadge({ branch }: { branch?: string }) {
-  const { branchesWithReviewMilestone } = useData();
-  if (!branch || !branchesWithReviewMilestone.has(branch)) return null;
+  const { features, branchesWithReviewMilestone } = useData();
+  if (!features?.settings.branchBadges || !branch || !branchesWithReviewMilestone.has(branch)) return null;
 
   return (
     <img

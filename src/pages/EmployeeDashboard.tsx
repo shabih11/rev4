@@ -1,3 +1,4 @@
+import { useUsagePage } from '../hooks/useUsageAnalytics';
 import { BranchMilestoneBadge } from '../components/BranchMilestoneBadge';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
 import { gemTheme } from '../lib/gems';
@@ -18,6 +19,7 @@ export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { summaryReady, syncError, users, features } = useData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'avatar' | 'profile'>('dashboard');
+  useUsagePage(activeTab);
   if (!user) return null;
   const displayedEmployee = users.find(employee => employee.id === user.id) || user;
 
@@ -70,7 +72,7 @@ export const EmployeeDashboard: React.FC = () => {
       <nav aria-label="تنقل الموظفة" className="fixed bottom-0 left-0 right-0 w-full bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-[0_-10px_35px_-10px_rgba(0,0,0,0.1)] z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center">
         <button
           aria-current={activeTab === 'dashboard' ? 'page' : undefined}
-          onClick={() => setActiveTab('dashboard')}
+          data-usage-action="navigation" onClick={() => setActiveTab('dashboard')}
           className={`tab-button ${
             activeTab === 'dashboard'
               ? 'text-blue-700 bg-blue-50 font-black'
@@ -83,7 +85,7 @@ export const EmployeeDashboard: React.FC = () => {
 
         <button
           aria-current={activeTab === 'avatar' ? 'page' : undefined}
-          onClick={() => setActiveTab('avatar')}
+          data-usage-action="navigation" onClick={() => setActiveTab('avatar')}
           className={`tab-button ${activeTab === 'avatar' ? 'text-blue-700 bg-blue-50 font-black' : 'text-slate-400 hover:text-slate-600'}`}
         >
           <Shirt size={22} />
@@ -92,7 +94,7 @@ export const EmployeeDashboard: React.FC = () => {
 
         <button
           aria-current={activeTab === 'profile' ? 'page' : undefined}
-          onClick={() => setActiveTab('profile')}
+          data-usage-action="navigation" onClick={() => setActiveTab('profile')}
           className={`tab-button ${
             activeTab === 'profile'
               ? 'text-blue-700 bg-blue-50 font-black'

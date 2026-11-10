@@ -1,8 +1,8 @@
 import { useData } from '../context/DataContext';
 
 export function SeaMissionBadge({ branch }: { branch?: string }) {
-  const { seaWinningBranches } = useData();
-  if (!branch || !seaWinningBranches.has(branch)) return null;
+  const { features, seaWinningBranches } = useData();
+  if (!features?.settings.branchBadges || !branch || !seaWinningBranches.has(branch)) return null;
 
   return (
     <img

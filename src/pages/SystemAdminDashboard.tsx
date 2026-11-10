@@ -1,3 +1,5 @@
+import { UsageAnalytics } from '../components/analytics/UsageAnalytics';
+import { useUsagePage } from '../hooks/useUsageAnalytics';
 import { BranchesTab } from '../components/admin/BranchesTab';
 import { ReviewsTab } from '../components/admin/ReviewsTab';
 import { EmployeeTransfer } from '../components/EmployeeTransfer';
@@ -28,7 +30,8 @@ import { newestFirst } from '../lib/employeeActivity';
 export const SystemAdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, mergeEmployees, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
-  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features' | 'avatars'>('shifts');
+  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features' | 'avatars' | 'analytics'>('shifts');
+  useUsagePage(activeTab);
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
   const [globalBranch, setGlobalBranch] = useState<string>('all');
@@ -75,6 +78,7 @@ export const SystemAdminDashboard: React.FC = () => {
   const [editingNoteComment, setEditingNoteComment] = useState('');
 
   const navItems = [
+    { id: 'analytics', label: 'تحليلات الاستخدام', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
     { id: 'shifts', label: 'الشفتات', icon: CalendarClock, color: 'text-indigo-600', activeBg: 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600' },
     { id: 'employees', label: 'الموظفات', icon: Users, color: 'text-emerald-600', activeBg: 'bg-emerald-50 text-emerald-700 border-r-4 border-emerald-600' },
     { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
@@ -251,7 +255,7 @@ export const SystemAdminDashboard: React.FC = () => {
               <button
                 key={item.id}
                 aria-current={isActive ? 'page' : undefined}
-                onClick={() => setActiveTab(item.id as any)}
+                data-usage-action="navigation" onClick={() => setActiveTab(item.id as any)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group text-right cursor-pointer ${
                   isActive
                     ? `${item.activeBg} shadow-sm font-extrabold`
@@ -760,6 +764,7 @@ export const SystemAdminDashboard: React.FC = () => {
           )}
 
 
+          {activeTab === 'analytics' && <UsageAnalytics branch={globalBranch === 'all' ? '' : globalBranch} onBranchChange={b => handleGlobalBranchChange(b || 'all')} />}
           {activeTab === 'avatars' && <AvatarStoreAdmin />}
 
           {/* Windsor.ai Integration Tab */}
@@ -788,7 +793,7 @@ export const SystemAdminDashboard: React.FC = () => {
             <button
               key={item.id}
               aria-current={isActive ? 'page' : undefined}
-              onClick={() => setActiveTab(item.id as any)}
+              data-usage-action="navigation" onClick={() => setActiveTab(item.id as any)}
               className={`shrink-0 min-w-[65px] flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl transition-all duration-200 ${
                 isActive
                   ? `${item.activeBg} scale-105 font-bold`

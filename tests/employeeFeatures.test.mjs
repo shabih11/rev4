@@ -140,3 +140,11 @@ test('zero or absent review balances never inflate the overtaken names or count'
   const zeroOnly = [employees[0], employees[1], employees[2]];
   assert.deepEqual(dailyProgress(employees[0], zeroOnly, state), { growth: 3, rankGain: 0, overtaken: [] });
 });
+
+test('branch badges are optional, disabled by default and require a boolean', () => {
+  assert.equal(defaultFeatures.branchBadges, false);
+  const { branchBadges: _flag, ...legacy } = enabled;
+  assert.equal(validFeatureSettings(legacy), true);
+  for (const branchBadges of [true, false]) assert.equal(validFeatureSettings({ ...legacy, branchBadges }), true);
+  for (const branchBadges of ['true', null, 1]) assert.equal(validFeatureSettings({ ...legacy, branchBadges }), false);
+});
