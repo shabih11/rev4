@@ -16,7 +16,7 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   const [message, setMessage] = useState('');
   if (!features?.settings.avatars || employee.role !== 'employee' || currentAccount?.id !== employee.id) return null;
   const store = features.store;
-  if (!store || !store.wallet) return <section className="rounded-2xl border bg-white p-6"><h3 className="font-bold">متجر الأفاتار</h3><p role="status" className="mt-2 text-sm text-slate-600">المتجر غير متاح حاليًا. تحققي من الاتصال.</p></section>;
+  if (!store || !store.wallet) return <section className="bg-white p-4 sm:p-6"><h3 className="font-bold">متجر الأفاتار</h3><p role="status" className="mt-2 text-sm text-slate-600">المتجر غير متاح حاليًا. تحققي من الاتصال.</p></section>;
   const wallet = store.wallet;
   const canPurchase = employeeTier(employee.points, features.settings) !== 'bronze';
   async function equip(variant: string | null) {
@@ -28,25 +28,25 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
     } catch { setMessage('تعذر اختيار الأفاتار. تحققي من الاتصال وملكية الشكل.'); }
     finally { setBusy(false); }
   }
-  return <section className="avatar-shop rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-6">
+  return <section className="avatar-shop w-full bg-white px-4 py-5 sm:p-6 space-y-6">
     <div className="flex items-center gap-4"><EmployeeAvatar employee={employee} className="h-28 w-20 shrink-0"/><div><h3 className="text-2xl font-black text-slate-900 mt-1">متجر الأفاتار</h3></div></div>
-    <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="flex items-center gap-2 font-bold text-teal-950"><Wallet size={18}/>رصيد المتجر</p><p className="text-2xl font-black text-teal-900">{amount(wallet.available)} <span className="text-xs">عملة</span></p></div></div>
+    <div className="rounded-2xl bg-teal-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><p className="flex items-center gap-2 font-bold text-teal-950"><Wallet size={18}/>رصيد المتجر</p><p className="text-2xl font-black text-teal-900">{amount(wallet.available)} <span className="text-xs">عملة</span></p></div></div>
     <p className="text-xs leading-6 text-slate-600">5 عملات لكل تقييم إيجابي منذ أول تقييم مستورد، إضافة إلى مكافآت المهام. الشراء للفضية فأعلى؛ تبقى مقتنياتك متاحة للاستخدام عند تغير الفئة.</p>
     {!canPurchase && <p role="status" className="text-sm font-bold text-amber-800">الشراء متاح للفئة الفضية فأعلى. يمكنكِ مواصلة جمع العملات.</p>}
     <button type="button" disabled={busy || !store.selectedVariant} onClick={() => void equip(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 disabled:opacity-50">استخدام الأفاتار الافتراضي</button>
     {message && <p role="status" className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-900">{message}</p>}
-    {store.collections.length === 0 && <p className="rounded-2xl border border-dashed p-6 text-center text-slate-600">لا توجد أفاتارات متاحة حاليًا.</p>}
-    <div className="space-y-4">{store.collections.map(collection => <article key={collection.id} className="rounded-2xl border border-slate-200 overflow-hidden">
-      <button type="button" aria-expanded={expanded === collection.id} aria-controls={`avatar-group-${collection.id}`} onClick={() => setExpanded(expanded === collection.id ? null : collection.id)} className="w-full text-right p-4 flex items-center gap-4 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
+    {store.collections.length === 0 && <p className="p-6 text-center text-slate-600">لا توجد أفاتارات متاحة حاليًا.</p>}
+    <div className="space-y-4">{store.collections.map(collection => <article key={collection.id} className="overflow-hidden">
+      <button type="button" aria-expanded={expanded === collection.id} aria-controls={`avatar-group-${collection.id}`} onClick={() => setExpanded(expanded === collection.id ? null : collection.id)} className="w-full text-right py-4 flex items-center gap-4 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
         <AvatarImage path={collection.variants[0]?.imagePath || null} alt="" className="h-24 w-16 object-contain shrink-0"/><span className="flex-1 min-w-0"><span className="block font-bold text-lg text-slate-900 break-words">{collection.name}</span><span className="block mt-2 text-sm text-slate-600">{collection.variants.filter(variant => !variant.ownerId && variant.enabled && collection.enabled).length} أشكال متاحة</span><span className="block mt-2 text-xs text-teal-800 font-bold">{expanded === collection.id ? 'إخفاء الأشكال −' : 'استكشاف الأشكال +'}</span></span><span className="text-center shrink-0 text-teal-900 font-black">{amount(collection.price)}<span className="block text-xs font-normal mt-1">رصيد / شكل</span></span>
       </button>
-      {expanded === collection.id && <div id={`avatar-group-${collection.id}`} className="border-t bg-slate-50 p-4 grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
+      {expanded === collection.id && <div id={`avatar-group-${collection.id}`} className="bg-white py-4 grid grid-cols-1 min-[360px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {collection.variants.length === 0 && <p className="text-sm text-slate-600 col-span-full">ستُضاف أشكال هذه المجموعة قريبًا.</p>}
         {collection.variants.map(variant => {
           const owned = variant.ownerId === employee.id;
           const selected = store.selectedVariant === variant.id;
           const unavailable = Boolean(variant.ownerId) || !variant.enabled || !collection.enabled;
-          return <div key={variant.id} className={`rounded-2xl border p-3 bg-white space-y-3 ${selected ? 'border-teal-500 ring-1 ring-teal-300' : 'border-slate-200'}`}>
+          return <div key={variant.id} className={`rounded-2xl p-3 bg-white space-y-3 ${selected ? 'ring-2 ring-inset ring-teal-500' : ''}`}>
             <div className="shop-art-stage"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/><span className="shop-art-plinth"/></div>
             <h4 className="text-sm font-bold text-slate-900 break-words">{variant.name}</h4>
             {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : <p className="text-xs text-slate-600">{unavailable ? 'غير معروض للبيع' : 'نسخة واحدة متاحة'}</p>}

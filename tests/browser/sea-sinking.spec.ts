@@ -19,6 +19,12 @@ for (const scenario of [
     await expect(page).toHaveURL(/#\/dashboard$/);
     await page.goto('./#/?view=sea');
     const boats = page.locator(`.sea-vessel[data-scene="${scenario.scene}"]`);
+    if (scenario.scene === 'capsized') {
+      const open = page.getByRole('button', { name: 'مشهد القوارب المقلوبة' });
+      await expect(open).toBeVisible();
+      await expect(boats).toHaveCount(0);
+      await open.click();
+    }
     await expect(boats).toHaveCount(6);
     await expect(page.locator('.sea-vessel-wake')).toHaveCount(0);
     await expect.poll(() => boats.locator('.sea-vessel-boat').evaluateAll(images =>

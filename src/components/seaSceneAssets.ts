@@ -23,7 +23,7 @@ import east_wreck_1 from '../assets/sea/scenarios/east-wreck-half-submerged.webp
 import east_wreck_2 from '../assets/sea/scenarios/east-wreck-broken-sails.webp';
 import east_wreck_3 from '../assets/sea/scenarios/east-wreck-sunken.webp';
 import { seaWreckVariant, type SeaLight, type SeaScene } from '../lib/seaScene';
-import type { SeaBranch } from '../lib/seaMission';
+import { SEA_BRANCHES, type SeaBranch } from '../lib/seaMission';
 import rescue from '../assets/sea/scenarios/rescue.webp';
 import sunnyDesktop from '../assets/sea/ocean-sunny-desktop.webp';
 import sunnyMobile from '../assets/sea/ocean-sunny-mobile.webp';
@@ -37,42 +37,36 @@ import gallery_adventure from '../assets/sea/scenarios/gallery-adventure.webp';
 import gallery_halfway from '../assets/sea/scenarios/gallery-halfway.webp';
 import gallery_celebrate from '../assets/sea/scenarios/gallery-celebrate.webp';
 import gallery_distress from '../assets/sea/scenarios/gallery-distress.webp';
-import gallery_capsized from '../assets/sea/scenarios/gallery-capsized.webp';
 import daview_sleep from '../assets/sea/scenarios/daview-sleep.webp';
 import daview_coffee from '../assets/sea/scenarios/daview-coffee.webp';
 import daview_adventure from '../assets/sea/scenarios/daview-adventure.webp';
 import daview_halfway from '../assets/sea/scenarios/daview-halfway.webp';
 import daview_celebrate from '../assets/sea/scenarios/daview-celebrate.webp';
 import daview_distress from '../assets/sea/scenarios/daview-distress.webp';
-import daview_capsized from '../assets/sea/scenarios/daview-capsized.webp';
 import salam_sleep from '../assets/sea/scenarios/salam-sleep.webp';
 import salam_coffee from '../assets/sea/scenarios/salam-coffee.webp';
 import salam_adventure from '../assets/sea/scenarios/salam-adventure.webp';
 import salam_halfway from '../assets/sea/scenarios/salam-halfway.webp';
 import salam_celebrate from '../assets/sea/scenarios/salam-celebrate.webp';
 import salam_distress from '../assets/sea/scenarios/salam-distress.webp';
-import salam_capsized from '../assets/sea/scenarios/salam-capsized.webp';
 import qasr_sleep from '../assets/sea/scenarios/qasr-sleep.webp';
 import qasr_coffee from '../assets/sea/scenarios/qasr-coffee.webp';
 import qasr_adventure from '../assets/sea/scenarios/qasr-adventure.webp';
 import qasr_halfway from '../assets/sea/scenarios/qasr-halfway.webp';
 import qasr_celebrate from '../assets/sea/scenarios/qasr-celebrate.webp';
 import qasr_distress from '../assets/sea/scenarios/qasr-distress.webp';
-import qasr_capsized from '../assets/sea/scenarios/qasr-capsized.webp';
 import kingdom_sleep from '../assets/sea/scenarios/kingdom-sleep.webp';
 import kingdom_coffee from '../assets/sea/scenarios/kingdom-coffee.webp';
 import kingdom_adventure from '../assets/sea/scenarios/kingdom-adventure.webp';
 import kingdom_halfway from '../assets/sea/scenarios/kingdom-halfway.webp';
 import kingdom_celebrate from '../assets/sea/scenarios/kingdom-celebrate.webp';
 import kingdom_distress from '../assets/sea/scenarios/kingdom-distress.webp';
-import kingdom_capsized from '../assets/sea/scenarios/kingdom-capsized.webp';
 import east_sleep from '../assets/sea/scenarios/east-sleep.webp';
 import east_coffee from '../assets/sea/scenarios/east-coffee.webp';
 import east_adventure from '../assets/sea/scenarios/east-adventure.webp';
 import east_halfway from '../assets/sea/scenarios/east-halfway.webp';
 import east_celebrate from '../assets/sea/scenarios/east-celebrate.webp';
 import east_distress from '../assets/sea/scenarios/east-distress.webp';
-import east_capsized from '../assets/sea/scenarios/east-capsized.webp';
 
 export const SEA_BACKDROPS: Record<SeaLight, { desktop: string; mobile: string }> = {
   sunny: { desktop: sunnyDesktop, mobile: sunnyMobile },
@@ -82,12 +76,12 @@ export const SEA_BACKDROPS: Record<SeaLight, { desktop: string; mobile: string }
 };
 
 export const SEA_SCENE_ASSETS: Record<string, Record<SeaScene, string>> = {
-  'جاليري': { sleep: gallery_sleep, coffee: gallery_coffee, adventure: gallery_adventure, halfway: gallery_halfway, celebrate: gallery_celebrate, distress: gallery_distress, capsized: gallery_capsized, rescue, wreck: gallery_wreck_0 },
-  'ذافيو': { sleep: daview_sleep, coffee: daview_coffee, adventure: daview_adventure, halfway: daview_halfway, celebrate: daview_celebrate, distress: daview_distress, capsized: daview_capsized, rescue, wreck: daview_wreck_0 },
-  'سلام': { sleep: salam_sleep, coffee: salam_coffee, adventure: salam_adventure, halfway: salam_halfway, celebrate: salam_celebrate, distress: salam_distress, capsized: salam_capsized, rescue, wreck: salam_wreck_0 },
-  'القصر': { sleep: qasr_sleep, coffee: qasr_coffee, adventure: qasr_adventure, halfway: qasr_halfway, celebrate: qasr_celebrate, distress: qasr_distress, capsized: qasr_capsized, rescue, wreck: qasr_wreck_0 },
-  'المملكة': { sleep: kingdom_sleep, coffee: kingdom_coffee, adventure: kingdom_adventure, halfway: kingdom_halfway, celebrate: kingdom_celebrate, distress: kingdom_distress, capsized: kingdom_capsized, rescue, wreck: kingdom_wreck_0 },
-  'شرق': { sleep: east_sleep, coffee: east_coffee, adventure: east_adventure, halfway: east_halfway, celebrate: east_celebrate, distress: east_distress, capsized: east_capsized, rescue, wreck: east_wreck_0 },
+  'جاليري': { sleep: gallery_sleep, coffee: gallery_coffee, adventure: gallery_adventure, halfway: gallery_halfway, celebrate: gallery_celebrate, distress: gallery_distress, capsized: gallery_wreck_1, rescue, wreck: gallery_wreck_0 },
+  'ذافيو': { sleep: daview_sleep, coffee: daview_coffee, adventure: daview_adventure, halfway: daview_halfway, celebrate: daview_celebrate, distress: daview_distress, capsized: daview_wreck_1, rescue, wreck: daview_wreck_0 },
+  'سلام': { sleep: salam_sleep, coffee: salam_coffee, adventure: salam_adventure, halfway: salam_halfway, celebrate: salam_celebrate, distress: salam_distress, capsized: salam_wreck_1, rescue, wreck: salam_wreck_0 },
+  'القصر': { sleep: qasr_sleep, coffee: qasr_coffee, adventure: qasr_adventure, halfway: qasr_halfway, celebrate: qasr_celebrate, distress: qasr_distress, capsized: qasr_wreck_1, rescue, wreck: qasr_wreck_0 },
+  'المملكة': { sleep: kingdom_sleep, coffee: kingdom_coffee, adventure: kingdom_adventure, halfway: kingdom_halfway, celebrate: kingdom_celebrate, distress: kingdom_distress, capsized: kingdom_wreck_1, rescue, wreck: kingdom_wreck_0 },
+  'شرق': { sleep: east_sleep, coffee: east_coffee, adventure: east_adventure, halfway: east_halfway, celebrate: east_celebrate, distress: east_distress, capsized: east_wreck_1, rescue, wreck: east_wreck_0 },
 };
 
 const SEA_WRECK_ASSETS: Record<string, readonly string[]> = {
@@ -99,6 +93,33 @@ const SEA_WRECK_ASSETS: Record<string, readonly string[]> = {
   'شرق': [east_wreck_0, east_wreck_1, east_wreck_2, east_wreck_3],
 };
 
+const ALTERNATE_ASSETS = import.meta.glob<string>('../assets/sea/scenarios/*-alt.webp', {
+  eager: true, import: 'default', query: '?url',
+});
+const BRANCH_SLUGS = ['gallery', 'daview', 'salam', 'qasr', 'kingdom', 'east'] as const;
+const HALF_HOUR = 30 * 60 * 1000;
+
 export function seaSceneAsset(branch: SeaBranch, scene: SeaScene, now: number) {
-  return scene === 'wreck' ? SEA_WRECK_ASSETS[branch.name][seaWreckVariant(branch, now)] : SEA_SCENE_ASSETS[branch.name][scene];
+  if (scene === 'wreck') {
+    const variants = SEA_WRECK_ASSETS[branch.name];
+    return variants[(seaWreckVariant(branch, now) + 1) % variants.length];
+  }
+
+  const original = SEA_SCENE_ASSETS[branch.name][scene];
+  const branchIndex = SEA_BRANCHES.findIndex(name => name === branch.name);
+  const localTime = now + 3 * 60 * 60 * 1000;
+  const day = Math.floor(localTime / (48 * HALF_HOUR));
+  const hour = new Date(localTime).getUTCHours();
+  // Stable per branch and half hour so data refreshes cannot flicker the sprite.
+  const slot = Math.floor(localTime / HALF_HOUR);
+  const seed = slot ^ Math.imul(branchIndex + 1, 0x9e3779b9);
+  const middayVariant = (Math.imul(seed, 0x85ebca6b) >>> 16) % 2 === 1;
+  let alternate: string | undefined;
+  if (scene === 'coffee') alternate = 'coffee';
+  if (scene === 'adventure' && hour >= 12 && hour < 16 && middayVariant) alternate = 'midday';
+  if ((day + branchIndex) % 2 === 0) {
+    if (scene === 'celebrate' || scene === 'halfway') alternate = scene;
+  }
+  if (!alternate) return original;
+  return ALTERNATE_ASSETS[`../assets/sea/scenarios/${BRANCH_SLUGS[branchIndex]}-${alternate}-alt.webp`] ?? original;
 }

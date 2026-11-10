@@ -1,3 +1,4 @@
+import { BranchBadgePreview } from '../components/BranchBadgePreview';
 import { SeaMissionBadge } from '../components/SeaMissionBadge';
 import { RocketLaunchBadge } from '../components/RocketLaunchBadge';
 import { SundayCoffeeBadge } from '../components/SundayCoffeeBadge';
@@ -15,14 +16,14 @@ import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
 import { EmployeeAvatar, BalanceGrowth, Overtaken } from '../components/EmployeeFeatures';
 import { PageLoading } from '../components/Brand';
-import React, { lazy, Suspense, useState, useRef, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { Link, useSearchParams } from 'react-router-dom';
 import { X, Building2, Users, Star, TrendingUp, UserRound, LogOut, Podium, Waves } from 'lucide-react';
-import '../components/SeaMission.css';
+import { SeaMission } from '../components/SeaMission';
 import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
@@ -41,7 +42,6 @@ type SlideData =
   | { type: 'active_employee'; employee: UserAccount; count: number }
   | { type: 'praised_employee'; employee: UserAccount; count: number };
 
-const SeaMission = lazy(() => import('../components/SeaMission').then(module => ({ default: module.SeaMission })));
 
 export const Leaderboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,7 +212,7 @@ export const Leaderboard: React.FC = () => {
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
       </header>;
 
-  if (!summaryReady) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
+  if (!summaryReady && !seaMode) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
   if (!seaMode && !resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
@@ -226,7 +226,7 @@ export const Leaderboard: React.FC = () => {
 
       {navigation}
       {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /></div>}
-      {seaMode ? <Suspense fallback={<PageLoading />}><SeaMission /></Suspense> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
+      {seaMode ? <SeaMission /> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
         renderAvatar={employee => <EmployeeAvatar employee={employee} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
       /> : <>
@@ -493,6 +493,7 @@ export const Leaderboard: React.FC = () => {
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-4">
                 {syncError ? <p role="alert" className="text-red-700">{syncError}</p> : !summaryReady && <p role="status">جارٍ تحميل بيانات الفروع…</p>}
+                <BranchBadgePreview />
                 {summaryReady && branches.map(branchName => {
                   const branchMonthReviews = reviews.filter(review => review.branch === branchName && isInCurrentMonth(review.date, resultsDate));
                   const branchMonthPositiveReviews = branchMonthReviews.filter(review => isPositiveReview(review.rating));

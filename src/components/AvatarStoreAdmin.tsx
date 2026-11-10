@@ -32,13 +32,13 @@ const bundledCollections: AvatarCollection[] = bundledAvatarShoes.map((shoe, ind
   const number = String(index + 1).padStart(2, '0');
   const id = `bundled-shoe-${number}`;
   const variants = index === 0 ? firstShoeVariants : index === 1 ? secondShoeVariants : (index < 23 ? ['a', 'b', 'c', 'd', 'e', 'f'] : ['a', 'b', 'c']).map((variant, position) => [variant, `العباءة ${position + 1}`]);
-  const directory = index === 0 ? 'saudi-abaya-nike-v2k-v2' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : index < 23 ? 'saudi-dark-v1' : 'saudi-modern-abaya-v1';
+  const directory = index === 0 ? 'saudi-abaya-nike-v2k-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : index < 23 ? 'saudi-dark-v1' : 'saudi-modern-abaya-v1';
   return {
     id, name: shoe, price: bundledAvatarPrice, enabled: false,
     variants: variants.map(([variant, name], position) => ({
       id: `${id}-${variant}`,
       name: bundledAvatarNames[index][position] || name,
-      imagePath: `${import.meta.env.BASE_URL}avatars/${directory}/avatar-${number}-${variant}.webp`,
+      imagePath: `${import.meta.env.BASE_URL}avatars/${directory}/avatar-${number}-${variant}.${index === 0 ? 'png' : 'webp'}`,
       enabled: false, ownerId: null, ownerName: null,
     })),
   };

@@ -5,7 +5,7 @@ import { useSeaCompletions } from '../hooks/useSeaCompletions';
 import { useRiyadhWeather } from '../hooks/useRiyadhWeather';
 import { seaWeather, weatherAt, type RiyadhWeather } from '../lib/riyadhWeather';
 import { seaMission, seaOpening, SEA_BRANCHES, type SeaBranch, type SeaCompletion } from '../lib/seaMission';
-import { seaBranchScene, seaSceneBerths, seaLight, seaSunGlare, seaViewDistance, SEA_SCENE_LABELS } from '../lib/seaScene';
+import { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaSunGlare, seaViewDistance, SEA_SCENE_LABELS } from '../lib/seaScene';
 import { SEA_BACKDROPS, seaSceneAsset } from './seaSceneAssets';
 import island from '../assets/sea/island-terrain-shore.webp';
 import distantMobile from '../assets/sea/ocean-distant-mobile.webp';
@@ -22,19 +22,21 @@ const number = (value: number) => value.toLocaleString('ar-SA', { maximumFractio
 const statusLabels: Record<SeaBranch['status'], string> = { waiting: 'لم تبدأ', sailing: 'مستمر', sunk: 'غرق', arrived: 'وصل', unverified: 'قيد التحقق' };
 type SeaReview = Parameters<typeof seaMission>[0][number];
 
-export function SeaMissionView({ reviews, now, weather = null, completions = [], onApprove }: {
+export function SeaMissionView({ reviews, now, weather = null, completions = [], ready = true, onApprove }: {
   reviews: readonly SeaReview[]; now: number; preferredBranch?: string; weather?: RiyadhWeather | null;
-  completions?: readonly SeaCompletion[]; onApprove?: (branch: string, day: number) => Promise<void>;
+  completions?: readonly SeaCompletion[]; ready?: boolean; onApprove?: (branch: string, day: number) => Promise<void>;
 }) {
   const mission = seaMission(reviews, now, completions);
   const [selected, setSelected] = useState('');
-  const [chosenDay, setChosenDay] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [approvalBranch, setApprovalBranch] = useState('');
+  const lastTap = useRef<{ branch: string; time: number } | null>(null);
+  const [showCapsized, setShowCapsized] = useState(false);
+  const [busyBranch, setBusyBranch] = useState('');
   const [message, setMessage] = useState('');
-  const selectedBranch = mission.branches.find(branch => branch.name === selected);
-  const availableDays = selectedBranch?.days.filter(day => day.start <= now) ?? [];
-  const defaultDay = selectedBranch?.failedDay ?? selectedBranch?.days.find(day => day.end <= now && day.uncertain && day.count < day.target) ?? selectedBranch?.current ?? availableDays.at(-1);
-  const approvalDay = availableDays.find(day => day.day === chosenDay) ?? defaultDay;
+  const branches = ready ? mission.branches : [];
+  const capsized = branches.filter(branch => seaBranchScene(branch, now) === 'capsized');
+  const capsizedScene = showCapsized && capsized.length > 0;
+  const fleet = capsizedScene ? capsized : branches.filter(branch => !capsized.includes(branch));
   const light = seaLight(now);
   const distance = seaViewDistance(now);
   const glare = distance === 'distant' && seaSunGlare(now);
@@ -44,7 +46,7 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
       : { mobile: distantMobile, desktop: distantDesktop };
   const backdrop = distance === 'distant' ? distantBackdrop : SEA_BACKDROPS[light];
   const atmosphere = seaWeather(weather);
-  const berths = seaSceneBerths(mission.branches, now);
+  const berths = seaSceneBerths(fleet, now);
   const mapRef = useRef<HTMLElement>(null);
   const [layout, setLayout] = useState<SeaFleetPosition[]>([]);
   const layoutKey = berths.map(position => `${position.name}:${position.x}:${position.y}:${seaBranchScene(mission.branches.find(branch => branch.name === position.name)!, now)}`).join('|');
@@ -60,6 +62,11 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
           order: Number(item.dataset.order) };
       });
       const next = seaFleetLayout(vessels, map.clientWidth, map.clientHeight);
+      for (const item of map.querySelectorAll<HTMLLIElement>('.sea-fleet > li')) {
+        const position = next.find(vessel => vessel.name === item.dataset.branch);
+        const button = item.querySelector<HTMLButtonElement>('.sea-vessel')!;
+        item.style.setProperty('--vessel-rise', `${button.offsetHeight * 1.3 * (position?.fit ?? 1)}px`);
+      }
       setLayout(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
     };
     arrange();
@@ -68,7 +75,7 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
     map.addEventListener('load', arrange, true);
     return () => { observer.disconnect(); map.removeEventListener('load', arrange, true); };
   }, [layoutKey]);
-  const rescueCount = mission.branches.filter(branch => seaBranchScene(branch, now) === 'rescue').length;
+  const rescueCount = fleet.filter(branch => seaBranchScene(branch, now) === 'rescue').length;
   const sailingBerths = berths.filter(position => seaBranchScene(mission.branches.find(branch => branch.name === position.name)!, now) !== 'rescue');
   const farthest = Math.min(...sailingBerths.map(position => position.y));
   const nearest = Math.max(...sailingBerths.map(position => position.y));
@@ -87,7 +94,7 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
 
   return <main className="sea-mission" id="sea-mission-content">
     <h1 className="sr-only">مهمة البحر</h1>
-    <section ref={mapRef} className="sea-map" data-distance={distance} data-light={light} data-rescuing={rescueCount > 0} data-weather={weather ? atmosphere : 'unavailable'} aria-label="رحلة الفروع إلى الجزيرة" style={{ '--journey-progress': mission.journeyProgress, '--rescue-rows': Math.ceil(rescueCount / 2), '--rescue-vessel-max-width': rescueCount === 1 ? '23rem' : '18rem' } as CSSProperties}>
+    <section ref={mapRef} className="sea-map" data-distance={distance} data-light={light} data-rescuing={rescueCount > 0} data-weather={weather ? atmosphere : 'unavailable'} aria-label={capsizedScene ? "مشهد القوارب المقلوبة" : "رحلة الفروع إلى الجزيرة"} style={{ '--journey-progress': mission.journeyProgress, '--rescue-rows': Math.ceil(rescueCount / 2), '--rescue-vessel-max-width': rescueCount === 1 ? '23rem' : '18rem' } as CSSProperties}>
       <picture className="sea-backdrop" aria-hidden="true">
         <source media="(max-width:760px)" srcSet={backdrop.mobile} />
         <img src={backdrop.desktop} alt="" width="1536" height="1024" fetchPriority="high" />
@@ -99,11 +106,25 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
       {distance === 'near' && <div className="sea-island" aria-hidden="true"><img src={island} alt="" width="2172" height="724" /></div>}
       <div className="sea-atmosphere" aria-hidden="true" />
       <div className="sea-rain" aria-hidden="true" />
+      {capsized.length > 0 && <button type="button" className="sea-scene-switch" onClick={() => { setApprovalBranch(''); lastTap.current = null; setShowCapsized(!capsizedScene); }}>
+        {capsizedScene ? 'العودة إلى الرحلة' : 'مشهد القوارب المقلوبة'}
+      </button>}
+      {message && <p className="sea-approval-message" role="status">{message}</p>}
       <ul className="sea-fleet" role="list">
-        {mission.branches.map(item => {
+        {fleet.map(item => {
           const scene = seaBranchScene(item, now);
+          const day = item.status !== 'sunk' && seaBranchClock(item.name, now).isOpen ? item.current : undefined;
+          const completed = Boolean(day && day.count >= day.target);
           return <li key={item.name} data-branch={item.name} data-order={berths.find(position => position.name === item.name)!.y} style={berth(item.name)}>
-          <button type="button" className="sea-vessel" data-scene={scene} aria-pressed={item.name === selected} aria-label={`${item.name}، ${SEA_SCENE_LABELS[scene]}، ${statusLabels[item.status]}${item.current ? `، ${number(item.current.count)} من ${number(item.current.target)}` : ''}`} onClick={() => { setSelected(current => current === item.name ? '' : item.name); setChosenDay(null); setMessage(''); }}>
+          <button type="button" className="sea-vessel" data-scene={scene} aria-pressed={item.name === selected} aria-label={`${item.name}، ${SEA_SCENE_LABELS[scene]}، ${statusLabels[item.status]}${item.current ? `، ${number(item.current.count)} من ${number(item.current.target)}` : ''}`} onClick={event => {
+            const time = performance.now();
+            const previous = lastTap.current;
+            const reveal = onApprove && day && (event.detail === 0 ||
+              (previous?.branch === item.name && time - previous.time <= 350));
+            lastTap.current = reveal || event.detail === 0 ? null : { branch: item.name, time };
+            setApprovalBranch(reveal ? item.name : '');
+            setSelected(current => reveal || current !== item.name ? item.name : '');
+          }}>
             <span className="sea-vessel-art">
               <span className="sea-water-shadow" aria-hidden="true" />
               <img className="sea-water-contact" src={waterContact} alt="" width="768" height="256" />
@@ -113,31 +134,30 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
             </span>
             {(scene === 'celebrate' || selected === item.name) && <span className="sea-branch-name">{item.name}</span>}
           </button>
+          {onApprove && day && approvalBranch === item.name && <button type="button" className="sea-completion" aria-pressed={completed}
+            aria-label={`اعتماد إنجاز اليوم — ${item.name}`}
+            disabled={Boolean(busyBranch) || completed} onClick={async () => {
+              const clickedAt = Date.now();
+              if (busyBranch || clickedAt < day.start || clickedAt >= day.end || !seaBranchClock(item.name, clickedAt).isOpen) return;
+              setBusyBranch(item.name);
+              setMessage('');
+              try {
+                await onApprove(item.name, day.day);
+                setMessage(`تم اعتماد إنجاز اليوم — ${item.name}`);
+              } catch {
+                setMessage('تعذر حفظ الإنجاز. أعيدي المحاولة.');
+              } finally {
+                setBusyBranch('');
+              }
+            }}><span aria-hidden="true">{completed ? '✓' : busyBranch === item.name ? '…' : ''}</span></button>}
         </li>; })}
       </ul>
     </section>
-    {onApprove && selectedBranch && <aside className="sea-admin-panel" aria-label="اعتماد إنجاز القارب" dir="rtl">
-      <strong>{selectedBranch.name}</strong>
-      {approvalDay ? <>
-        <label>يوم المهمة <select aria-label="يوم المهمة" value={approvalDay.day} disabled={busy} onChange={event => { setChosenDay(Number(event.target.value)); setMessage(''); }}>
-          {availableDays.map(day => <option key={day.day} value={day.day}>{number(day.day)} نوفمبر{day.manuallyCompleted ? ' — معتمد يدويًا' : day.count >= day.target ? ' — منجز' : ''}</option>)}
-        </select></label>
-        <p>اعتماد إنجاز هذا اليوم عند تأخر تقييمات قوقل، دون تغيير التقييمات أو نقاط الموظفات.</p>
-        <button type="button" disabled={busy || approvalDay.count >= approvalDay.target} onClick={async () => {
-          if (busy) return;
-          setBusy(true); setMessage('');
-          try { await onApprove(selectedBranch.name, approvalDay.day); setMessage('تم اعتماد إنجاز اليوم وحفظه للجميع.'); }
-          catch { setMessage('تعذر حفظ الإنجاز. تحققي من الاتصال والصلاحيات ثم أعيدي المحاولة.'); }
-          finally { setBusy(false); }
-        }}>{busy ? 'جارٍ الحفظ…' : approvalDay.count >= approvalDay.target ? 'اليوم منجز' : 'تحويل إلى مشهد الإنجاز'}</button>
-      </> : <p>لم تبدأ مهمة هذا الفرع بعد.</p>}
-      {message && <p role="status">{message}</p>}
-    </aside>}
   </main>;
 }
 
 export function SeaMission() {
-  const { reviewSummaries, currentAccount, syncError } = useData();
+  const { reviewSummaries, summaryReady, currentAccount, syncError } = useData();
   const approvals = useSeaCompletions(currentAccount?.id);
   const [now, setNow] = useState(Date.now);
   const { points } = useRiyadhWeather();
@@ -158,7 +178,6 @@ export function SeaMission() {
   }, []);
   if (syncError) return <main className="sea-mission"><p role="alert" className="sea-error">تعذر تحديث مهمة البحر. أعيدي المحاولة عند عودة الاتصال.</p></main>;
   if (approvals.error) return <main className="sea-mission"><p role="alert" className="sea-error">{approvals.error}</p></main>;
-  if (!approvals.ready) return <main className="sea-mission"><p role="status" className="sea-error">جارٍ تحميل مهمة البحر…</p></main>;
   const currentTime = Math.max(now, Date.now());
-  return <SeaMissionView reviews={reviewSummaries} now={currentTime} weather={weatherAt(points, currentTime)} completions={approvals.completions} onApprove={currentAccount?.role === 'admin' ? approvals.approve : undefined} preferredBranch={currentAccount?.branch} />;
+  return <SeaMissionView reviews={reviewSummaries} now={currentTime} weather={weatherAt(points, currentTime)} completions={approvals.completions} ready={summaryReady && (!currentAccount || approvals.ready)} onApprove={approvals.ready && currentAccount?.role === 'admin' ? approvals.approve : undefined} preferredBranch={currentAccount?.branch} />;
 }

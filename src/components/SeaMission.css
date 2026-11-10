@@ -78,10 +78,13 @@
 }
 .sea-vessel {
   position:relative; display:flex; justify-content:center; align-items:center;
-  width:min(var(--berth-width),calc(140px + var(--berth-depth)*60px)); max-width:13rem; min-height:44px;
+  --vessel-size:1;
+  width:calc(min(var(--berth-width), 140px + var(--berth-depth)*60px) * var(--vessel-size));
+  max-width:calc(13rem * var(--vessel-size)); min-height:44px;
   transform:translate(-50%,-75%); padding:0; border:0; background:transparent;
   color:#142b54; pointer-events:auto; cursor:pointer; border-radius:40%;
 }
+.sea-vessel { touch-action:manipulation; }
 .sea-vessel-art { position:relative; display:block; width:100%; aspect-ratio:3/5; isolation:isolate; pointer-events:none; }
 .sea-vessel:not([data-scene="rescue"]) {
   transform:translate(-50%,-100%) scale(calc(1.3*var(--fleet-fit,1)));
@@ -139,7 +142,7 @@
   .recognition-header .sea-navigation > :is(a,button) { min-width:0; min-height:3.2rem; padding:.45rem .2rem; flex-direction:column; gap:.25rem; font-size:clamp(.6rem,.4rem + 1vw,.75rem); border-radius:.9rem; }
   .recognition-header .sea-navigation > :is(a,button) > svg { width:20px; height:20px; }
   .sea-page .recognition-header { flex-direction:column; align-items:stretch; gap:.5rem; padding:.6rem .65rem; }
-  .sea-vessel { width:min(var(--berth-width),calc(78px + var(--berth-depth)*30px)); }
+  .sea-vessel { width:calc(min(var(--berth-width), 78px + var(--berth-depth)*30px) * var(--vessel-size)); }
   .sea-branch-name { font-size:.75rem; }
 }
 @media (prefers-reduced-motion:no-preference) {
@@ -159,14 +162,28 @@
   transform:translate(-50%,-100%) scale(calc(.935*var(--fleet-fit,1))); transform-origin:50% 100%;
 }
 .sea-vessel[data-scene="rescue"] .sea-vessel-art { aspect-ratio:1754/897; }
-.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-vessel-boat { aspect-ratio:auto; -webkit-mask-image:none; mask-image:none; }
-.sea-vessel[data-scene="wreck"] .sea-vessel-art { aspect-ratio:auto; }
-.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) :is(.sea-water-contact,.sea-water-front,.sea-water-shadow) { display:none; }
-.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"]) .sea-branch-name { top:100%; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"],[data-scene="capsized"]) .sea-vessel-boat { aspect-ratio:auto; -webkit-mask-image:none; mask-image:none; }
+.sea-vessel:is([data-scene="wreck"],[data-scene="capsized"]) { --vessel-size:1.3; }
+.sea-vessel:is([data-scene="wreck"],[data-scene="capsized"]) .sea-vessel-art { aspect-ratio:auto; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"],[data-scene="capsized"]) :is(.sea-water-contact,.sea-water-front,.sea-water-shadow) { display:none; }
+.sea-vessel:is([data-scene="rescue"],[data-scene="wreck"],[data-scene="capsized"]) .sea-branch-name { top:100%; }
 
-.sea-admin-panel { position:fixed; bottom:1rem; left:1rem; z-index:100; width:min(25rem,calc(100% - 2rem)); padding:1rem; border:1px solid #b6d5d9; border-radius:1rem; background:#fff; color:#163e46; box-shadow:0 8px 32px #163e4633; }
-.sea-admin-panel strong { display:block; margin-bottom:.6rem; }
-.sea-admin-panel select { margin-inline-start:.5rem; padding:.4rem; border:1px solid #9ebfc4; border-radius:.5rem; }
-.sea-admin-panel p { margin:.6rem 0; font-size:.875rem; }
-.sea-admin-panel button { padding:.6rem 1rem; border-radius:.6rem; background:#146c70; color:white; }
-.sea-admin-panel button:disabled { opacity:.6; cursor:default; }
+.sea-completion {
+  position:absolute; top:calc(-1 * var(--vessel-rise,0px)); left:0; z-index:4; display:grid; place-items:center;
+  width:44px; height:44px; transform:translate(-50%,-100%);
+  border:0; border-radius:50%; background:transparent; color:white; pointer-events:auto; cursor:pointer;
+}
+.sea-completion span {
+  display:grid; place-items:center; width:24px; height:24px;
+  border:2px solid white; border-radius:50%; background:#124457bb;
+  box-shadow:0 1px 6px #082c46a6; font-size:.875rem; font-weight:800;
+}
+.sea-completion[aria-pressed="true"] span { background:#14673d; }
+.sea-completion:disabled { cursor:default; }
+.sea-completion:focus-visible, .sea-scene-switch:focus-visible { outline:2px solid white; outline-offset:2px; }
+.sea-scene-switch, .sea-approval-message {
+  position:absolute; inset-block-start:.75rem; inset-inline-end:.75rem; z-index:30;
+  padding:.55rem .85rem; border:1px solid #ffffffa6; border-radius:1rem; background:#123b55; color:white;
+}
+.sea-scene-switch { min-height:44px; cursor:pointer; }
+.sea-approval-message { inset-inline:auto .75rem; inset-block: auto .75rem; margin:0; font-size:.875rem; }

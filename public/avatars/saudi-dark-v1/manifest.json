@@ -1,0 +1,1268 @@
+{
+  "date": "2026-11-10",
+  "generator": "built-in image_gen",
+  "scope": "Shoe bundles 3 through 23, six dark Saudi abaya/niqab variants each",
+  "variantCount": 126,
+  "variants": [
+    {
+      "id": "avatar-03-a",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "ترف المها",
+      "file": "avatar-03-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-03-b",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "هالة المها",
+      "file": "avatar-03-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-03-c",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "سحر المها",
+      "file": "avatar-03-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-03-d",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "همس المها",
+      "file": "avatar-03-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-03-e",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "رونق المها",
+      "file": "avatar-03-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-03-f",
+      "shoeNumber": 3,
+      "shoe": "New Balance 530",
+      "name": "ألق المها",
+      "file": "avatar-03-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-04-a",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "ترف الأصيل",
+      "file": "avatar-04-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-04-b",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "هالة الأصيل",
+      "file": "avatar-04-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-04-c",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "سحر الأصيل",
+      "file": "avatar-04-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-04-d",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "همس الأصيل",
+      "file": "avatar-04-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-04-e",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "رونق الأصيل",
+      "file": "avatar-04-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-04-f",
+      "shoeNumber": 4,
+      "shoe": "Adidas Ultraboost",
+      "name": "ألق الأصيل",
+      "file": "avatar-04-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-05-a",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "ترف المسك",
+      "file": "avatar-05-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-05-b",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "هالة المسك",
+      "file": "avatar-05-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-05-c",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "سحر المسك",
+      "file": "avatar-05-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-05-d",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "همس المسك",
+      "file": "avatar-05-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-05-e",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "رونق المسك",
+      "file": "avatar-05-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-05-f",
+      "shoeNumber": 5,
+      "shoe": "ASICS GEL-1130",
+      "name": "ألق المسك",
+      "file": "avatar-05-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-06-a",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "ترف العنبر",
+      "file": "avatar-06-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-06-b",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "هالة العنبر",
+      "file": "avatar-06-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-06-c",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "سحر العنبر",
+      "file": "avatar-06-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-06-d",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "همس العنبر",
+      "file": "avatar-06-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-06-e",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "رونق العنبر",
+      "file": "avatar-06-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-06-f",
+      "shoeNumber": 6,
+      "shoe": "Nike P-6000",
+      "name": "ألق العنبر",
+      "file": "avatar-06-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-07-a",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "ترف العقيق",
+      "file": "avatar-07-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-07-b",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "هالة العقيق",
+      "file": "avatar-07-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-07-c",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "سحر العقيق",
+      "file": "avatar-07-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-07-d",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "همس العقيق",
+      "file": "avatar-07-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-07-e",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "رونق العقيق",
+      "file": "avatar-07-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-07-f",
+      "shoeNumber": 7,
+      "shoe": "On Cloud 6",
+      "name": "ألق العقيق",
+      "file": "avatar-07-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-08-a",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "ترف الألماس",
+      "file": "avatar-08-a.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-08-b",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "هالة الألماس",
+      "file": "avatar-08-b.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-08-c",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "سحر الألماس",
+      "file": "avatar-08-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-08-d",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "همس الألماس",
+      "file": "avatar-08-d.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-08-e",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "رونق الألماس",
+      "file": "avatar-08-e.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-08-f",
+      "shoeNumber": 8,
+      "shoe": "New Balance 1906R",
+      "name": "ألق الألماس",
+      "file": "avatar-08-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-09-a",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "ترف اللؤلؤ",
+      "file": "avatar-09-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-09-b",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "هالة اللؤلؤ",
+      "file": "avatar-09-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-09-c",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "سحر اللؤلؤ",
+      "file": "avatar-09-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-09-d",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "همس اللؤلؤ",
+      "file": "avatar-09-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-09-e",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "رونق اللؤلؤ",
+      "file": "avatar-09-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-09-f",
+      "shoeNumber": 9,
+      "shoe": "ASICS GEL-KAYANO 14",
+      "name": "ألق اللؤلؤ",
+      "file": "avatar-09-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-10-a",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "ترف الزمرد",
+      "file": "avatar-10-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-10-b",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "هالة الزمرد",
+      "file": "avatar-10-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-10-c",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "سحر الزمرد",
+      "file": "avatar-10-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-10-d",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "همس الزمرد",
+      "file": "avatar-10-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-10-e",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "رونق الزمرد",
+      "file": "avatar-10-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-10-f",
+      "shoeNumber": 10,
+      "shoe": "Nike Initiator",
+      "name": "ألق الزمرد",
+      "file": "avatar-10-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-11-a",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "ترف الياقوت",
+      "file": "avatar-11-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-11-b",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "هالة الياقوت",
+      "file": "avatar-11-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-11-c",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "سحر الياقوت",
+      "file": "avatar-11-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-11-d",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "همس الياقوت",
+      "file": "avatar-11-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-11-e",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "رونق الياقوت",
+      "file": "avatar-11-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-11-f",
+      "shoeNumber": 11,
+      "shoe": "Adidas Puremotion 2.0",
+      "name": "ألق الياقوت",
+      "file": "avatar-11-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-12-a",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "ترف الندى",
+      "file": "avatar-12-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-12-b",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "هالة الندى",
+      "file": "avatar-12-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-12-c",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "سحر الندى",
+      "file": "avatar-12-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-12-d",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "همس الندى",
+      "file": "avatar-12-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-12-e",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "رونق الندى",
+      "file": "avatar-12-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-12-f",
+      "shoeNumber": 12,
+      "shoe": "New Balance 2002R",
+      "name": "ألق الندى",
+      "file": "avatar-12-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-13-a",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "ترف الغيم",
+      "file": "avatar-13-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-13-b",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "هالة الغيم",
+      "file": "avatar-13-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-13-c",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "سحر الغيم",
+      "file": "avatar-13-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-13-d",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "همس الغيم",
+      "file": "avatar-13-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-13-e",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "رونق الغيم",
+      "file": "avatar-13-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-13-f",
+      "shoeNumber": 13,
+      "shoe": "On Cloudtilt",
+      "name": "ألق الغيم",
+      "file": "avatar-13-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-14-a",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "ترف الدجى",
+      "file": "avatar-14-a.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-14-b",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "هالة الدجى",
+      "file": "avatar-14-b.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-14-c",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "سحر الدجى",
+      "file": "avatar-14-c.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-14-d",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "همس الدجى",
+      "file": "avatar-14-d.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-14-e",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "رونق الدجى",
+      "file": "avatar-14-e.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-14-f",
+      "shoeNumber": 14,
+      "shoe": "Nike Motiva",
+      "name": "ألق الدجى",
+      "file": "avatar-14-f.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-15-a",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "ترف الحرير",
+      "file": "avatar-15-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-15-b",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "هالة الحرير",
+      "file": "avatar-15-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-15-c",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "سحر الحرير",
+      "file": "avatar-15-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-15-d",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "همس الحرير",
+      "file": "avatar-15-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-15-e",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "رونق الحرير",
+      "file": "avatar-15-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-15-f",
+      "shoeNumber": 15,
+      "shoe": "ASICS GT-2160",
+      "name": "ألق الحرير",
+      "file": "avatar-15-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-16-a",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "ترف السندس",
+      "file": "avatar-16-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-16-b",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "هالة السندس",
+      "file": "avatar-16-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-16-c",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "سحر السندس",
+      "file": "avatar-16-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-16-d",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "همس السندس",
+      "file": "avatar-16-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-16-e",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "رونق السندس",
+      "file": "avatar-16-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-16-f",
+      "shoeNumber": 16,
+      "shoe": "Adidas Supernova Rise",
+      "name": "ألق السندس",
+      "file": "avatar-16-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-17-a",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "ترف الرقي",
+      "file": "avatar-17-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-17-b",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "هالة الرقي",
+      "file": "avatar-17-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-17-c",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "سحر الرقي",
+      "file": "avatar-17-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-17-d",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "همس الرقي",
+      "file": "avatar-17-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-17-e",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "رونق الرقي",
+      "file": "avatar-17-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-17-f",
+      "shoeNumber": 17,
+      "shoe": "New Balance Fresh Foam X 1080",
+      "name": "ألق الرقي",
+      "file": "avatar-17-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-18-a",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "ترف الأناقة",
+      "file": "avatar-18-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-18-b",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "هالة الأناقة",
+      "file": "avatar-18-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-18-c",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "سحر الأناقة",
+      "file": "avatar-18-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-18-d",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "همس الأناقة",
+      "file": "avatar-18-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-18-e",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "رونق الأناقة",
+      "file": "avatar-18-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-18-f",
+      "shoeNumber": 18,
+      "shoe": "Nike Pegasus",
+      "name": "ألق الأناقة",
+      "file": "avatar-18-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-19-a",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "ترف الهيبة",
+      "file": "avatar-19-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-19-b",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "هالة الهيبة",
+      "file": "avatar-19-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-19-c",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "سحر الهيبة",
+      "file": "avatar-19-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    },
+    {
+      "id": "avatar-19-d",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "همس الهيبة",
+      "file": "avatar-19-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-19-e",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "رونق الهيبة",
+      "file": "avatar-19-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-19-f",
+      "shoeNumber": 19,
+      "shoe": "HOKA Clifton",
+      "name": "ألق الهيبة",
+      "file": "avatar-19-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-20-a",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "ترف الوقار",
+      "file": "avatar-20-a.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-20-b",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "هالة الوقار",
+      "file": "avatar-20-b.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-20-c",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "سحر الوقار",
+      "file": "avatar-20-c.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-20-d",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "همس الوقار",
+      "file": "avatar-20-d.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-20-e",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "رونق الوقار",
+      "file": "avatar-20-e.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-20-f",
+      "shoeNumber": 20,
+      "shoe": "On Cloudnova 2",
+      "name": "ألق الوقار",
+      "file": "avatar-20-f.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-21-a",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "ترف الفخامة",
+      "file": "avatar-21-a.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-21-b",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "هالة الفخامة",
+      "file": "avatar-21-b.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-21-c",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "سحر الفخامة",
+      "file": "avatar-21-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-21-d",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "همس الفخامة",
+      "file": "avatar-21-d.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-21-e",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "رونق الفخامة",
+      "file": "avatar-21-e.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png",
+      "secondarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449"
+    },
+    {
+      "id": "avatar-21-f",
+      "shoeNumber": 21,
+      "shoe": "ASICS GEL-NYC",
+      "name": "ألق الفخامة",
+      "file": "avatar-21-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png",
+      "secondarySource": "https://roza-ksa.com/ar/EZZaEyZ"
+    },
+    {
+      "id": "avatar-22-a",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "ترف الوسن",
+      "file": "avatar-22-a.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png",
+      "secondarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208"
+    },
+    {
+      "id": "avatar-22-b",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "هالة الوسن",
+      "file": "avatar-22-b.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161",
+      "secondarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist"
+    },
+    {
+      "id": "avatar-22-c",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "سحر الوسن",
+      "file": "avatar-22-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288",
+      "secondarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283"
+    },
+    {
+      "id": "avatar-22-d",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "همس الوسن",
+      "file": "avatar-22-d.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171",
+      "secondarySource": "attachment:codex-clipboard-e99ecfec-9036-4f21-9817-f336caaeea97.png"
+    },
+    {
+      "id": "avatar-22-e",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "رونق الوسن",
+      "file": "avatar-22-e.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://roza-ksa.com/ar/rAZXBzo",
+      "secondarySource": "attachment:codex-clipboard-b2d031ea-f829-49c6-b2e7-f5ed718afc28.png"
+    },
+    {
+      "id": "avatar-22-f",
+      "shoeNumber": 22,
+      "shoe": "Adidas Duramo SL",
+      "name": "ألق الوسن",
+      "file": "avatar-22-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر",
+      "secondarySource": "attachment:codex-clipboard-a319ba03-a1c0-4bdb-87f7-14b6b038251d.png"
+    },
+    {
+      "id": "avatar-23-a",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "ترف السراب",
+      "file": "avatar-23-a.webp",
+      "color": "DEEP CHARCOAL GREY, nearly black",
+      "primarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272",
+      "secondarySource": "https://laftah.com/عباية-نواعم-سوداء-مع-كسرات-وتطريز-ورود/p1887662161"
+    },
+    {
+      "id": "avatar-23-b",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "هالة السراب",
+      "file": "avatar-23-b.webp",
+      "color": "DEEP ESPRESSO CHOCOLATE BROWN, nearly black",
+      "primarySource": "https://laftah.com/عباية-مزينة-بقيطان-وبروش-وأكمام-تل-مطرز-اسود/p1347209449",
+      "secondarySource": "https://nosouq-sa.com/عباية-الجازي-نواعم-كلوش-عبايات-نسق/p1901914288"
+    },
+    {
+      "id": "avatar-23-c",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "سحر السراب",
+      "file": "avatar-23-c.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://roza-ksa.com/ar/EZZaEyZ",
+      "secondarySource": "https://lavin.com.sa/عباية-كريب-ناعم-بتطريز-اسود/p285751171"
+    },
+    {
+      "id": "avatar-23-d",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "همس السراب",
+      "file": "avatar-23-d.webp",
+      "color": "JET BLACK, truly deep black",
+      "primarySource": "https://pinkit.sa/عباية-كلاسيكية-جاكار-كحلي/p574224208",
+      "secondarySource": "https://roza-ksa.com/ar/rAZXBzo"
+    },
+    {
+      "id": "avatar-23-e",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "رونق السراب",
+      "file": "avatar-23-e.webp",
+      "color": "VERY DARK MIDNIGHT NAVY, nearly black",
+      "primarySource": "https://ridal.co/elegant-black-jacquard-abaya-embroidered-sleeves-belted-waist",
+      "secondarySource": "https://shmabaya.com/products/عباية-بكريستال-متناثر"
+    },
+    {
+      "id": "avatar-23-f",
+      "shoeNumber": 23,
+      "shoe": "New Balance 9060",
+      "name": "ألق السراب",
+      "file": "avatar-23-f.webp",
+      "color": "JET BLACK",
+      "primarySource": "https://quueen.com/queen-turkish-silk-jacquard-navy-bisht-abaya/p1703356283",
+      "secondarySource": "https://laftah.com/عباية-كريب-قيطان/p1007601272"
+    }
+  ]
+}

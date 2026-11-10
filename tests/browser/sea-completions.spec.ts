@@ -22,19 +22,28 @@ for (const role of ['admin', 'manager', 'employee'] as const) {
     await page.clock.setFixedTime(new Date('2026-11-05T15:00:00+03:00'));
     await page.goto('./#/?view=sea');
     const boat = page.locator('li[data-branch="شرق"] .sea-vessel');
+    const save = page.getByRole('button', { name: 'اعتماد إنجاز اليوم — شرق' });
+    await expect(boat).toBeVisible();
+    await expect(save).toHaveCount(0);
     await boat.click();
+    await expect(save).toHaveCount(0);
+    await page.reload();
+    await boat.dblclick();
     if (role !== 'admin') {
-      await expect(page.getByRole('complementary', { name: 'اعتماد إنجاز القارب' })).toHaveCount(0);
+      await expect(save).toHaveCount(0);
       expect(writes).toBe(0);
     } else {
-      await page.getByRole('button', { name: 'تحويل إلى مشهد الإنجاز' }).click();
+      await save.click();
       await expect(boat).toHaveAttribute('data-scene', 'celebrate');
       await expect(page.getByRole('status')).toContainText('تم اعتماد');
       await page.reload();
       await expect(boat).toHaveAttribute('data-scene', 'celebrate');
-      await boat.click();
-      await expect(page.getByRole('button', { name: 'اليوم منجز' })).toBeDisabled();
-      await page.screenshot({ path: '/tmp/rev4-sea-completion.png' });
+      await expect(save).toHaveCount(0);
+      await boat.dblclick();
+      await expect(save).toBeDisabled();
+      await expect(save).toHaveAttribute('aria-pressed', 'true');
+      expect(approvals[0]).toMatchObject({ branch: 'شرق', day: 5 });
+      await page.screenshot({ path: test.info().outputPath('sea-completion.png') });
       expect(writes).toBe(1);
     }
     expect(service.unexpected).toEqual([]);
@@ -51,8 +60,8 @@ test('failed save keeps the boat unchanged and allows retry', async ({ page }) =
   await page.clock.setFixedTime(new Date('2026-11-05T15:00:00+03:00'));
   await page.goto('./#/?view=sea');
   const boat = page.locator('li[data-branch="شرق"] .sea-vessel');
-  await boat.click();
-  const save = page.getByRole('button', { name: 'تحويل إلى مشهد الإنجاز' });
+  const save = page.getByRole('button', { name: 'اعتماد إنجاز اليوم — شرق' });
+  await boat.dblclick();
   await save.click();
   await expect(page.getByRole('status')).toContainText('تعذر حفظ');
   await expect(boat).not.toHaveAttribute('data-scene', 'celebrate');

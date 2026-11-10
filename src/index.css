@@ -82,6 +82,7 @@
 [data-gem-theme="rose"] { --gem-bg:#fff0f4; --gem-accent:#983758; }
 [data-gem-theme="amethyst"] { --gem-bg:#f3edfc; --gem-accent:#724398; }
 .gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
+.gem-employee-page.employee-store-page { background:#fff; }
 .recognition-page,.recognition-page[data-gem-theme] { background:#f7fafc; }
 .recognition-page[data-gem-theme] .valley-scenery { opacity:1; }
 @media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }

@@ -22,15 +22,15 @@ export const EmployeeDashboard: React.FC = () => {
   const displayedEmployee = users.find(employee => employee.id === user.id) || user;
 
   return (
-    <div data-gem-theme={gemTheme(features?.store?.magic, user.id)} className="gem-employee-page w-full min-h-screen bg-gray-50 font-sans pb-24" dir="rtl">
+    <div data-gem-theme={gemTheme(features?.store?.magic, user.id)} className={`gem-employee-page w-full min-h-screen font-sans pb-24 ${activeTab === 'avatar' ? 'employee-store-page bg-white' : 'bg-gray-50'}`} dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
         </div>
       ) : activeTab === 'avatar' ? (
-        <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-4">
-          <h1 className="text-2xl font-bold text-slate-800">افتار</h1>
-          {!summaryReady ? <p role="status">جارٍ تحميل متجر الأفتارات…</p> : syncError ? <p role="alert" className="text-red-700">تعذر تحميل متجر الأفتارات.</p> : features?.settings.avatars ? <AvatarStore employee={displayedEmployee} /> : <p className="rounded-2xl border bg-white p-5 text-slate-600">متجر الأفتارات غير متاح حاليًا.</p>}
+        <div className="w-full py-4 sm:py-6 space-y-4">
+          <h1 className="px-4 sm:px-6 text-2xl font-bold text-slate-800">افتار</h1>
+          {!summaryReady ? <p role="status">جارٍ تحميل متجر الأفتارات…</p> : syncError ? <p role="alert" className="text-red-700">تعذر تحميل متجر الأفتارات.</p> : features?.settings.avatars ? <AvatarStore employee={displayedEmployee} /> : <p className="bg-white p-5 text-slate-600">متجر الأفتارات غير متاح حاليًا.</p>}
         </div>
       ) : (
         <>
