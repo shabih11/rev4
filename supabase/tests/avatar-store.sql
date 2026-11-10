@@ -56,14 +56,18 @@ do $$ begin
 end $$;
 -- A funded bronze employee must be rejected by SQL, regardless of client controls.
 reset role;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 update public.profiles set data=data||'{"manualStats":{"positive":0}}'::jsonb where id='shop-test-a';
 set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 do $$ begin
  begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,2); raise exception 'Bronze employee purchased an avatar'; exception when insufficient_privilege then null; end;
 end $$;
 reset role;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb where id='shop-test-a';
 set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 select public.purchase_avatar(current_setting('shop.v1')::uuid,2);
 select public.purchase_avatar(current_setting('shop.v2')::uuid,2);
 do $$ begin
