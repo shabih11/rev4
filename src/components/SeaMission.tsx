@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { seaFleetLayout, type SeaFleetPosition } from '../lib/seaFleetLayout';
 import { useData } from '../context/DataContext';
+import { useSeaCompletions } from '../hooks/useSeaCompletions';
 import { useRiyadhWeather } from '../hooks/useRiyadhWeather';
 import { seaWeather, weatherAt, type RiyadhWeather } from '../lib/riyadhWeather';
 import { seaMission, seaOpening, SEA_BRANCHES, type SeaBranch, type SeaCompletion } from '../lib/seaMission';
@@ -136,7 +137,8 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
 }
 
 export function SeaMission() {
-  const { reviewSummaries, currentAccount, syncError, seaApprovals: approvals } = useData();
+  const { reviewSummaries, currentAccount, syncError } = useData();
+  const approvals = useSeaCompletions(currentAccount?.id);
   const [now, setNow] = useState(Date.now);
   const { points } = useRiyadhWeather();
   useEffect(() => {

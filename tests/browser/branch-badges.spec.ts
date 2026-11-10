@@ -5,6 +5,8 @@ for (const count of [999, 1000]) {
     await page.clock.setFixedTime(new Date('2026-11-10T12:00:00+03:00'));
     await page.setViewportSize({ width: 390, height: 844 });
     const service = await mockService(page, { role: 'manager' });
+    let seaReads = 0;
+    page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/sea_mission_completions')) seaReads++; });
     await page.route('**/rpc/get_read_model', route => route.fulfill({ json: {
       generatedAt: '2026-11-10T12:00:00+03:00', directory: [service.account], notes: [], hours: {}, disabledEmployeeIds: [],
       reviews: Array.from({ length: count }, (_, i) => ({ id: `badge-${i}`, branch: 'جاليري', rating: '5', date: '06-11-2026', time: '12:00', linkedEmployeeIds: [] })),
@@ -21,6 +23,7 @@ for (const count of [999, 1000]) {
     else await expect(milestone).toHaveCount(0);
     await expect(header.getByRole('img', { name: /شارة البحر/ })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(seaReads).toBe(0); // Before mission end, displaying a badge needs no approvals query.
     expect(service.unexpected).toEqual([]);
   });
 }

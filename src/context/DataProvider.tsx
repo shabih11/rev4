@@ -56,8 +56,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     return qualified;
   }, [allReviewSignals]);
-  const seaApprovals = useSeaCompletions(session.account?.id);
-  const { completions, ready: seaApprovalsReady } = seaApprovals;
+  // Winning badges cannot be awarded before the fleet's final deadline.
+  // Keep their background read independent of the interactive mission page.
+  const seaFinished = React.useMemo(() => seaMission(emptyReviews, Date.now()).finished, [today]);
+  const { completions, ready: seaApprovalsReady } = useSeaCompletions(seaFinished ? session.account?.id : undefined);
   const seaWinningBranches = React.useMemo(() => {
     if (!seaApprovalsReady) return new Set<string>();
     const mission = seaMission(allReviewSignals, Date.now(), completions);
@@ -144,7 +146,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
-      seaApprovals, seaWinningBranches,
+      seaWinningBranches,
       rocketLaunchWinningBranches,
       sundayCoffeeWinningBranch,
       branchesWithReviewMilestone,
