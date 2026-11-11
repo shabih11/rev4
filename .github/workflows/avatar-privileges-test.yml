@@ -1,0 +1,23 @@
+name: Isolated avatar privileges SQL
+on:
+  push:
+    branches: [codex/avatar-monthly-privileges]
+permissions:
+  contents: read
+jobs:
+  sql:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Start isolated Supabase
+        run: npx --yes supabase@3.0.0 start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit
+      - name: Test avatar ownership, pricing, monthly rewards and authorization
+        run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet < supabase/tests/avatar-monthly-privileges.sql
+      - if: always()
+        run: npx --yes supabase@3.0.0 stop --no-backup
