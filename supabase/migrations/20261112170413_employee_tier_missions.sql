@@ -24,7 +24,7 @@ create function private.tier_achievements(profile text, asof timestamptz default
 returns table(id text,title text,period text,tier text,coins numeric,stars numeric)
 language sql stable security definer set search_path='' as $$
  with periods as (
-  select distinct date_trunc('month',r.occurred_at at time zone 'Asia/Riyadh')::date month
+  select distinct date_trunc('month',r.occurred_at at time zone 'Asia/Riyadh')::date month_start
   from public.reviews r where r.employee_ids @> array[profile]
    and r.occurred_at>=timestamptz '2026-11-01 00:00:00+03' and r.occurred_at<asof
   union select date_trunc('month',asof at time zone 'Asia/Riyadh')::date
@@ -34,10 +34,10 @@ language sql stable security definer set search_path='' as $$
    and c.achievement_id ~ '^tier:[0-9]{4}-[0-9]{2}:(silver|gold)$'
    and (split_part(c.achievement_id,':',2)||'-01')::date<=(asof at time zone 'Asia/Riyadh')::date
  ), peaks as materialized (
-  select month,private.tier_peak_points(profile,month,asof) points from periods
+  select month_start,private.tier_peak_points(profile,month_start,asof) points from periods
  )
- select 'tier:'||to_char(p.month,'YYYY-MM')||':'||t.tier,'بلوغ المرتبة '||t.label,
-  to_char(p.month,'YYYY-MM'),t.tier,t.reward,t.reward
+ select 'tier:'||to_char(p.month_start,'YYYY-MM')||':'||t.tier,'بلوغ المرتبة '||t.label,
+  to_char(p.month_start,'YYYY-MM'),t.tier,t.reward,t.reward
  from peaks p cross join (values ('silver','الفضية',8::numeric,100::numeric),('gold','الذهبية',11::numeric,250::numeric)) t(tier,label,target,reward)
  where p.points>=t.target;
 $$;
@@ -48,11 +48,11 @@ revoke all on function private.tier_achievements(text,timestamptz) from public,a
 create function private.previous_tier_reward_totals(profile text, cutoff date) returns table(coins numeric,stars numeric)
 language sql stable security definer set search_path='' as $$
  with periods as (
-  select distinct date_trunc('month',r.occurred_at at time zone 'Asia/Riyadh')::date month
+  select distinct date_trunc('month',r.occurred_at at time zone 'Asia/Riyadh')::date month_start
   from public.reviews r where r.employee_ids @> array[profile] and r.rating>=4
    and (r.occurred_at at time zone 'Asia/Riyadh')::date between date '2026-12-01' and cutoff
  ), peaks as materialized (
-  select private.monthly_peak_score(profile,month,least((month+interval '1 month')::date,cutoff+1)) points from periods
+  select private.monthly_peak_score(profile,month_start,least((month_start+interval '1 month')::date,cutoff+1)) points from periods
  )
  select coalesce(sum((case when points>=8 then 30 else 0 end)+(case when points>=11 then 50 else 0 end)),0)::numeric,
   coalesce(sum((case when points>=8 then 25 else 0 end)+(case when points>=11 then 40 else 0 end)),0)::numeric from peaks;
@@ -89,10 +89,10 @@ revoke all on function private.coin_achievements(text) from public,anon,authenti
 
 create function private.employee_tier_missions(profile text) returns jsonb
 language sql stable security definer set search_path='' as $$
- with period as (select date_trunc('month',now() at time zone 'Asia/Riyadh')::date month),
- peak as (select private.tier_peak_points(profile,month,now()) points from period),
+ with period as (select date_trunc('month',now() at time zone 'Asia/Riyadh')::date month_start),
+ peak as (select private.tier_peak_points(profile,month_start,now()) points from period),
  missions as (
-  select 'tier:'||to_char(p.month,'YYYY-MM')||':'||t.tier id,t.tier,t.target,t.reward,
+  select 'tier:'||to_char(p.month_start,'YYYY-MM')||':'||t.tier id,t.tier,t.target,t.reward,
    least(t.target,greatest(0,k.points)) current,k.points>=t.target completed
   from period p cross join peak k cross join (values ('silver',8::numeric,100::numeric),('gold',11::numeric,250::numeric)) t(tier,target,reward)
  )
