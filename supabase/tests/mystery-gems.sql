@@ -19,6 +19,12 @@ do $$ begin
  begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',75); raise exception 'Manager bought box'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+-- Collect synthetic funding through the same employee endpoint as the UI.
+do $$ declare item jsonb; begin
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}') loop
+  perform public.collect_coin_achievement(item->>'id');
+ end loop;
+end $$;
 do $$ declare first_gem text; begin
  begin perform public.save_magic_settings('{"boxes":true,"themes":true,"price":0}',public.get_avatar_store()#>'{magic,settings}'); raise exception 'Employee configured boxes'; exception when insufficient_privilege then null; end;
  begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',0); raise exception 'Client price accepted'; exception when sqlstate 'PT409' then null; end;

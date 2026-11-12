@@ -15,6 +15,7 @@ import { UserProfileTab } from '../components/UserProfileTab';
 import { BranchBadgeMissions } from '../components/BranchBadgeMissions';
 import { EmployeeSeaMission } from '../components/EmployeeSeaMission';
 import { EmployeeMissions } from '../components/EmployeeMissions';
+import { CoinCollection } from '../components/CoinCollection';
 
 export const EmployeeDashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -26,6 +27,7 @@ export const EmployeeDashboard: React.FC = () => {
 
   return (
     <div className={`w-full min-h-screen font-sans pb-24 ${activeTab === 'avatar' ? 'employee-store-page bg-white' : 'bg-gray-50'}`} dir="rtl">
+      <CoinCollection key={user.id} />
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />

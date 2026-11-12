@@ -37,10 +37,21 @@ export interface AvatarVariant {
 export interface AvatarCollection {
   id: string; name: string; price: number; enabled: boolean; variants: AvatarVariant[];
 }
+export interface CoinAchievement {
+  id: string;
+  title: string;
+  period: string;
+  coins: number;
+}
+export interface EmployeeWallet {
+  earned: number; stars?: number; highestTier?: Tier; spent: number; available: number;
+  pendingCoins?: number;
+  pendingAchievements?: CoinAchievement[];
+}
 export interface AvatarStoreState {
   goldEntitled?: boolean;
   collections: AvatarCollection[];
-  wallet: { earned: number; stars?: number; highestTier?: Tier; spent: number; available: number } | null;
+  wallet: EmployeeWallet | null;
   equipped: Record<string, string>;
   goldRequests?: { id: string; name: string; imagePath: string }[];
   selectedVariant: string | null;

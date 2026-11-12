@@ -127,6 +127,12 @@ select set_config('economy.nike',(select v.id::text from public.avatar_variants 
  where c.name='LV Olympia' and v.name='أفق'),true);
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+-- Collect synthetic funding through the same employee endpoint as the UI.
+do $$ declare item jsonb; begin
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}') loop
+  perform public.collect_coin_achievement(item->>'id');
+ end loop;
+end $$;
 select public.purchase_avatar(current_setting('economy.nike')::uuid,10199);
 reset role;
 select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
