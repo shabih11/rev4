@@ -1,9 +1,8 @@
 import { useUsagePage } from '../hooks/useUsageAnalytics';
 import { BranchMilestoneBadge } from '../components/BranchMilestoneBadge';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
-import { gemTheme } from '../lib/gems';
 import { EmployeeAvatar } from '../components/EmployeeFeatures';
-import { Brand } from '../components/Brand';
+import { EmployeeLevelBadge } from '../components/EmployeeLevelBadge';
 import { MissingShiftRequest } from '../components/MissingShiftRequest';
 import { EmployeeResults } from '../components/EmployeeResults';
 import { LeaderboardLink } from '../components/LeaderboardLink';
@@ -13,6 +12,8 @@ import { useData } from '../context/DataContext';
 import { LogOut, Award, User, Shirt } from 'lucide-react';
 import { AvatarStore } from '../components/AvatarStore';
 import { UserProfileTab } from '../components/UserProfileTab';
+import { BranchBadgeMissions } from '../components/BranchBadgeMissions';
+import { EmployeeSeaMission } from '../components/EmployeeSeaMission';
 import { EmployeeMissions } from '../components/EmployeeMissions';
 
 export const EmployeeDashboard: React.FC = () => {
@@ -24,7 +25,7 @@ export const EmployeeDashboard: React.FC = () => {
   const displayedEmployee = users.find(employee => employee.id === user.id) || user;
 
   return (
-    <div data-gem-theme={gemTheme(features?.store?.magic, user.id)} className={`gem-employee-page w-full min-h-screen font-sans pb-24 ${activeTab === 'avatar' ? 'employee-store-page bg-white' : 'bg-gray-50'}`} dir="rtl">
+    <div className={`w-full min-h-screen font-sans pb-24 ${activeTab === 'avatar' ? 'employee-store-page bg-white' : 'bg-gray-50'}`} dir="rtl">
       {activeTab === 'profile' ? (
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           <UserProfileTab />
@@ -40,8 +41,7 @@ export const EmployeeDashboard: React.FC = () => {
           <div className="bg-white pt-6 px-6 shadow-sm rounded-b-3xl mb-6 relative overflow-hidden flex flex-col items-center border-b">
         <div className="flex justify-between items-center w-full z-10 mb-4">
           <div>
-            <Brand compact />
-            <h1 className="flex items-center gap-2 text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={displayedEmployee}/><BranchMilestoneBadge branch={displayedEmployee.isCoverage ? undefined : displayedEmployee.branch} /></h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold mb-1 text-gray-800"><EmployeeIdentity employee={displayedEmployee} nameAside={<EmployeeLevelBadge employeeId={user.id} />} /><BranchMilestoneBadge branch={displayedEmployee.isCoverage ? undefined : displayedEmployee.branch} /></h1>
           </div>
           <div className="flex items-center gap-2">
             <LeaderboardLink />
@@ -57,11 +57,13 @@ export const EmployeeDashboard: React.FC = () => {
         
         {/* Employee Image */}
         <div className="relative w-full flex justify-center mt-2 flex-1">
-          <EmployeeAvatar employee={user} className="h-24 sm:h-32 w-24 sm:w-32" />
+          <EmployeeAvatar employee={user} className="h-52 w-36 sm:h-64 sm:w-44" />
         </div>
       </div>
 
       {summaryReady && !syncError && features?.settings.missions === true && <EmployeeMissions key={user.id} employeeId={user.id} />}
+      <EmployeeSeaMission employeeId={user.id} branch={displayedEmployee.branch} />
+      <BranchBadgeMissions employeeId={user.id} branch={displayedEmployee.branch} />
       <EmployeeResults user={displayedEmployee} ready={summaryReady} error={syncError} />
       <div className="px-6 mb-8"><MissingShiftRequest currentMonthOnly /></div>
 

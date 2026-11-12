@@ -61,3 +61,14 @@ test('recovery follows the monthly balance, preserves manual adjustments, and ne
   assert.equal(metrics([...rows, { ...rows[0], id: 'dec-negative', date: '01-12-2026', rating: '1' }], employee, [], new Date('2026-12-08T12:00:00+03:00')).stats.negative, 1.5);
   assert.equal(metrics([...reviews(20, 2), { ...rows[0], id: 'future', date: '09-11-2026' }]).stats.negative, 1);
 });
+
+// The server's recipient list takes precedence over a shared review's Plus marker.
+test('monthly avatar rewards belong only to the eligible share of a shared review', () => {
+  const rows = [{ id: 'shared-avatar', rating: '5', date: '04-11-2026', linkedEmployeeIds: ['e', 'other'], goldPlus: true, avatarRewardEmployeeIds: ['e'] }];
+  const [owner, partner] = enrichEmployees([employee, { ...employee, id: 'other' }], rows, [], now, true, '');
+  assert.equal(owner.goldPlusCents, 800);
+  assert.equal(owner.ordinaryReviewBalance, 0);
+  assert.equal(partner.goldPlusCents, 0);
+  assert.equal(partner.ordinaryReviewBalance, 0.5);
+  assert.equal(metrics([{ ...rows[0], avatarRewardEmployeeIds: [] }]).goldPlusCents, 0);
+});

@@ -27,6 +27,11 @@ for (const scenario of [
     }
     await expect(boats).toHaveCount(6);
     await expect(page.locator('.sea-vessel-wake')).toHaveCount(0);
+    await expect(boats.locator('.sea-hull-ripples')).toHaveCount(12);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    const ripple = boats.first().locator('.sea-hull-ripples').first();
+    const before = await ripple.evaluate(el => getComputedStyle(el, '::before').transform);
+    await expect.poll(() => ripple.evaluate(el => getComputedStyle(el, '::before').transform)).not.toBe(before);
     await expect.poll(() => boats.locator('.sea-vessel-boat').evaluateAll(images =>
       images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0)))
       .toBe(true);

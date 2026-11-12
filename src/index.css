@@ -54,7 +54,8 @@
 @keyframes gem-twinkle { 0%,70%,100% {opacity:.7} 80% {opacity:1;transform:scale(1.08)} }
 .balance-growth { display:inline-block; color:#04743e; font-size:0.8rem; font-weight:800; vertical-align:middle; }
 .overtaken-note { color:#166534; margin-top:8px; font-size:0.75rem; font-weight:700; line-height:1.8; max-width:28rem; overflow-wrap:anywhere; }
-.employee-avatar { position:relative; display:inline-block; }
+.employee-avatar { position:relative; display:inline-block; overflow:hidden; }
+.employee-avatar > img { object-fit:contain; object-position:center bottom; transform:none; transform-origin:center; }
 .rank-progress { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:8px; }
 .rank-gain { display:inline-flex; align-items:center; gap:5px; color:#087f78; font-size:1.1rem; font-weight:800; line-height:1.2; }
 .rank-progress .overtaken-note { margin-top:0; }
@@ -64,9 +65,10 @@
 .recognition-panel { background:transparent; }
 .recognition-panel .text-blue-100 { color:#526276; }
 .recognition-panel button:hover { background-color:#f1f5f9; }
-.shop-art-stage { position:relative; border-radius:14px; background:linear-gradient(145deg,#f8fbfb,#eef4f2); overflow:hidden; }
-.shop-art-plinth { position:absolute; bottom:2px; inset-inline:12%; height:20px; border-radius:50%; background:#dce7e2; box-shadow:0 6px 0 #cbdcd4; }
-.purchase-dialog::backdrop { background:#172b3d88; backdrop-filter:blur(4px); }
+.shop-art-stage { position:relative; background:#fff; }
+.shop-art-stage > img { height:clamp(300px,46svh,480px); object-fit:contain; object-position:center; scale:0.85 1 !important; }
+.purchase-dialog:modal { overscroll-behavior: contain; }
+.purchase-dialog::backdrop { background:#172b3d88; backdrop-filter:blur(4px); overflow:hidden; overscroll-behavior:contain; }
 @media (prefers-reduced-motion:reduce) { .gem-glint { animation:none;opacity:1; } }
 
 /* Tier awards are independent of purchased jewel themes. */
@@ -75,20 +77,13 @@
 .tier-award-gold svg { filter:drop-shadow(0 1px 1px #bd851633); }
 .tier-award-silver svg { filter:drop-shadow(0 1px 1px #64748b33); }
 .store-gem { width:52px; height:65px; display:block; margin-inline:auto; }
-[data-gem-theme="amber"] { --gem-bg:#fff6dc; --gem-accent:#805e17; }
-[data-gem-theme="pearl"] { --gem-bg:#eef2f7; --gem-accent:#44546b; }
-[data-gem-theme="emerald"] { --gem-bg:#e6f5ed; --gem-accent:#146b51; }
-[data-gem-theme="sapphire"] { --gem-bg:#eaf1ff; --gem-accent:#27569e; }
-[data-gem-theme="rose"] { --gem-bg:#fff0f4; --gem-accent:#983758; }
-[data-gem-theme="amethyst"] { --gem-bg:#f3edfc; --gem-accent:#724398; }
-.gem-employee-page[data-gem-theme] { background:var(--gem-bg); }
-.gem-employee-page.employee-store-page { background:#fff; }
-.recognition-page,.recognition-page[data-gem-theme] { background:#f7fafc; }
-.recognition-page[data-gem-theme] .valley-scenery { opacity:1; }
+.employee-store-page { background:#fff; }
+.recognition-page { background:#f7fafc; }
 @media (prefers-reduced-motion:no-preference) { .recognition-page { transition:background-color .3s; } }
 
 .employee-identity { display:flex; flex-direction:column; gap:4px; min-width:0; }
-.employee-identity-line { display:flex; align-items:baseline; gap:8px; min-width:0; max-width:100%; }
+.employee-level-star { width:22.4px; height:22.4px; flex-shrink:0; overflow:visible; }
+.employee-identity-line { display:flex; align-items:center; gap:8px; min-width:0; max-width:100%; }
 .employee-identity-name { min-width:0; overflow-wrap:anywhere; font-weight:800; }
 .employee-identity-branch { font-size:.75em; font-weight:500; flex-shrink:0; }
 .tier-award { color:#111; }
@@ -109,7 +104,7 @@
 .recognition-composition[data-tier="gold"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
 .recognition-composition[data-tier="silver"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
 .recognition-composition[data-tier="bronze"] { --panel-glass:#cbdfe9; --panel-deep:#8aa8bb; --panel-glow:#ffffff; }
-.recognition-glass-data { position:relative; isolation:isolate; flex:none; width:min(78%,720px); align-self:flex-end; margin:12px 0 0 3%; padding:12px 24px 22px; border-radius:36px; transform:none; min-height:calc(44svh - 60px); display:flex; flex-direction:column; justify-content:center; }
+.recognition-glass-data { position:relative; isolation:isolate; flex:none; width:min(78%,720px); align-self:flex-end; margin:12px 0 0 3%; padding:12px 24px 22px; border-radius:36px; transform:none; min-height:calc(32svh - 60px); display:flex; flex-direction:column; justify-content:center; }
 .recognition-glass-data > .valley-scenery { border-radius:inherit; }
 .recognition-glass-data .smash-glass { background:transparent; }
 .recognition-glass-data .smash-glass-pane { inset:0; border-radius:inherit; backdrop-filter:blur(22px) saturate(145%); -webkit-backdrop-filter:blur(22px) saturate(145%); background:radial-gradient(ellipse at var(--glass-light,var(--panel-light,28%)) 5%,color-mix(in srgb,var(--panel-glow) 35%,transparent),transparent 60%),linear-gradient(135deg,#ffffffa6,#d7e5ed80 45%,#a9c1d06b 80%,#eff7fba6); box-shadow:inset 7px 0 9px -4px #fff,inset -9px 0 9px -5px #36556666,inset 0 7px 8px -4px #fff,inset 0 -9px 9px -4px #45657366,0 14px 35px #2949561c; }
@@ -120,10 +115,10 @@
 .recognition-glass-data .recognition-panel h2 { font-size:clamp(18px,2.6svh,28px); }
 .recognition-glass-data .recognition-panel .employee-identity { margin-bottom:6px; }
 .recognition-glass-data .recognition-panel > button { top:0; padding:9px; }
-.recognition-composition .recognition-scene { --platform-height:clamp(110px,20svh,180px); flex:none; width:100%; align-self:center; min-height:50svh; height:50svh; margin-top:10px; padding:0 0 max(12px,env(safe-area-inset-bottom)); }
-.recognition-composition .crystal-standing-avatar,.recognition-composition .crystal-reflected-avatar { height:38svh; max-width:320px; }
-.recognition-composition .crystal-standing-avatar img,.recognition-composition .crystal-reflected-avatar img { object-position:center bottom; }
-.recognition-composition .crystal-stage-fixed { height:calc(38svh + 56px); }
+.recognition-composition .recognition-scene { --platform-height:clamp(110px,20svh,180px); flex:none; width:100%; align-self:center; min-height:62svh; height:62svh; margin-top:10px; padding:0 0 max(12px,env(safe-area-inset-bottom)); }
+.recognition-composition .crystal-standing-avatar,.recognition-composition .crystal-reflected-avatar { height:50svh; max-width:420px; }
+.recognition-composition .crystal-standing-avatar img,.recognition-composition .crystal-reflected-avatar img { object-fit:contain; object-position:center bottom; transform:none; scale:0.85 1 !important; }
+.recognition-composition .crystal-stage-fixed { height:calc(50svh + 56px); }
 .recognition-composition .crystal-employee-slide { padding-bottom:56px; }
 .recognition-composition .crystal-platform { height:105px; }
 .recognition-composition .crystal-platform-anchor { padding:0 16px max(12px,env(safe-area-inset-bottom)); }
@@ -161,7 +156,7 @@
 .recognition-glass-data .smash-glass-reflection { transform:translateX(calc((var(--glass-light,50%) - 50%) * .15)); }
 
 /* Keep the platform centered with the avatars and its surface at their feet. */
-.recognition-composition .recognition-scene { clip-path:inset(-40px 0 0); }
+.recognition-composition .recognition-scene { clip-path:none; }
 .recognition-composition .crystal-stage-fixed { width:100%; max-width:none; }
 .recognition-composition .crystal-platform { width:min(100%,960px); height:var(--platform-height); left:50%; bottom:calc(56px - var(--platform-height) * .65625); transform:translateX(-50%); }
 .recognition-composition .crystal-platform svg { filter:drop-shadow(0 0 8px #fff) drop-shadow(0 10px 15px #a7d4ef66); }
@@ -206,9 +201,8 @@
 }
 
 /* Keep only the header transparent; readable content retains an opaque surface. */
-.glass-modal-shell,.glass-modal-shell.gem-employee-page { background:transparent; }
+.glass-modal-shell { background:transparent; }
 .glass-modal-shell > :not(.glass-modal-header) { background-color:#fff; }
-.glass-modal-shell.gem-employee-page > .p-4:not(.glass-modal-header) { background-color:var(--gem-bg,#fff); }
 .glass-modal-header { color:var(--navy,#142b54); border-top-left-radius:inherit; border-top-right-radius:inherit; }
 .glass-modal-header:not(.sticky),.glass-modal-control,.recognition-header-actions > :is(a,button) { position:relative; }
 .glass-modal-header,.glass-modal-control,.recognition-header-actions > :is(a,button) {
@@ -236,3 +230,14 @@ button.glass-modal-control:active,.recognition-header-actions > :is(a,button):ac
 
 .glass-modal-control { color:inherit; }
 button.glass-modal-control:focus-visible { outline:2px solid #2563eb; outline-offset:3px; }
+
+.employee-identity-badges { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.employee-identity-badges:empty { display:none; }
+.employee-identity-person { display:inline-flex; align-items:center; gap:8px; min-width:0; flex-wrap:wrap; }
+.employee-list-identity .employee-identity-line { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; width:100%; }
+.employee-identity-aside { display:flex; justify-content:center; min-width:0; }
+.employee-list-identity .employee-identity-badges { justify-content:flex-start; }
+.employee-list-identity .rank-progress { margin-top:0; justify-content:center; }
+
+.avatar-preview[open] { display:flex; flex-direction:column; position:fixed; inset:0; margin:0 !important; padding:0; width:100vw; max-width:none; height:100dvh; max-height:none; border:0; background:white; }
+.avatar-preview-image > img { object-fit:contain; object-position:center; scale:0.85 1 !important; }

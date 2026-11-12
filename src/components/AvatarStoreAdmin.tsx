@@ -1,3 +1,5 @@
+import { avatarCatalog } from '../lib/avatarCatalog';
+import { RewardAmount } from './RewardAmount';
 import { useEffect, useRef, useState } from 'react';
 import { Settings, LockKeyhole } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -5,40 +7,73 @@ import { supabase } from '../lib/supabase';
 import { uploadAvatarArt } from '../lib/avatarUploads';
 import { AvatarImage } from './AvatarImage';
 import type { AvatarCollection } from '../lib/employeeFeatures';
-import { bundledAvatarShoes, bundledAvatarPrice, bundledAvatarNames } from '../lib/bundledAvatars';
+import { bundledAvatarShoes, bundledShoePrices, bundledAbayaGrades, bundledAvatarNames, abayaGrades, abayaPrice } from '../lib/bundledAvatars';
 const refresh = () => window.dispatchEvent(new Event('rev4-cache-changed'));
 const field = 'block mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm bg-white';
 const amount = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 
-const firstShoeVariants = [
-  ['a', 'سوداء بتطريز فضي — نقاب المرجع الأول'],
-  ['b', 'سوداء بدانتيل وخرز — نقاب المرجع الثاني'],
-  ['c', 'سوداء بشراريب وقيطان — نقاب المرجع الثالث'],
-  ['d', 'بنية بتطريز ورود — نقاب الأفتار 02'],
-  ['e', 'رمادية بتطريز أوراق — نقاب الأفتار 04'],
-  ['f', 'تاوب بكسرات مطرزة — نقاب الأفتار 20'],
-];
-
-const secondShoeVariants = [
-  ['a', 'كريب بتطريز أسود على الأساور'],
-  ['b', 'كريب بخياطة بيضاء على الحواف'],
-  ['c', 'عباءة بياقة وكريستال متناثر'],
-  ['d', 'قيطان أسود وأساور شمواه'],
-  ['e', 'أكمام بكسرات وأساور تل مطرز'],
-  ['f', 'كريب بيج مقلم بقصة معتدلة'],
-];
+function PriceStepper({ collectionId, variantId = null, price, label, premium = false }: { collectionId: string; variantId?: string | null; price: number; label: string; premium?: boolean }) {
+  const minimum = premium ? 12499 : 0;
+  const maximum = premium ? 1000000 : 4000;
+  const [value, setValue] = useState(price);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const current = useRef(price);
+  const inFlight = useRef(false);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const longPress = useRef(false);
+  const held = useRef(false);
+  useEffect(() => { if (!inFlight.current) { current.current = price; setValue(price); } }, [price]);
+  function stop() {
+    held.current = false;
+    if (timer.current !== null) clearInterval(timer.current);
+    timer.current = null;
+  }
+  useEffect(() => () => { if (timer.current !== null) clearInterval(timer.current); }, []);
+  async function adjust(step: number) {
+    if (inFlight.current) return;
+    const expected = current.current;
+    const next = step < 0 && expected <= minimum ? 0 : Math.max(minimum, Math.min(maximum, expected + step));
+    if (next === expected) { stop(); return; }
+    inFlight.current = true; setBusy(true); setError('');
+    try {
+      const { error } = await supabase.rpc('adjust_avatar_price', { requested_collection: collectionId, requested_variant: variantId, step, expected_price: expected });
+      if (error) throw error;
+      current.current = next; setValue(next);
+      if (next === 0 || next === maximum) stop();
+      if (!held.current) refresh();
+    } catch { stop(); refresh(); setError('تعذر حفظ السعر. تم تحديث بيانات المتجر؛ أعيدي المحاولة.'); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+  function press(event: React.PointerEvent<HTMLButtonElement>, direction: number) {
+    if (event.button !== 0) return;
+    stop(); held.current = true; longPress.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    timer.current = setInterval(() => { longPress.current = true; void adjust(direction * 500); }, 1000);
+  }
+  function release() { const wasHeld = held.current; stop(); if (wasHeld && longPress.current && !inFlight.current) refresh(); }
+  const buttonClass = 'size-11 shrink-0 touch-none select-none rounded-xl border border-slate-300 bg-white text-xl font-bold disabled:opacity-50';
+  return <div className="space-y-1" onClick={event => event.stopPropagation()}>
+    <div role="group" aria-label={`تعديل سعر ${label}`} aria-busy={busy} className="flex items-center justify-center gap-2">
+      <button type="button" disabled={value <= 0} aria-label={`خفض سعر ${label} ٥٠ عملة`} onPointerDown={event => press(event, -1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(-50); }} className={buttonClass}>−</button>
+      <RewardAmount kind="coins" value={value} />
+      <button type="button" disabled={value >= maximum} aria-label={`زيادة سعر ${label} ٥٠ عملة`} onPointerDown={event => press(event, 1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(50); }} className={buttonClass}>+</button>
+    </div>
+    {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
+  </div>;
+}
 
 const bundledCollections: AvatarCollection[] = bundledAvatarShoes.map((shoe, index) => {
   const number = String(index + 1).padStart(2, '0');
   const id = `bundled-shoe-${number}`;
-  const variants = index === 0 ? firstShoeVariants : index === 1 ? secondShoeVariants : ['a', 'b', 'c', 'd', 'e', 'f'].map((variant, position) => [variant, `العباءة ${position + 1}`]);
-  const directory = index === 0 ? 'saudi-abaya-nike-v2k-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : 'saudi-dark-v1';
+  const directory = index === 0 ? 'saudi-abaya-lv-olympia-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : 'saudi-dark-v1';
   return {
-    id, name: shoe, price: bundledAvatarPrice, enabled: false,
-    variants: variants.map(([variant, name], position) => ({
+    id, name: shoe, price: bundledShoePrices[index], enabled: false,
+    variants: ['a', 'b', 'c', 'd', 'e', 'f'].map((variant, position) => ({
       id: `${id}-${variant}`,
-      name: bundledAvatarNames[index][position] || name,
+      name: bundledAvatarNames[index][position],
       imagePath: `${import.meta.env.BASE_URL}avatars/${directory}/avatar-${number}-${variant}.${index === 0 ? 'png' : 'webp'}`,
+      price: abayaPrice(bundledShoePrices[index], Number(bundledAbayaGrades[index][position]), index === 0),
       enabled: false, ownerId: null, ownerName: null,
     })),
   };
@@ -46,22 +81,22 @@ const bundledCollections: AvatarCollection[] = bundledAvatarShoes.map((shoe, ind
 
 function CollectionPreview({ collection }: { collection: AvatarCollection }) {
   const [expanded, setExpanded] = useState(false);
-  return <article className="rounded-2xl border border-slate-200 overflow-hidden">
+  return <article className="bg-white overflow-hidden">
     <button type="button" aria-expanded={expanded} aria-controls={`admin-avatar-group-${collection.id}`} onClick={() => setExpanded(value => !value)} className="w-full text-right p-4 flex items-center gap-4 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
       <AvatarImage path={collection.variants[0]?.imagePath || null} alt="" className="h-24 w-16 object-contain shrink-0"/>
       <span className="flex-1 min-w-0"><span className="block font-bold text-lg text-slate-900 break-words">{collection.name}</span>
         <span className="block mt-2 text-sm text-slate-600">{`${collection.variants.filter(variant => !variant.ownerId && variant.enabled && collection.enabled).length} أشكال متاحة`}</span>
         <span className="block mt-2 text-xs text-teal-800 font-bold">{expanded ? 'إخفاء الأشكال −' : 'استكشاف الأشكال +'}</span>
       </span>
-      <span className="text-center shrink-0 text-teal-900 font-black">{amount(collection.price)}<span className="block text-xs font-normal mt-1">رصيد / شكل</span></span>
+      <span className="text-center shrink-0 text-teal-900 font-black"><RewardAmount kind="coins" value={collection.price} /></span>
     </button>
-    {expanded && <div id={`admin-avatar-group-${collection.id}`} className="border-t bg-slate-50 p-4 grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
+    <div className="px-4 pb-3"><PriceStepper collectionId={collection.id} price={collection.price} label={`الحذاء ${collection.name}`} premium={collection.name.trim().toLowerCase() === 'lv olympia'} /></div>
+    {expanded && <div id={`admin-avatar-group-${collection.id}`} className="bg-white py-3 grid grid-cols-1 min-[360px]:grid-cols-2 gap-3">
       {collection.variants.length === 0 && <p className="col-span-full text-sm text-slate-600">ستُضاف أشكال هذه المجموعة قريبًا.</p>}
-      {collection.variants.map(variant => <div key={variant.id} className="rounded-2xl border border-slate-200 p-3 bg-white space-y-3">
-        <div className="shop-art-stage"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/><span className="shop-art-plinth"/></div>
-        <h4 className="text-sm font-bold text-slate-900 break-words">{variant.name}</h4>
-        {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : <p className="text-xs text-slate-600">{variant.enabled && collection.enabled ? 'نسخة واحدة متاحة' : 'غير معروض للبيع'}</p>}
-        <p className="rounded-xl bg-teal-50 px-2 py-3 text-center text-sm font-bold text-teal-900">{amount(collection.price)} عملات</p>
+      {collection.variants.map(variant => <div key={variant.id} className="min-w-0 bg-white space-y-3">
+        <div className="shop-art-stage"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/></div>
+        {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : !variant.enabled || !collection.enabled ? <p className="text-xs text-slate-600">غير معروض للبيع</p> : null}
+        <PriceStepper collectionId={collection.id} variantId={variant.id} price={variant.price ?? collection.price} label={`النموذج ${variant.name}`} premium={collection.name.trim().toLowerCase() === 'lv olympia'} />
       </div>)}
     </div>}
   </article>;
@@ -79,11 +114,10 @@ function ShoeBundleCatalog() {
         <button type="button" aria-haspopup="dialog" onClick={() => setSelected(collection)}
           className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-start hover:border-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
           <img src={collection.variants[0].imagePath ?? undefined} alt="" width={1024} height={1536}
-            loading="lazy" decoding="async" className="aspect-[3/4] w-full bg-[#f4f4f5] object-contain p-2 sm:p-4"/>
+            loading="lazy" decoding="async" style={{ scale: '0.85 1.1' }} className="aspect-[3/4] w-full bg-[#f4f4f5] object-contain p-2 sm:p-4"/>
           <span className="flex w-full flex-1 flex-col gap-2 px-3 py-3 sm:px-4">
             <span dir="auto" className="break-words text-start text-sm font-bold text-slate-900 sm:text-base">{collection.name}</span>
-            <span className="text-xs text-slate-600">عرض العبايات ({collection.variants.length})</span>
-            <span className="mt-auto text-sm font-bold text-slate-900">{amount(collection.price)} عملات <span className="text-xs font-normal text-slate-600">سعر مقترح للشكل</span></span>
+            <span className="mt-auto text-sm font-bold text-slate-900"><RewardAmount kind="coins" value={collection.price} /></span>
           </span>
         </button>
       </li>)}
@@ -112,8 +146,8 @@ function ShoeBundleDialog({ collection, onClose }: { collection: AvatarCollectio
     <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 sm:gap-4 sm:p-6">
       {collection.variants.map(variant => <li key={variant.id} className="min-w-0 overflow-hidden rounded-xl border border-slate-200">
         <img src={variant.imagePath ?? undefined} alt={`${variant.name} مع حذاء ${collection.name}`} width={1024} height={1536}
-          decoding="async" className="aspect-[2/3] w-full bg-[#f4f4f5] object-contain p-1 sm:p-3"/>
-        <p className="p-2 text-center text-xs font-bold sm:text-sm">{variant.name}</p>
+          decoding="async" style={{ scale: '0.85 1.1' }} className="aspect-[2/3] w-full bg-[#f4f4f5] object-contain p-1 sm:p-3"/>
+        <p className="p-2 text-center text-xs font-bold sm:text-sm">{variant.name} · <RewardAmount kind="coins" value={variant.price ?? collection.price} /></p>
       </li>)}
     </ul>
   </dialog>;
@@ -122,22 +156,17 @@ function ShoeBundleDialog({ collection, onClose }: { collection: AvatarCollectio
 export function AvatarStoreAdmin() {
   const { features, currentAccount } = useData();
   const [name, setName] = useState('');
-  const [price, setPrice] = useState('300');
+  const [price, setPrice] = useState('1349');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   if (currentAccount?.role !== 'admin') return null;
   return <section aria-label="إدارة متجر الأفتارات" className="space-y-5" dir="rtl">
-    <div className="avatar-shop rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 space-y-6">
+    <div className="avatar-shop bg-white space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-black text-2xl text-slate-900">متجر الأفتارات</h2>
         <button type="button" aria-expanded={settingsOpen} aria-controls="avatar-store-settings" onClick={() => setSettingsOpen(value => !value)} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800"><Settings size={18}/>الإعدادات</button>
       </div>
-      <div className="space-y-4">
-        {features?.store?.collections.map(collection => <CollectionPreview key={collection.id} collection={collection}/>)}
-        <ShoeBundleCatalog />
-      </div>
-    </div>
     {settingsOpen && <section id="avatar-store-settings" aria-label="إعدادات متجر الأفتارات" className="space-y-5 rounded-3xl border bg-white p-5 sm:p-6">
     <h3 className="text-xl font-black text-slate-900">إعدادات متجر الأفتارات</h3>
     <p className="text-sm text-slate-600">تفعيل متجر الموظفات من تبويب الميزات الإضافية.</p>
@@ -151,7 +180,7 @@ export function AvatarStoreAdmin() {
       if (!error) { setName(''); refresh(); }
     }}>
       <label className="text-sm font-bold">اسم الأفاتار<input required maxLength={100} value={name} onChange={event => setName(event.target.value)} className={field}/></label>
-      <label className="text-sm font-bold">سعر الشكل<input required type="number" min="0" max="1000000" step="0.01" value={price} onChange={event => setPrice(event.target.value)} className={field}/></label>
+      <label className="text-sm font-bold">السعر الأساسي<input required type="number" min="50" max="1000000" step="1" value={price} onChange={event => setPrice(event.target.value)} className={field}/></label>
       <button disabled={busy} className="action-primary">{busy ? 'جارٍ الإنشاء…' : 'إضافة أفاتار'}</button>
     </form>
     {message && <p role="status" className="text-sm text-indigo-900">{message}</p>}
@@ -159,6 +188,18 @@ export function AvatarStoreAdmin() {
     {features.store.collections.map(collection => <CollectionEditor key={`${collection.id}:${collection.name}:${collection.price}:${collection.enabled}`} collection={collection}/>)}
     </>}
     </section>}
+      {!!features?.store?.goldRequests?.length && <section className="space-y-3 rounded-2xl bg-amber-50 p-4">
+        <h3 className="font-black text-amber-950">طلبات تصميم أم خماس</h3>
+        {features.store.goldRequests.map(request => <GoldRequest key={request.id} request={request} />)}
+      </section>}
+      <div className="space-y-4">
+        {avatarCatalog(features?.store?.collections ?? [])
+          .filter(collection => !['الذوق السعودي الحديث', 'simple'].includes(collection.name.trim()))
+          .map(collection => <CollectionPreview key={collection.id} collection={collection}/>)}
+        <ShoeBundleCatalog />
+      </div>
+    </div>
+
   </section>;
 }
 function CollectionEditor({ collection }: { collection: AvatarCollection }) {
@@ -184,13 +225,26 @@ function CollectionEditor({ collection }: { collection: AvatarCollection }) {
       }, 'تم حفظ الأفاتار.');
     }}>
       <label className="text-sm font-bold">اسم الأفاتار<input required maxLength={100} value={name} onChange={event => setName(event.target.value)} className={field}/></label>
-      <label className="text-sm font-bold">سعر الشكل<input required type="number" min="0" max="1000000" step="0.01" value={price} onChange={event => setPrice(event.target.value)} className={field}/></label>
+      <label className="text-sm font-bold">السعر الأساسي<input required type="number" min="50" max="1000000" step="1" value={price} onChange={event => setPrice(event.target.value)} className={field}/></label>
       <button disabled={busy} className="action-primary">حفظ الإعدادات</button>
+      <PriceStepper collectionId={collection.id} price={collection.price} label={`الحذاء ${collection.name}`} premium={collection.name.trim().toLowerCase() === 'lv olympia'} />
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={enabled} onChange={event => setEnabled(event.target.checked)} className="h-5 w-5 accent-indigo-700"/>معروض في المتجر</label>
     </form>
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">{collection.variants.map(variant => <div key={variant.id} className="rounded-xl border bg-slate-50 p-3 text-center space-y-2">
       <AvatarImage path={variant.imagePath} alt={variant.name} className="h-32 w-full object-contain"/><p className="font-bold text-sm">{variant.name}</p>
       <p className={`text-xs ${variant.ownerId ? 'text-purple-800' : 'text-emerald-800'}`}>{variant.ownerId ? `اقتنتْه ${variant.ownerName || 'موظفة'}` : 'متاح · نسخة واحدة'}</p>
+      <PriceStepper collectionId={collection.id} variantId={variant.id} price={variant.price ?? collection.price} label={`النموذج ${variant.name}`} premium={collection.name.trim().toLowerCase() === 'lv olympia'} />
+      <label className="block text-xs font-bold">زينة العباءة
+        <select value={variant.abayaGrade ?? 0} disabled={busy} className={field} onChange={event => {
+          const grade = Number(event.target.value);
+          void perform(async () => {
+            const { error } = await supabase.rpc('set_avatar_abaya_grade', { variant: variant.id, requested_grade: grade });
+            if (error) throw new Error('تعذر حفظ درجة الزينة.');
+          }, 'تم تحديث درجة الزينة.');
+        }}>
+          {abayaGrades.map((label, grade) => <option key={label} value={grade}>{label} · {amount(variant.price === undefined ? abayaPrice(collection.price, grade, collection.name.trim().toLowerCase() === 'lv olympia') : variant.price + 50 * (grade - (variant.abayaGrade ?? 0)))}</option>)}
+        </select>
+      </label>
       <label className="inline-flex items-center gap-2 text-xs"><input type="checkbox" checked={variant.enabled} disabled={busy} onChange={event => { const next = event.target.checked; void perform(async () => { const { error } = await supabase.rpc('set_avatar_variant_enabled', { variant: variant.id, requested_enabled: next }); if (error) throw new Error('تعذر تغيير العرض.'); }, 'تم تحديث عرض الشكل.'); }}/>معروض للبيع</label>
     </div>)}</div>
     <form className="grid gap-3 sm:grid-cols-2 border-t pt-4" onSubmit={event => {
@@ -209,4 +263,36 @@ function CollectionEditor({ collection }: { collection: AvatarCollection }) {
     </form>
     {message && <p role="status" className="text-sm text-indigo-900">{message}</p>}
   </article>;
+}
+
+function GoldRequest({ request }: { request: { id: string; name: string; imagePath: string } }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  return <form className="flex flex-wrap items-end gap-3 rounded-xl border border-amber-200 p-3" onSubmit={async event => {
+    event.preventDefault();
+    if (!file || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const path = await uploadAvatarArt(file);
+      const { error } = await supabase.rpc('fulfill_gold_avatar', { variant: request.id, requested_path: path });
+      if (error) {
+        await supabase.storage.from('avatar-store').remove([path]);
+        throw error;
+      }
+      refresh();
+    } catch {
+      setError('تعذر تسليم التصميم. تحققي من الاتصال والصورة.');
+    } finally {
+      setBusy(false);
+    }
+  }}>
+    <AvatarImage path={request.imagePath} alt={request.name} className="h-24 w-16 object-contain" />
+    <label className="text-sm font-bold">{request.name} · التصميم الذهبي
+      <input type="file" required accept="image/png,image/jpeg,image/webp" className={field} onChange={event => setFile(event.target.files?.[0] || null)} />
+    </label>
+    <button className="action-primary" disabled={busy || !file}>تسليم التصميم</button>
+    {error && <p role="alert" className="text-sm text-red-800">{error}</p>}
+  </form>;
 }

@@ -125,3 +125,12 @@ test('invalid or absent balances and invalid points never generate a reward or d
   assert.ok(Object.values(rewards).every(reward => reward.total === 0));
   assert.deepEqual(calculateEmployeeRewards([], true), { rewards: {}, commonIncrease: 0 });
 });
+
+test('Plus pays all participants and excludes the same shares from the ordinary rate', () => {
+  const { rewards } = calculateEmployeeRewards([
+    { id: 'owner', points: 11, monthReviewsCount: 10.5, ordinaryReviewBalance: 10, goldPlusCents: 800 },
+    { id: 'partner', points: 6, monthReviewsCount: 0.5, ordinaryReviewBalance: 0, goldPlusCents: 800 },
+  ]);
+  assert.equal(rewards.owner.total, 148);
+  assert.equal(rewards.partner.total, 8);
+});

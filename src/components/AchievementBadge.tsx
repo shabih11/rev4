@@ -8,15 +8,18 @@ const design = {
 };
 
 const angles = [0, 180, 90, 270];
+const grades = ['green', 'blue', 'gold'] as const;
 
-export function AchievementBadge({ progress = 0, missionId = 'level' }: { progress?: number; missionId?: string }) {
+export function AchievementBadge({ progress = 0, missionId = 'level', band = 0 }: { progress?: number; missionId?: string; band?: number }) {
   const { colors, cell } = design.level;
+  const grade = grades[Math.max(0, Math.min(2, band))];
   const count = Math.floor(Math.max(0, Math.min(1, progress + 1e-9)) * 4);
 
   if (missions.has(missionId)) {
     return <img
-      src={`${import.meta.env.BASE_URL}badges/${missionId}-${count}.png`}
+      src={`${import.meta.env.BASE_URL}badges/grades/${grade}/${missionId}-${count}.png`}
       alt=""
+      data-grade={band}
       className="h-14 w-14 shrink-0 object-contain"
     />;
   }

@@ -1,3 +1,22 @@
+import galleryRainCoffee from '../assets/sea/scenarios/gallery-rain-coffee.webp';
+import galleryRainWork from '../assets/sea/scenarios/gallery-rain-work.webp';
+import daviewRainCoffee from '../assets/sea/scenarios/daview-rain-coffee.webp';
+import daviewRainWork from '../assets/sea/scenarios/daview-rain-work.webp';
+import salamRainCoffee from '../assets/sea/scenarios/salam-rain-coffee.webp';
+import salamRainWork from '../assets/sea/scenarios/salam-rain-work.webp';
+import qasrRainCoffee from '../assets/sea/scenarios/qasr-rain-coffee.webp';
+import qasrRainWork from '../assets/sea/scenarios/qasr-rain-work.webp';
+import kingdomRainCoffee from '../assets/sea/scenarios/kingdom-rain-coffee.webp';
+import kingdomRainWork from '../assets/sea/scenarios/kingdom-rain-work.webp';
+import eastRainCoffee from '../assets/sea/scenarios/east-rain-coffee.webp';
+import eastRainWork from '../assets/sea/scenarios/east-rain-work.webp';
+import type { SeaWeather } from '../lib/riyadhWeather';
+import galleryRainSleep from '../assets/sea/scenarios/gallery-rain-sleep.webp';
+import daviewRainSleep from '../assets/sea/scenarios/daview-rain-sleep.webp';
+import salamRainSleep from '../assets/sea/scenarios/salam-rain-sleep.webp';
+import qasrRainSleep from '../assets/sea/scenarios/qasr-rain-sleep.webp';
+import kingdomRainSleep from '../assets/sea/scenarios/kingdom-rain-sleep.webp';
+import eastRainSleep from '../assets/sea/scenarios/east-rain-sleep.webp';
 import gallery_wreck_0 from '../assets/sea/scenarios/gallery-wreck-overturned.webp';
 import gallery_wreck_1 from '../assets/sea/scenarios/gallery-wreck-half-submerged.webp';
 import gallery_wreck_2 from '../assets/sea/scenarios/gallery-wreck-broken-sails.webp';
@@ -99,7 +118,35 @@ const ALTERNATE_ASSETS = import.meta.glob<string>('../assets/sea/scenarios/*-alt
 const BRANCH_SLUGS = ['gallery', 'daview', 'salam', 'qasr', 'kingdom', 'east'] as const;
 const HALF_HOUR = 30 * 60 * 1000;
 
-export function seaSceneAsset(branch: SeaBranch, scene: SeaScene, now: number) {
+const RAIN_SLEEP_ASSETS: Record<string, string> = {
+  'جاليري': galleryRainSleep, 'ذافيو': daviewRainSleep, 'سلام': salamRainSleep,
+  'القصر': qasrRainSleep, 'المملكة': kingdomRainSleep, 'شرق': eastRainSleep,
+};
+
+const RAIN_COFFEE_ASSETS: Record<string, string> = {
+  'جاليري': galleryRainCoffee,
+  'ذافيو': daviewRainCoffee,
+  'سلام': salamRainCoffee,
+  'القصر': qasrRainCoffee,
+  'المملكة': kingdomRainCoffee,
+  'شرق': eastRainCoffee,
+};
+
+const RAIN_WORK_ASSETS: Record<string, string> = {
+  'جاليري': galleryRainWork,
+  'ذافيو': daviewRainWork,
+  'سلام': salamRainWork,
+  'القصر': qasrRainWork,
+  'المملكة': kingdomRainWork,
+  'شرق': eastRainWork,
+};
+
+export function seaSceneAsset(branch: SeaBranch, scene: SeaScene, now: number, weather: SeaWeather = 'clear') {
+  if (weather === 'rain' || weather === 'storm') {
+    if (scene === 'sleep') return RAIN_SLEEP_ASSETS[branch.name];
+    if (scene === 'coffee') return RAIN_COFFEE_ASSETS[branch.name];
+    if (scene === 'adventure' || scene === 'halfway') return RAIN_WORK_ASSETS[branch.name];
+  }
   if (scene === 'wreck') {
     const variants = SEA_WRECK_ASSETS[branch.name];
     return variants[(seaWreckVariant(branch, now) + 1) % variants.length];

@@ -1,8 +1,9 @@
 import type { ReviewSummary } from '../context/DataContext';
-import { riyadhDateKey, toEnglishNumerals } from './formatDate';
+import { riyadhDateKey, timeMinutes, toEnglishNumerals } from './formatDate';
 
 export interface EmployeeMission {
   id: string; title: string; description: string; hint: string; effort: string;
+  band?: number; completedBands?: number;
   period: 'daily' | 'monthly'; current: number; target: number; stars: number; coins: number;
 }
 
@@ -22,7 +23,6 @@ export function employeeLevel(stars: number) {
   const required = levelCost(level);
   return { level, current: remaining, required, remaining: required - remaining, spent };
 }
-export const missionBand = (level: number) => Math.min(3, Math.floor((level - 1) / 3));
 const targets = { daily: [2, 3, 4, 5], ten: [10, 20, 35, 50], days: [5, 8, 12, 16], partner: [2, 4, 6, 8] };
 const rewards = {
   daily: [[5, 5], [10, 10], [15, 15], [20, 20]],
@@ -42,7 +42,8 @@ function calendarDay(date: string) {
     ? `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}` : '';
 }
 
-type ImportedRating = { id: string; day: string; rating: number; members: string[] };
+type ImportedRating = { id: string; day: string; time: number; rating: number; members: string[] };
+type MissionAchievement = { id: string; title: string; month: string; band: number };
 const sum = (values: number[]) => values.reduce((total, value) => total + value, 0);
 
 function periodMissions(employeeId: string, rows: ImportedRating[], today: string, band = 0): EmployeeMission[] {
@@ -71,48 +72,130 @@ function periodMissions(employeeId: string, rows: ImportedRating[], today: strin
   return missions;
 }
 
+export const missionGrades = ['الخضراء', 'الزرقاء', 'الذهبية'] as const;
+export const gradeReward = (base: number, band: number) => Math.round(base * 2.25 ** band * 100) / 100;
+const gradeTargets: Record<string, number[]> = {
+  'daily-two': [2, 3, 5], partner: [2, 4, 6], ten: [10, 20, 35],
+  days: [5, 8, 12], partners: [3, 4, 5],
+};
+const dailyTitles = ['أثران في يوم واحد', 'ثلاثة آثار في يوم واحد', 'خمسة آثار في يوم واحد'];
+
+function gradedMissions(employeeId: string, rows: ImportedRating[], today: string): EmployeeMission[] {
+  // Recompute uncapped counts before choosing the next unfinished grade.
+  const positive = rows.filter(row => row.rating >= 4);
+  const partners = new Map<string, number>();
+  for (const row of positive) for (const id of row.members) {
+    if (id !== employeeId) partners.set(id, (partners.get(id) ?? 0) + 1);
+  }
+  const counts: Record<string, number> = {
+    'daily-two': positive.filter(row => row.day === today).length,
+    partner: Math.max(0, ...partners.values()), ten: positive.length,
+    days: new Set(positive.map(row => row.day)).size, partners: partners.size,
+    recovery: Math.max(0, sum(positive.map(row => 1 / row.members.length)) - 20),
+  };
+  return periodMissions(employeeId, rows, today).map(base => {
+    const thresholds = gradeTargets[base.id] ?? [base.target, base.target * 1.5, base.target * 2.5];
+    const current = counts[base.id];
+    const completedBands = thresholds.filter(target => current + 1e-9 >= target).length;
+    const band = Math.min(2, completedBands);
+    const target = thresholds[band];
+    const descriptions: Record<string, string> = {
+      'daily-two': `اكتسبي ${target} تقييمات إيجابية اليوم.`,
+      partner: `اكتسبي ${target} تقييمات إيجابية مع الشريكة نفسها هذا الشهر.`,
+      ten: `اجمعي ${target} تقييمًا إيجابيًا هذا الشهر.`,
+      days: `اكتسبي تقييمًا إيجابيًا في ${target} أيام مختلفة هذا الشهر.`,
+      partners: `تعاوني مع ${target} زميلات مختلفات هذا الشهر.`,
+      recovery: `اجمعي ${target} حصة إيجابية إضافية بعد أول 20 حصة هذا الشهر.`,
+    };
+    return { ...base, title: base.id === 'daily-two' ? dailyTitles[band] : base.title,
+      description: descriptions[base.id], hint: 'ثلاث درجات تتجدد مع بداية الشهر، والتحدي اليومي يتجدد يوميًا. مكافأة مستقلة لكل درجة بزيادة 125٪ عن السابقة.',
+      band, completedBands, target, current: Math.min(current, target),
+      stars: gradeReward(base.stars, band), coins: gradeReward(base.coins, band) };
+  });
+}
+
+function importedRatings(employeeId: string, reviews: ReviewSummary[], cutoff: string) {
+  const records = new Map<string, ImportedRating>();
+  for (const review of reviews) {
+    const day = calendarDay(review.date);
+    const rating = toEnglishNumerals(review.rating).trim();
+    const members = [...new Set(review.linkedEmployeeIds)].filter(Boolean);
+    if (!day || day > cutoff || !/^[1-5]$/.test(rating) || !members.includes(employeeId) || records.has(review.id)) continue;
+    records.set(review.id, { id: review.id, day, time: timeMinutes(review.time) ?? 0, rating: Number(rating), members });
+  }
+  return [...records.values()];
+}
+
+export function employeeAchievementEvidence(employeeId: string, reviews: ReviewSummary[], achievement: MissionAchievement, today: string) {
+  const rows = importedRatings(employeeId, reviews, calendarDay(today))
+    .filter(row => row.day.startsWith(achievement.month))
+    .sort((a, b) => a.day.localeCompare(b.day) || a.time - b.time || a.id.localeCompare(b.id));
+
+  if (achievement.id === 'daily-two') {
+    const byDay = new Map<string, number>();
+    let completed: ImportedRating | undefined;
+    for (const row of rows) {
+      if (row.rating < 4) continue;
+      const count = (byDay.get(row.day) ?? 0) + 1;
+      byDay.set(row.day, count);
+      if (count === (gradeTargets['daily-two'][achievement.band])) completed = row;
+    }
+    return completed;
+  }
+
+  // The first qualifying prefix identifies the review that completed the mission.
+  let low = 0, high = rows.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    const throughReview = rows.slice(0, middle + 1);
+    const missions = gradedMissions(employeeId, throughReview, '');
+    const mission = missions.find(item => item.id === achievement.id);
+    if (mission && (mission.completedBands ?? 0) > achievement.band) high = middle;
+    else low = middle + 1;
+  }
+  return rows[low];
+}
+
 export function employeeMissions(employeeId: string, reviews: ReviewSummary[], now = new Date()) {
   const today = riyadhDateKey(now);
   const day = calendarDay(today), month = day.slice(0, 7);
-  const seen = new Set<string>();
   const months = new Map<string, ImportedRating[]>();
   let ratingStars = 0, ratingCoins = 0;
-  for (const review of reviews) {
-    const date = calendarDay(review.date);
-    const rawRating = toEnglishNumerals(review.rating).trim();
-    const members = [...new Set(review.linkedEmployeeIds)].filter(Boolean);
-    if (!date || date > day || !/^[1-5]$/.test(rawRating) || !members.includes(employeeId) || seen.has(review.id)) continue;
-    seen.add(review.id);
-    const row = { id: review.id, day: date, rating: Number(rawRating), members };
-    const key = date.slice(0, 7);
+  for (const row of importedRatings(employeeId, reviews, day)) {
+    const key = row.day.slice(0, 7);
     if (!months.has(key)) months.set(key, []);
     months.get(key)!.push(row);
-    if (row.rating >= 4) { ratingCoins += 5; if (date >= PROGRESSION_START) ratingStars += 5; }
+    if (row.rating >= 4) { ratingCoins += 5; if (row.day >= PROGRESSION_START) ratingStars += 5; }
   }
-  let bonusStars = 0, bonusCoins = 0, historicalStars = 0, band = 0;
-  const achievements: { id: string; title: string; month: string; band: number }[] = [];
-  // Replay months chronologically. Difficulty is fixed from the level at month start.
-  for (const key of [...new Set([...months.keys(), month])].sort()) {
-    const rows = months.get(key) || [];
+  let bonusStars = 0, bonusCoins = 0;
+  const achievements: MissionAchievement[] = [];
+  for (const [key, rows] of [...months].sort(([a], [b]) => a.localeCompare(b))) {
     const active = key >= PROGRESSION_START.slice(0, 7);
-    const periodBand = active ? missionBand(employeeLevel(historicalStars).level) : 0;
-    if (key === month) band = periodBand;
-    const monthly = periodMissions(employeeId, rows, '', periodBand).filter(m => m.period === 'monthly' && m.current + 1e-9 >= m.target);
-    let monthStars = sum(monthly.map(m => m.stars));
-    bonusCoins += sum(monthly.map(m => m.coins));
-    const dayCounts = new Map<string, number>();
-    for (const row of rows) if (row.rating >= 4) dayCounts.set(row.day, (dayCounts.get(row.day) || 0) + 1);
-    const completedDays = [...dayCounts.values()].filter(count => count >= targets.daily[periodBand]).length;
-    monthStars += completedDays * rewards.daily[periodBand][1];
-    bonusCoins += completedDays * rewards.daily[periodBand][0];
-    if (active) {
-      bonusStars += monthStars;
-      historicalStars += rows.filter(row => row.rating >= 4).length * 5 + monthStars;
-      achievements.push(...monthly.map(m => ({ id: m.id, title: m.title, month: key, band: periodBand })));
-      if (completedDays) achievements.push({ id: 'daily-two', title: 'أثران في يوم واحد', month: key, band: periodBand });
+    if (!active) {
+      const completed = periodMissions(employeeId, rows, '').filter(m => m.period === 'monthly' && m.current >= m.target);
+      bonusCoins += sum(completed.map(m => m.coins));
+      const days = new Map<string, number>();
+      for (const row of rows) if (row.rating >= 4) days.set(row.day, (days.get(row.day) ?? 0) + 1);
+      bonusCoins += [...days.values()].filter(count => count >= 2).length * 5;
+      continue;
+    }
+    const periods = ['', ...new Set(rows.map(row => row.day))];
+    for (const date of periods) {
+      for (const mission of gradedMissions(employeeId, rows, date).filter(m => date ? m.period === 'daily' : m.period === 'monthly')) {
+        const base = periodMissions(employeeId, rows, date).find(m => m.id === mission.id)!;
+        for (let band = 0; band < (mission.completedBands ?? 0); band++) {
+          bonusStars += gradeReward(base.stars, band);
+          bonusCoins += gradeReward(base.coins, band);
+          achievements.push({ id: mission.id, title: mission.id === 'daily-two' ? dailyTitles[band] : mission.title, month: key, band });
+        }
+      }
     }
   }
-  const missions = day >= PROGRESSION_START ? periodMissions(employeeId, months.get(month) || [], day, band) : [];
+  const currentRows = months.get(month) || [];
+  const missions = day >= PROGRESSION_START ? gradedMissions(employeeId, currentRows, day) : [];
+  const band = Math.max(0, ...missions.map(m => m.band ?? 0));
+  bonusStars = Math.round(bonusStars * 100) / 100;
+  bonusCoins = Math.round(bonusCoins * 100) / 100;
   const stars = ratingStars + bonusStars;
   return { today, missions, ratingStars, bonusStars, stars, ratingCoins, bonusCoins, coins: ratingCoins + bonusCoins, achievements, band, level: employeeLevel(stars), completed: missions.filter(mission => mission.current + 1e-9 >= mission.target).length };
 }

@@ -19,26 +19,29 @@ test('review missions display level, shared effort rewards and reset daily progr
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page);
   const missions = page.getByRole('region', { name: 'رحلة الإنجاز' });
-  await expect(missions.getByText('المستوى 1', { exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 }).getByRole('img', { name: 'المستوى 1', exact: true })).toBeVisible();
+  await expect(missions.getByRole('heading', { name: 'رحلة الإنجاز', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('img', { name: 'أي آم سبيشل', exact: true })).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('employee-header-mobile.png') });
   await expect(missions.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '30');
-  const pair = missions.locator('details').filter({ has: page.locator('summary', { hasText: 'ثنائي متألق' }) });
-  await expect(pair.locator('summary')).toContainText('مكتملة');
-  await pair.locator('summary').click();
-  await expect(pair.getByText('مجهود متوسط: تعاون متكرر مع الشريكة نفسها')).toBeVisible();
+  await expect(missions.getByRole('listitem').filter({ hasText: 'ثلاثة آثار في يوم واحد' }).locator('img')).toHaveAttribute('data-grade', '1');
+  const pair = missions.getByRole('listitem').filter({ hasText: 'ثنائي متألق' });
+  await expect(pair).toContainText('1/3 درجات مكتملة');
   await expect(missions.getByText('جاهزة للانطلاق')).toHaveCount(0);
   await expect(missions.getByText('امحي أثر تقييم سلبي', { exact: true })).toHaveCount(0);
-  await missions.getByText('كيف تُحسب المستويات والمكافآت؟', { exact: true }).click();
-  await expect(missions.getByRole('table')).toContainText('50');
+  await expect(missions.getByText('كيف تُحسب المستويات والمكافآت؟', { exact: true })).toHaveCount(0);
+  await expect(pair).toContainText('+33.75 نجمة');
+  await expect(pair).toContainText('+22.5 عملة');
   await page.screenshot({ path: test.info().outputPath('employee-missions-mobile.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: test.info().outputPath('employee-missions-desktop.png'), fullPage: true });
   await page.clock.setFixedTime(new Date('2026-11-05T00:01:00+03:00'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(missions.getByText('مجموعك 30 نجمة', { exact: false })).toBeVisible();
-  const daily = missions.locator('summary').filter({ hasText: 'أثران في يوم واحد' });
+  await expect(missions.locator('header')).toContainText(/مجموعك\s*30\s*نجمة/);
+  const daily = missions.getByRole('listitem').filter({ hasText: 'أثران في يوم واحد' });
   await expect(daily).toContainText('0/2');
-  await expect(pair.locator('summary')).toContainText('مكتملة');
+  await expect(pair).toContainText('1/3 درجات مكتملة');
   expect(service.writes).toEqual([]);
   expect(service.unexpected).toEqual([]);
 });
@@ -50,10 +53,10 @@ test('an imported negative exposes recovery with actual surplus-share progress',
     reviews: [imported('negative', '01-11-2026', [employee.id], '1'), ...Array.from({ length: 23 }, (_, i) => imported(`p-${i}`, '04-11-2026', [employee.id]))],
   } }));
   await login(page);
-  const recovery = page.getByRole('region', { name: 'رحلة الإنجاز' }).locator('summary').filter({ hasText: 'امحي أثر تقييم سلبي' });
+  const recovery = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: 'امحي أثر تقييم سلبي' });
   await expect(recovery).toContainText('3/4');
-  await expect(recovery).toContainText('+25 نجمة للمستوى');
-  await expect(recovery).not.toContainText('مكتملة');
+  await expect(recovery).toContainText('+25 نجمة');
+  await expect(recovery).toContainText('0/3 درجات مكتملة');
   expect(service.unexpected).toEqual([]);
 });
 
@@ -109,5 +112,27 @@ test('admin saves the missions switch through global feature settings', async ({
   await page.getByRole('button', { name: 'حفظ الميزات', exact: true }).click();
   await expect.poll(() => payloads.length).toBe(2);
   expect(payloads.map(value => value.missions)).toEqual([true, false]);
+  expect(service.unexpected).toEqual([]);
+});
+
+test('mission badges use green, blue and gold as daily targets advance', async ({ page }) => {
+  const service = await missionService(page);
+  let count = 0;
+  await page.route('**/rest/v1/app_state*', route => route.fulfill({ json: { version: count + 1 } }));
+  await page.route('**/rpc/get_read_model', route => route.fulfill({ json: {
+    generatedAt: '2026-11-04T12:00:00+03:00', directory: [service.account], notes: [], hours: {}, disabledEmployeeIds: [],
+    reviews: Array.from({ length: count }, (_, i) => imported(`grade-${i}`, '04-11-2026', [employee.id])),
+  } }));
+  await login(page);
+  for (const [value, band, title, target] of [[0,0,'أثران في يوم واحد',2], [2,1,'ثلاثة آثار في يوم واحد',3], [3,2,'خمسة آثار في يوم واحد',5], [5,2,'خمسة آثار في يوم واحد',5]] as const) {
+    count = value;
+    if (value) await page.reload();
+    const mission = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: title });
+    await expect(mission.locator('img')).toHaveAttribute('data-grade', String(band));
+    await expect(mission.locator('img')).toHaveAttribute('src', new RegExp(`/grades/${['green','blue','gold'][band]}/`));
+    await expect(mission.locator('img')).toHaveCSS('filter', 'none');
+    await expect(mission).toContainText(`${value}/${target}`);
+    await mission.screenshot({ path: test.info().outputPath(`grade-${value}.png`) });
+  }
   expect(service.unexpected).toEqual([]);
 });

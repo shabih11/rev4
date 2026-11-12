@@ -14,9 +14,11 @@ export interface CustomerReview {
   linkedEmployeeIds: string[];
   linkedShiftId?: string;
   batchId?: string;
+  goldPlus?: boolean;
+  avatarRewardEmployeeIds?: string[];
 }
 
-export type ReviewSummary = Pick<CustomerReview, 'id' | 'branch' | 'rating' | 'date' | 'time' | 'linkedEmployeeIds'>;
+export type ReviewSummary = Pick<CustomerReview, 'id' | 'branch' | 'rating' | 'date' | 'time' | 'linkedEmployeeIds' | 'goldPlus' | 'avatarRewardEmployeeIds'>;
 
 export interface TimelineEvent {
   id: string;
@@ -36,6 +38,8 @@ export interface TimelineEvent {
   batchId?: string;
 }
 
+export type BranchBadgeReward = { branch: string; badge: 'coffee' | 'rocket' | 'milestone' | 'milestone500'; period: string };
+
 export interface DataContextType {
   resultsMode: boolean;
   resultsDate: Date;
@@ -52,7 +56,7 @@ export interface DataContextType {
   transferEmployee: (id: string, branch: string) => Promise<boolean>;
   mergeEmployees: (primaryId: string, duplicateId: string, newName?: string, newBranch?: string, coverage?: boolean) => Promise<boolean>;
   branchSettings: Record<string, { start: string; end: string; googleApi?: string; nextDayTime?: string }>;
-  updateBranchSettings: (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => void;
+  updateBranchGoogleLink: (branch: string, googleApi: string) => boolean;
   timeline: TimelineEvent[];
   addTimelineComment: (id: string, comment: string) => void;
   addTimelineEvent: (event: Omit<TimelineEvent, 'id'>) => void;
@@ -71,6 +75,7 @@ export interface DataContextType {
   resetTimelineToInjectedShifts: () => void;
   resetReviewsToInjected: () => void;
   reviewSummaries: ReviewSummary[];
+  branchBadgeRewards: BranchBadgeReward[];
   seaWinningBranches: ReadonlySet<string>;
   rocketLaunchWinningBranches: ReadonlySet<string>;
   sundayCoffeeWinningBranch: string | null;

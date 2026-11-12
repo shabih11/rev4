@@ -1,3 +1,4 @@
+import { GoldPlusBadge } from './GoldPlusBadge';
 import { normalizeFridayShift } from '../lib/shiftSchedule';
 import { useState } from 'react';
 import { useData, type TimelineEvent } from '../context/DataContext';
@@ -118,7 +119,7 @@ export function AdminShiftCalendar({ branch }: { branch: string }) {
           <h4 className="font-bold">تقييمات اليوم ({dayReviews.length})</h4>
           {!dayReviews.length && <p className="text-slate-500">لا توجد تقييمات في هذا اليوم.</p>}
           {dayReviews.map(review => <article key={review.id} className="rounded-xl border p-3 space-y-1">
-            <p className="font-bold">{review.rating} / 5 <span className="text-sm font-normal text-slate-500">— {formatTime(review.time)}</span></p>
+            <p className="font-bold">{review.rating} / 5 <span className="text-sm font-normal text-slate-500">— {formatTime(review.time)}</span> {review.goldPlus && <GoldPlusBadge />}</p>
             {review.comment && <p className="whitespace-pre-wrap break-words">{review.comment}</p>}
             <p className="text-sm text-slate-500">{review.linkedEmployeeIds.map(id => users.find(employee => employee.id === id)?.name).filter(Boolean).join('، ') || 'غير مرتبطة بموظفة'}</p>
           </article>)}

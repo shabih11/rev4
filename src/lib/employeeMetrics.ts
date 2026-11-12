@@ -1,7 +1,7 @@
 import type { UserAccount } from './mockData';
 import type { ReviewSummary, TimelineEvent } from '../context/DataContext';
 import { isCoverageEmployee } from './employeeBranches';
-import { isInCurrentMonth, isPositiveReview } from './reviewPeriod';
+import { previousMonthEnd, recordsThroughDate, isInCurrentMonth, isPositiveReview } from './reviewPeriod';
 import { toEnglishNumerals } from './formatDate';
 
 export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], notes: TimelineEvent[], resultsDate: Date, ready: boolean, imageUrl: string): UserAccount[] {
@@ -24,6 +24,8 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
       let complaintsScore = 0;
       let safetyScore = 0;
       let monthReviewsBalance = 0;
+      let goldPlusShare = 0;
+      let goldPlusCents = 0;
 
       currentMonthReviews.forEach(r => {
         const rating = parseInt(toEnglishNumerals(r.rating)) || 0;
@@ -31,6 +33,11 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
         if (isPositiveReview(r.rating)) {
           positiveScore += (0.25 / shareCount);
           monthReviewsBalance += (1 / shareCount);
+          if (r.avatarRewardEmployeeIds?.includes(unifiedUser.id) ?? r.goldPlus) {
+            const members = [...new Set(r.linkedEmployeeIds)].sort();
+            goldPlusShare += 1 / members.length;
+            goldPlusCents += Math.floor(1600 / members.length) + Number(members.indexOf(unifiedUser.id) < 1600 % members.length);
+          }
         } else if (rating <= 2 && rating >= 1) {
           negativeScore -= (0.5 / shareCount);
         }
@@ -69,6 +76,8 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
         points: calculatedPoints,
         reviewsCount: totalReviewsCount,
         monthReviewsCount,
+        ordinaryReviewBalance: Math.round((monthReviewsBalance - goldPlusShare) * 10) / 10,
+        goldPlusCents,
         stats: {
           positive: positiveScore,
           negative: negativeScore,
@@ -77,4 +86,13 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
         }
       };
     });
+}
+
+// A completed month's winner wears the crown for the following calendar month.
+export function previousMonthWinnerIds(users: UserAccount[], reviews: ReviewSummary[], notes: TimelineEvent[], now: Date): Set<string> {
+  const cutoff = previousMonthEnd(now);
+  const ranked = enrichEmployees(users, recordsThroughDate(reviews, cutoff), recordsThroughDate(notes, cutoff), cutoff, true, '')
+    .filter(user => user.role === 'employee');
+  const best = Math.max(0, ...ranked.map(user => user.monthReviewsCount ?? 0));
+  return new Set(ranked.filter(user => best > 0 && user.monthReviewsCount === best).map(user => user.id));
 }

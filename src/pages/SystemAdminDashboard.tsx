@@ -11,79 +11,71 @@ import { EmployeeAvatar } from '../components/EmployeeFeatures';
 import { AdditionalFeaturesSettings } from '../components/AdditionalFeaturesSettings';
 import { AvatarStoreAdmin } from '../components/AvatarStoreAdmin';
 import { EmployeeAccountActions } from '../components/EmployeeAccountActions';
-import { MergeAccountPicker } from '../components/MergeAccountPicker';
-import { BranchEmployees } from '../components/BranchEmployees';
 import { Brand } from '../components/Brand';
-import { DisabledEmployees } from '../components/DisabledEmployees';
-import { EmployeeManagementActions } from '../components/EmployeeManagementActions';
-import { belongsToBranch, isCoverageEmployee, employeeSelectionBranch } from '../lib/employeeBranches';
+import { belongsToBranch, isCoverageEmployee, employeeBranchLabel } from '../lib/employeeBranches';
 import { LeaderboardLink } from '../components/LeaderboardLink';
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useRecordScope } from '../hooks/useRecordScope';
-import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, GitMerge, Store } from 'lucide-react';
+import { AlertOctagon, ShieldAlert, Users, LogOut, Building2, CalendarClock, MessageSquareWarning, PlusCircle, CheckCircle2, BarChart3, Trash2, Edit, Zap, Settings, Store } from 'lucide-react';
 import employeeImg from '../assets/employee.png';
-import { formatTime } from '../lib/formatDate';
 import { newestFirst } from '../lib/employeeActivity';
+import { formatTime } from '../lib/formatDate';
 
 export const SystemAdminDashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const { recordsReady, summaryReady, users, updateUser, addUser, setEmployeeDisabled, mergeEmployees, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
-  const [activeTab, setActiveTab] = useState<'shifts' | 'branches' | 'employees' | 'notes' | 'stats' | 'features' | 'avatars' | 'analytics'>('shifts');
+  const { logout } = useAuth();
+  const { recordsReady, summaryReady, syncError, users, disabledEmployees, reviews, updateUser, addUser, timeline, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent } = useData();
+  const [activeTab, setActiveTab] = useState<'branches' | 'features' | 'avatars' | 'analytics'>('branches');
   useUsagePage(activeTab);
   
   const branches = ['جاليري', 'ذافيو', 'سلام', 'القصر', 'المملكة', 'شرق'];
-  const [globalBranch, setGlobalBranch] = useState<string>('all');
-  const [selectedBranch, setSelectedBranch] = useState(branches[0]);
-  const [selectedTimelineBranch, setSelectedTimelineBranch] = useState(branches[0]);
-  
-  const handleGlobalBranchChange = (branch: string) => {
-    setGlobalBranch(branch);
-    if (branch !== 'all') {
-      setSelectedBranch(branch);
-      setSelectedTimelineBranch(branch);
-      if (branch !== 'موظفة خارجية') {
-        setComplaintBranch(branch);
-        setSafetyBranch(branch);
-      }
-    }
-  };
-
-  const effectiveBranch = globalBranch !== 'all' ? globalBranch : selectedBranch;
-  const effectiveTimelineBranch = globalBranch !== 'all' ? globalBranch : selectedTimelineBranch;
-
-  const branchEmployees = users.filter(u => (effectiveBranch === 'موظفة خارجية' ? isCoverageEmployee(u) : belongsToBranch(u, effectiveBranch)) && u.role === 'employee');
-
-  // Merge Employees State
-  const [showMergeModal, setShowMergeModal] = useState(false);
-  const needsAllRecords = showMergeModal;
+  const [globalBranch, setGlobalBranch] = useState('all');
+  const [analyticsBranch, setAnalyticsBranch] = useState('');
+  const [branchView, setBranchView] = useState<'calendar' | 'employees' | 'reviews' | 'settings' | 'notes'>('calendar');
+  const branchOpen = activeTab === 'branches' && globalBranch !== 'all';
+  const employeeView = branchOpen && branchView === 'employees';
+  const [openEmployeeId, setOpenEmployeeId] = useState<string | null>(null);
+  const coverage = globalBranch === 'موظفة خارجية';
   useRecordScope({
-    users: activeTab === 'employees' || activeTab === 'stats' || activeTab === 'notes' || activeTab === 'shifts',
-    reviews: needsAllRecords ? { all: true } : activeTab === 'shifts' || activeTab === 'stats' ? { branches: [effectiveTimelineBranch] } : undefined,
-    timeline: needsAllRecords || (activeTab === 'notes' && globalBranch === 'all') ? { all: true }
-      : activeTab === 'shifts' || activeTab === 'stats' || activeTab === 'notes' ? { branches: [effectiveTimelineBranch] } : undefined,
+    users: branchOpen,
+    reviews: employeeView ? { all: true } : branchOpen && (branchView === 'calendar' || branchView === 'reviews') ? { branches: [globalBranch] } : undefined,
+    timeline: employeeView ? { all: true } : branchOpen && (branchView === 'calendar' || branchView === 'notes') ? { branches: [globalBranch] } : undefined,
   });
-  const [primaryEmpId, setPrimaryEmpId] = useState('');
-  const [duplicateEmpId, setDuplicateEmpId] = useState('');
-  const [primaryMergeBranch, setPrimaryMergeBranch] = useState('');
-  const [duplicateMergeBranch, setDuplicateMergeBranch] = useState('');
-  const [mergedCoverage, setMergedCoverage] = useState(false);
-  const [mergedName, setMergedName] = useState('');
-  const [mergedBranch, setMergedBranch] = useState(branches[0]);
-  
-  const [viewingReviewsMonth, setViewingReviewsMonth] = useState('');
+  const reviewedIds = new Set(reviews.flatMap(review => review.linkedEmployeeIds));
+  const branchEmployees = employeeView && recordsReady && summaryReady && !syncError
+    ? [...users, ...disabledEmployees].filter(employee => {
+        if (employee.role !== 'employee') return false;
+        const inactive = !reviewedIds.has(employee.id);
+        return coverage ? inactive || isCoverageEmployee(employee) : !inactive && belongsToBranch(employee, globalBranch);
+      })
+    : [];
+
+  function openBranch(branch: string) {
+    setGlobalBranch(branch);
+    setBranchView(branch === 'موظفة خارجية' ? 'employees' : 'calendar');
+    setComplaintEmployee('');
+    setComplaintText('');
+    setSafetyEmployee('');
+    setSafetyText('');
+    setEditingNoteId(null);
+    setShowAddForm(false);
+    setOpenEmployeeId(null);
+    setNewEmpName('');
+  }
+
+  function navigate(tab: typeof activeTab) {
+    setActiveTab(tab);
+    if (tab === 'branches') openBranch('all');
+  }
+
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [editingNoteTitle, setEditingNoteTitle] = useState('');
   const [editingNoteComment, setEditingNoteComment] = useState('');
 
   const navItems = [
     { id: 'analytics', label: 'تحليلات الاستخدام', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
-    { id: 'shifts', label: 'الشفتات', icon: CalendarClock, color: 'text-indigo-600', activeBg: 'bg-indigo-50 text-indigo-700 border-r-4 border-indigo-600' },
-    { id: 'employees', label: 'الموظفات', icon: Users, color: 'text-emerald-600', activeBg: 'bg-emerald-50 text-emerald-700 border-r-4 border-emerald-600' },
     { id: 'branches', label: 'الفروع', icon: Building2, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
-    { id: 'stats', label: 'التقييمات', icon: BarChart3, color: 'text-blue-600', activeBg: 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' },
-    { id: 'notes', label: 'الملاحظات', icon: MessageSquareWarning, color: 'text-amber-600', activeBg: 'bg-amber-50 text-amber-700 border-r-4 border-amber-600' },
     { id: 'avatars', label: 'متجر الأفتارات', icon: Store, color: 'text-teal-600', activeBg: 'bg-teal-50 text-teal-700 border-r-4 border-teal-600' },
     { id: 'features', label: 'الميزات الإضافية', icon: Zap, color: 'text-purple-600', activeBg: 'bg-purple-50 text-purple-700 border-r-4 border-purple-600' },
   ] as const;
@@ -96,10 +88,8 @@ export const SystemAdminDashboard: React.FC = () => {
   };
 
   // Notes form state
-  const [complaintBranch, setComplaintBranch] = useState('');
   const [complaintEmployee, setComplaintEmployee] = useState('');
   const [complaintText, setComplaintText] = useState('');
-  const [safetyBranch, setSafetyBranch] = useState('');
   const [safetyEmployee, setSafetyEmployee] = useState('');
   const [safetyText, setSafetyText] = useState('');
 
@@ -125,12 +115,10 @@ export const SystemAdminDashboard: React.FC = () => {
     showToast('تم تحديث الإحصائيات');
   };
 
-  // handleSaveTimes was moved inline into the branch list map
-
   const handleAddEmployee = () => {
     if (!newEmpName.trim()) return;
     const id = 'emp_' + Date.now();
-    const branch = effectiveBranch === 'موظفة خارجية' ? 'موظفة خارجية' : effectiveBranch;
+    const branch = globalBranch;
     addUser({
       id, name: newEmpName.trim(), branch, isCoverage: branch === 'موظفة خارجية', email: '', role: 'employee', imageUrl: employeeImg,
       stats: { positive: 0, negative: 0, complaints: 0, safety: 0 }
@@ -140,51 +128,45 @@ export const SystemAdminDashboard: React.FC = () => {
     showToast('تمت إضافة الموظفة بنجاح');
   };
 
-  const handleRemoveEmployee = async (id: string) => {
-    if (!confirm('هل تريدين تعطيل الموظفة مع الاحتفاظ بسجلاتها؟')) return;
-    const removed = await setEmployeeDisabled(id, true);
-    showToast(removed ? 'تم تعطيل الموظفة' : 'تعذر التعطيل. تحققي من الاتصال وتحديث قاعدة البيانات.');
-  };
-
   const handleSubmitComplaint = () => {
     if (!recordsReady) { showToast('انتظري اكتمال المزامنة التلقائية قبل التسجيل'); return; }
-    if (!complaintBranch || !complaintEmployee || !complaintText) {
+    if (!globalBranch || !complaintEmployee || !complaintText) {
       showToast('يرجى ملء جميع الحقول');
       return;
     }
-    const emp = users.find(u => u.name === complaintEmployee);
-    if (emp) {
-      updateUser(emp.id, { stats: { ...emp.stats, complaints: emp.stats.complaints + 1 } });
-    }
+    const emp = employeesForBranch(globalBranch).find(u => u.id === complaintEmployee);
+    if (!emp) return;
+    updateUser(emp.id, { stats: { ...emp.stats, complaints: emp.stats.complaints + 1 } });
     addTimelineEvent({
-      branch: complaintBranch,
+      branch: globalBranch,
       type: 'gap',
-      title: `شكوى عميل - ${complaintEmployee}`,
+      title: `شكوى عميل - ${emp.name}`,
       time: new Date().toLocaleTimeString('ar-SA-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
       comment: complaintText,
+      employees: [{ id: emp.id, name: emp.name }],
     });
-    setComplaintBranch(''); setComplaintEmployee(''); setComplaintText('');
+    setComplaintEmployee(''); setComplaintText('');
     showToast('تم تسجيل الشكوى بنجاح');
   };
 
   const handleSubmitSafety = () => {
     if (!recordsReady) { showToast('انتظري اكتمال المزامنة التلقائية قبل التسجيل'); return; }
-    if (!safetyBranch || !safetyEmployee || !safetyText) {
+    if (!globalBranch || !safetyEmployee || !safetyText) {
       showToast('يرجى ملء جميع الحقول');
       return;
     }
-    const emp = users.find(u => u.name === safetyEmployee);
-    if (emp) {
-      updateUser(emp.id, { stats: { ...emp.stats, safety: emp.stats.safety + 1 } });
-    }
+    const emp = employeesForBranch(globalBranch).find(u => u.id === safetyEmployee);
+    if (!emp) return;
+    updateUser(emp.id, { stats: { ...emp.stats, safety: emp.stats.safety + 1 } });
     addTimelineEvent({
-      branch: safetyBranch,
+      branch: globalBranch,
       type: 'gap',
-      title: `مخالفة سلامة - ${safetyEmployee}`,
+      title: `مخالفة سلامة - ${emp.name}`,
       time: new Date().toLocaleTimeString('ar-SA-u-nu-latn', { hour: '2-digit', minute: '2-digit' }),
       comment: safetyText,
+      employees: [{ id: emp.id, name: emp.name }],
     });
-    setSafetyBranch(''); setSafetyEmployee(''); setSafetyText('');
+    setSafetyEmployee(''); setSafetyText('');
     showToast('تم تسجيل مخالفة السلامة');
   };
 
@@ -208,44 +190,6 @@ export const SystemAdminDashboard: React.FC = () => {
           <p className="mt-3 text-xs text-slate-500">لوحة الإدارة العامة</p>
         </div>
 
-        {/* Global Branch Filter in Sidebar */}
-        <div className="p-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Building2 size={15} className="text-blue-600" />
-              تحديد الفرع
-            </span>
-            {globalBranch !== 'all' && (
-              <button
-                onClick={() => handleGlobalBranchChange('all')}
-                className="text-[11px] text-blue-600 hover:text-blue-800 hover:underline font-bold"
-              >
-                عرض الكل
-              </button>
-            )}
-          </div>
-          <select
-            value={globalBranch}
-            onChange={(e) => handleGlobalBranchChange(e.target.value)}
-            className="w-full bg-white border border-slate-200 text-slate-800 font-bold text-xs rounded-xl p-2.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all"
-          >
-            <option value="all">جميع الفروع</option>
-            {branches.map(b => (
-              <option key={b} value={b}>فرع {b}</option>
-            ))}
-            <option value="موظفة خارجية">الموظفات المتنقلات</option>
-          </select>
-          {globalBranch !== 'all' ? (
-            <p className="text-[11px] text-blue-700 font-medium mt-2 bg-blue-50/80 border border-blue-100 rounded-lg p-1.5 text-center leading-relaxed">
-              كافة التبويبات مخصصة لـ <strong>{globalBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`}</strong>
-            </p>
-          ) : (
-            <p className="text-[11px] text-slate-400 font-medium mt-1.5 text-center">
-              يتم عرض بيانات جميع الفروع
-            </p>
-          )}
-        </div>
-
         {/* Navigation Items */}
         <nav aria-label="التنقل الرئيسي" className="workspace-nav flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
           {navItems.map(item => {
@@ -255,7 +199,7 @@ export const SystemAdminDashboard: React.FC = () => {
               <button
                 key={item.id}
                 aria-current={isActive ? 'page' : undefined}
-                data-usage-action="navigation" onClick={() => setActiveTab(item.id as any)}
+                data-usage-action="navigation" onClick={() => navigate(item.id)}
                 className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 group text-right cursor-pointer ${
                   isActive
                     ? `${item.activeBg} shadow-sm font-extrabold`
@@ -279,7 +223,6 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-bold text-slate-800 truncate">مدير النظام العام</p>
-              <p className="text-[10px] text-slate-400 font-mono truncate" dir="ltr">{user?.email}</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -317,22 +260,6 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile Global Branch Selector */}
-          <div className="bg-slate-700/70 p-2 rounded-xl flex items-center gap-2">
-            <Building2 size={15} className="text-blue-400 shrink-0" />
-            <span className="text-xs text-slate-300 font-bold shrink-0">تحديد الفرع:</span>
-            <select
-              value={globalBranch}
-              onChange={(e) => handleGlobalBranchChange(e.target.value)}
-              className="flex-1 bg-slate-800 border border-slate-600 text-white text-xs font-bold rounded-lg p-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400"
-            >
-              <option value="all">جميع الفروع</option>
-              {branches.map(b => (
-                <option key={b} value={b}>فرع {b}</option>
-              ))}
-              <option value="موظفة خارجية">الموظفات المتنقلات</option>
-            </select>
-          </div>
         </header>
 
         {/* Desktop Top Bar (hidden on mobile) */}
@@ -349,181 +276,85 @@ export const SystemAdminDashboard: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-500 font-bold">
-              تصفية الفرع:
-            </span>
-            <select
-              value={globalBranch}
-              onChange={(e) => handleGlobalBranchChange(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-slate-800 font-bold text-xs rounded-xl px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-            >
-              <option value="all">جميع الفروع</option>
-              {branches.map(b => (
-                <option key={b} value={b}>فرع {b}</option>
-              ))}
-              <option value="موظفة خارجية">الموظفات المتنقلات</option>
-            </select>
-          </div>
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
-          <div className="workspace-heading"><h2>{navItems.find(i => i.id === activeTab)?.label}</h2><p>مساحة واحدة لتنظيم الفريق ومتابعة أثره.</p></div>
-          <div className="workspace-panel bg-white p-5 md:p-8 overflow-x-auto min-h-[75vh]">
-          
+        <main className={activeTab === 'avatars' ? 'flex-1 w-full bg-white py-4' : 'flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full'}>
+
+          <div className={activeTab === 'avatars' ? 'min-h-[65vh] bg-white' : 'workspace-panel min-h-[65vh] bg-white p-3 sm:p-5 md:p-8'}>
 
 
-          {activeTab === 'branches' && <BranchesTab globalBranch={globalBranch} branches={branches} showToast={showToast} />}
 
-          {activeTab === 'employees' && (
-            <div>
-              <BranchEmployees onReview={request => { setPrimaryEmpId(request.primaryId); setDuplicateEmpId(request.duplicateId); setPrimaryMergeBranch(employeeSelectionBranch(users.find(item => item.id === request.primaryId))); setDuplicateMergeBranch(employeeSelectionBranch(users.find(item => item.id === request.duplicateId))); setMergedCoverage(request.isCoverage); setMergedName(request.name); setMergedBranch(request.targetBranch); setShowMergeModal(true); }} />
-              <div className="flex justify-between items-center mb-4 border-b pb-2 flex-wrap gap-2">
-                <h2 className="text-xl font-bold">إدارة الموظفات</h2>
-                <div className="flex gap-2 items-center flex-wrap">
-                  <button onClick={() => setShowAddForm(!showAddForm)} className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-bold flex gap-2 items-center">
-                    <PlusCircle size={16} /> إضافة موظفة
-                  </button>
-                  <EmployeeManagementActions />
-                </div>
+          {activeTab === 'branches' && !branchOpen && (
+            <section className="mx-auto max-w-3xl space-y-5">
+              <h1 className="text-2xl font-black text-slate-900">اختيار الفرع</h1>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {branches.map(branch => <button key={branch} onClick={() => openBranch(branch)}
+                  className="flex min-h-24 flex-col items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-start font-bold text-slate-900 hover:border-blue-400 hover:bg-blue-50 focus-visible:ring-2 focus-visible:ring-blue-600">
+                  <Building2 aria-hidden="true" className="text-blue-700" size={21} />
+                  {branch}
+                </button>)}
               </div>
+              <button onClick={() => openBranch('موظفة خارجية')} className="min-h-11 rounded-xl border px-4 font-bold text-blue-800">الموظفات المتنقلات</button>
+            </section>
+          )}
 
-              <DisabledEmployees />
+          {branchOpen && (
+            <header className="mb-5 space-y-4 border-b border-slate-200 pb-4">
+              <div className="min-w-0">
+                <h1 className="sr-only">{coverage ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`}</h1>
+                <nav aria-label="الفروع" className="grid grid-cols-6 gap-1 sm:gap-2">
+                  {branches.map(branch => (
+                    <button key={branch} type="button" aria-current={globalBranch === branch ? 'page' : undefined}
+                      onClick={() => openBranch(branch)}
+                      className={`min-h-11 min-w-0 rounded-xl border px-1 text-xs font-bold focus-visible:ring-2 focus-visible:ring-blue-600 sm:px-3 sm:text-sm ${globalBranch === branch ? 'border-blue-700 bg-blue-700 text-white' : 'border-slate-200 bg-white text-blue-800 hover:border-blue-400 hover:bg-blue-50'}`}>
+                      {branch}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+              {!coverage && <nav aria-label="أقسام الفرع" className="grid grid-cols-5 gap-2">
+                {([
+                  ['calendar', 'التقويم', CalendarClock],
+                  ['employees', 'الموظفات', Users],
+                  ['reviews', 'التقييمات', BarChart3],
+                  ['notes', 'الملاحظات والشكاوى', MessageSquareWarning],
+                  ['settings', 'الإعدادات', Settings],
+                ] as const).map(([id, label, Icon]) => (
+                  <button key={id} type="button" aria-label={label} title={label} aria-current={branchView === id ? 'page' : undefined} onClick={() => { setBranchView(id); setOpenEmployeeId(null); }}
+                    className={`flex min-h-11 items-center justify-center rounded-xl px-3 focus-visible:ring-2 focus-visible:ring-blue-600 ${branchView === id ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-blue-50'}`}>
+                    <Icon size={20} aria-hidden="true" />
+                  </button>
+                ))}
+              </nav>}
+            </header>
+          )}
 
-              {/* Merge Employees Modal */}
-              {showMergeModal && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
-                  <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
-                    <div className="flex items-center justify-between border-b pb-3 mb-4">
-                      <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                        <GitMerge className="text-purple-600" size={20} />
-                        دمج وتوحيد حساب موظفتين
-                      </h3>
-                      <button onClick={() => setShowMergeModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
-                    </div>
-
-                    <p className="text-xs text-slate-600 mb-4 bg-purple-50 p-3 rounded-xl border border-purple-100 leading-relaxed">
-                      عند اختلاف كتابة الاسم بين الفروع أو في بيانات Windsor (مثل الهمزات أو الاختصارات)، يتيح هذا الخيار دمج تقييمات وشفتات الموظفة المكررة في الحساب المعتمد وحذف السجل الإضافي.
-                    </p>
-
-                    <div className="space-y-4 text-xs font-bold text-slate-700">
-                      <MergeAccountPicker label="الحساب الأساسي" branch={primaryMergeBranch} onBranchChange={value => { setPrimaryMergeBranch(value); setPrimaryEmpId(''); setMergedName(''); }} value={primaryEmpId} onChange={id => {
-                        setPrimaryEmpId(id); if (duplicateEmpId === id) setDuplicateEmpId('');
-                        const employee = users.find(item => item.id === id);
-                        if (employee) { setMergedName(employee.name); setMergedBranch(employeeSelectionBranch(employee)); setMergedCoverage(isCoverageEmployee(employee)); }
-                      }} users={users} ready={summaryReady} />
-                      <MergeAccountPicker label="الحساب المكرر" branch={duplicateMergeBranch} onBranchChange={value => { setDuplicateMergeBranch(value); setDuplicateEmpId(''); }} value={duplicateEmpId} onChange={setDuplicateEmpId} excludedId={primaryEmpId} users={users} ready={summaryReady} />
-                      <label className="flex items-center gap-3 rounded-xl bg-blue-50 p-4 text-sm"><input type="checkbox" checked={mergedCoverage} onChange={event => setMergedCoverage(event.target.checked)} className="h-5 w-5 accent-blue-700" />وسم موظفة متنقلة بعد الدمج</label>
-
-                      <div>
-                        <label className="block mb-1">3. الاسم الموحد المعتمد:</label>
-                        <input 
-                          type="text" 
-                          value={mergedName} 
-                          onChange={e => setMergedName(e.target.value)}
-                          placeholder="الاسم الموحد الجديد..."
-                          className="w-full p-2.5 border rounded-xl bg-white text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block mb-1">4. الفرع المعتمد:</label>
-                        <select 
-                          value={mergedBranch} 
-                          onChange={e => setMergedBranch(e.target.value)}
-                          className="w-full p-2.5 border rounded-xl bg-slate-50 text-sm font-medium"
-                        >
-                          {branches.map(b => (
-                            <option key={b} value={b}>فرع {b}</option>
-                          ))}
-                          <option value="موظفة خارجية">موظفة متنقلة</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-6">
-                      <button
-                        disabled={!recordsReady}
-                        onClick={async () => {
-                          if (!primaryEmpId || !duplicateEmpId || !mergedName.trim()) {
-                            showToast('يرجى اختيار الموظفتين وتحديد الاسم الموحد');
-                            return;
-                          }
-                          if (primaryEmpId === duplicateEmpId) {
-                            showToast('لا يمكن دمج الموظفة مع نفسها');
-                            return;
-                          }
-                          if (!await mergeEmployees(primaryEmpId, duplicateEmpId, mergedName.trim(), mergedBranch, mergedCoverage)) return;
-                          setShowMergeModal(false);
-                          setPrimaryEmpId('');
-                          setDuplicateEmpId('');
-                          setMergedName('');
-                          showToast('تم دمج الموظفتين وتوحيد كافة التقييمات بنجاح');
-                        }}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white p-3 rounded-xl font-bold text-sm shadow-md transition"
-                      >
-                        تأكيد الدمج والتوحيد
-                      </button>
-                      <button
-                        onClick={() => setShowMergeModal(false)}
-                        className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-5 py-3 rounded-xl font-bold text-sm transition"
-                      >
-                        إلغاء
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
+          {branchOpen && branchView === 'settings' && <BranchesTab key={globalBranch} branch={globalBranch} showToast={showToast} />}
+          {employeeView && (
+            <section className="space-y-4">
+              <button type="button" aria-expanded={showAddForm} onClick={() => setShowAddForm(value => !value)} className="action-primary inline-flex min-h-11 items-center gap-2"><PlusCircle size={17} /> إضافة موظفة</button>
               {showAddForm && (
                 <div className="mb-6 p-4 bg-green-50 rounded-xl border border-green-200">
-                  <h4 className="font-bold text-green-800 mb-3">إضافة موظفة جديدة إلى ({selectedBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `فرع ${selectedBranch}`})</h4>
-                  <div className="flex gap-3">
-                    <input type="text" placeholder="اسم الموظفة..." value={newEmpName} onChange={e => setNewEmpName(e.target.value)} className="flex-1 p-2 border rounded-lg" />
+                  <h4 className="font-bold text-green-800 mb-3">إضافة موظفة جديدة إلى ({coverage ? 'الموظفات المتنقلات' : `فرع ${globalBranch}`})</h4>
+                  <div className="flex flex-wrap gap-3">
+                    <input aria-label="اسم الموظفة" type="text" placeholder="اسم الموظفة..." value={newEmpName} onChange={e => setNewEmpName(e.target.value)} className="min-w-0 flex-1 p-2 border rounded-lg" />
                     <button onClick={handleAddEmployee} className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700">إضافة</button>
                   </div>
                 </div>
               )}
 
-              {globalBranch === 'all' && (
-                <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                  {branches.map(b => (
-                    <button key={b} onClick={() => setSelectedBranch(b)}
-                      className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap ${selectedBranch === b ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                    >فرع {b}</button>
-                  ))}
-                  <button onClick={() => setSelectedBranch('موظفة خارجية')}
-                    className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap ${selectedBranch === 'موظفة خارجية' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}
-                  >الموظفات المتنقلات</button>
-                </div>
-              )}
-
-              <h3 className="font-bold text-lg mb-4 text-gray-800">
-                {effectiveBranch === 'موظفة خارجية' ? 'الموظفات المتنقلات' : `موظفات فرع ${effectiveBranch}`} ({branchEmployees.length})
-              </h3>
-
-              {effectiveBranch !== 'موظفة خارجية' && (
-                <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                  <h4 className="font-bold text-blue-900 mb-2">الموظفات المرتبطات بالفرع — {effectiveBranch} ({users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).length})</h4>
-                  <p className="text-sm text-blue-800">{users.filter(account => account.role === 'employee' && belongsToBranch(account, effectiveBranch)).map(person => person.name + (person.code ? ` (${person.code})` : '')).join('، ')}</p>
-                  <p className="text-xs text-gray-600 mt-2">تظهر الموظفة المتنقلة في آخر فرع بدأ فيه شفت مسجّل لها. تبقى سجلات الفروع السابقة محفوظة.</p>
-                </div>
-              )}
-
-              {selectedBranch === 'موظفة خارجية' && (
-                <p className="text-sm text-purple-600 mb-4 bg-purple-50 p-3 rounded-lg border border-purple-100">
-                  الموظفات المتنقلات يمكن أن يعملن في أي فرع ويجمعن تقييمات من عدة فروع.
-                </p>
-              )}
-              
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {branchEmployees.map(emp => (
-                  <details key={emp.id} className="group min-w-0 self-start rounded-2xl border border-slate-200 bg-white shadow-sm open:border-blue-200">
+                  <details key={emp.id} name="branch-employee" onToggle={event => {
+                    if (event.currentTarget.open) setOpenEmployeeId(emp.id);
+                    else setOpenEmployeeId(id => id === emp.id ? null : id);
+                  }} className="group min-w-0 self-start rounded-2xl border border-slate-200 bg-white shadow-sm open:border-blue-200">
                     <summary className="flex cursor-pointer list-none items-center gap-3 rounded-2xl p-4 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
                       <EmployeeAvatar employee={emp} className="h-14 w-14 shrink-0 rounded-full border border-slate-200" />
                       <div className="min-w-0 flex-1">
                         <EmployeeIdentity employee={emp} className="text-slate-900"/>
+                        {!reviewedIds.has(emp.id) && <span className="mt-1 inline-block rounded-md bg-amber-50 px-2 py-1 text-xs font-bold text-amber-900">حساب غير مفعل</span>}
                         <p className="mt-2 text-xs text-blue-700">إجمالي التقييمات: {emp.reviewsCount || 0} · الشهر: {emp.monthReviewsCount || 0}</p>
                       </div>
                       <span className="shrink-0 text-xs font-bold text-blue-700">
@@ -531,13 +362,7 @@ export const SystemAdminDashboard: React.FC = () => {
                         <span className="hidden group-open:inline">إغلاق −</span>
                       </span>
                     </summary>
-                    <div className="grid grid-cols-1 gap-4 border-t border-slate-100 p-4 sm:grid-cols-2">
-                          <div className="min-w-0 space-y-2">
-                            <p className="text-sm font-bold text-slate-600">صورة الموظفة</p>
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-50">
-                              <img src={employeeImg} alt={emp.name} className="w-full h-full object-cover" />
-                            </div>
-                          </div>
+                    {openEmployeeId === emp.id && <div className="grid grid-cols-1 gap-4 border-t border-slate-100 p-4 sm:grid-cols-2">
                           <div className="min-w-0 space-y-2">
                             <p className="text-sm font-bold text-slate-600">الاسم وإعدادات الحساب</p>
 
@@ -600,31 +425,59 @@ export const SystemAdminDashboard: React.FC = () => {
                             className="w-full p-1 border rounded text-center focus:bg-white text-orange-600 font-bold text-xs" />
 
                           </div>
-                          <div className="min-w-0 space-y-2">
-                            <p className="text-sm font-bold text-slate-600">إجراءات الموظفة</p>
-
-                          <div className="flex flex-col gap-1.5 items-center justify-center">
-                            <button onClick={() => handleRemoveEmployee(emp.id)} className="text-xs text-red-600 hover:underline font-bold">تعطيل</button>
-                          </div>
-
-                          </div>
-                    </div>
+                      <dl className="space-y-2 rounded-xl bg-slate-50 p-3 text-sm">
+                        <div><dt className="font-bold">الفرع</dt><dd>{employeeBranchLabel(emp)}</dd></div>
+                        {emp.code && <div><dt className="font-bold">رمز الموظفة</dt><dd>{emp.code}</dd></div>}
+                        {Boolean(emp.assignedBranches?.length) && <div><dt className="font-bold">الفروع المسندة</dt><dd>{emp.assignedBranches?.join('، ')}</dd></div>}
+                        {Boolean(emp.aliases?.length) && <div><dt className="font-bold">أسماء الربط</dt><dd>{emp.aliases?.join('، ')}</dd></div>}
+                        <div><dt className="font-bold">النقاط</dt><dd>{emp.points ?? 0}</dd></div>
+                        <div><dt className="font-bold">رصيد التقييمات</dt><dd>{emp.ordinaryReviewBalance ?? 0}</dd></div>
+                      </dl>
+                      <div className="space-y-3 sm:col-span-2">
+                        <details className="rounded-xl border p-3">
+                          <summary className="cursor-pointer font-bold">التقييمات المرتبطة</summary>
+                          <ul className="mt-3 space-y-2">
+                            {reviews.filter(review => review.linkedEmployeeIds.includes(emp.id)).sort(newestFirst).map(review => (
+                              <li key={review.id} className="rounded-lg bg-slate-50 p-3 text-sm">
+                                <strong>{review.branch} · {review.date} · {review.rating}</strong>
+                                <p>{review.comment}</p>
+                              </li>
+                            ))}
+                          </ul>
+                          {!reviewedIds.has(emp.id) && <p className="mt-2 text-sm text-slate-600">لا توجد تقييمات.</p>}
+                        </details>
+                        <details className="rounded-xl border p-3">
+                          <summary className="cursor-pointer font-bold">الشفتات والملاحظات</summary>
+                          <ul className="mt-3 space-y-2">
+                            {timeline.filter(event => event.employees?.some(employee => employee.id === emp.id) ||
+                              (!event.employees?.length && event.branch === emp.branch &&
+                                (event.title === `شكوى عميل - ${emp.name}` || event.title === `مخالفة سلامة - ${emp.name}`))).sort(newestFirst).map(event => (
+                              <li key={event.id} className="rounded-lg bg-slate-50 p-3 text-sm">
+                                <strong>{event.title}</strong>
+                                <p>{event.branch} · {event.date} · {event.time}{event.endTime && ` – ${event.endTime}`}</p>
+                                {event.comment && <p>{event.comment}</p>}
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      </div>
+                    </div>}
                   </details>
                 ))}
               </div>
-              {branchEmployees.length === 0 && (
+              {(!recordsReady || !summaryReady || syncError) && <p role="status">{syncError ? 'تعذر تحميل السجلات.' : 'جارٍ تحميل السجلات…'}</p>}
+              {recordsReady && summaryReady && !syncError && branchEmployees.length === 0 && (
                 <p className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-slate-500">لا توجد موظفات في هذا الفرع.</p>
               )}
-            </div>
+            </section>
           )}
 
-          {activeTab === 'notes' && (
+          {branchOpen && branchView === 'notes' && (
             <div>
-              <div className="flex items-center gap-3 mb-6 border-b pb-4">
-                <MessageSquareWarning className="text-gray-800" size={28} />
-                <h2 className="text-2xl font-bold text-gray-800">إدارة الملاحظات</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-bold text-gray-800">الملاحظات والشكاوى</h2>
               </div>
-              <ResultReportsInbox />
+              <ResultReportsInbox key={globalBranch} branch={globalBranch} />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Complaints Form */}
@@ -634,13 +487,9 @@ export const SystemAdminDashboard: React.FC = () => {
                     <h3 className="font-bold text-red-700 text-lg">تسجيل شكوى عميل</h3>
                   </div>
                   <div className="space-y-3">
-                    <select value={complaintBranch} onChange={e => setComplaintBranch(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
-                      <option value="">اختر الفرع...</option>
-                      {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                    <select value={complaintEmployee} onChange={e => setComplaintEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
+                    <select aria-label="موظفة الشكوى" value={complaintEmployee} onChange={e => setComplaintEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {complaintBranch && employeesForBranch(complaintBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
+                      {globalBranch && employeesForBranch(globalBranch).map(e => <option key={e.id} value={e.id}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
                     </select>
                     <textarea placeholder="تفاصيل الشكوى..." value={complaintText} onChange={e => setComplaintText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitComplaint} className="w-full bg-red-600 text-white py-2 rounded-lg font-bold hover:bg-red-700">اعتماد الشكوى وخصم النقاط</button>
@@ -654,13 +503,9 @@ export const SystemAdminDashboard: React.FC = () => {
                     <h3 className="font-bold text-orange-700 text-lg">تسجيل مخالفة سلامة</h3>
                   </div>
                   <div className="space-y-3">
-                    <select value={safetyBranch} onChange={e => setSafetyBranch(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
-                      <option value="">اختر الفرع...</option>
-                      {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                    <select value={safetyEmployee} onChange={e => setSafetyEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
+                    <select aria-label="موظفة المخالفة" value={safetyEmployee} onChange={e => setSafetyEmployee(e.target.value)} className="w-full p-2 border rounded-lg bg-white">
                       <option value="">الموظفة...</option>
-                      {safetyBranch && employeesForBranch(safetyBranch).map(e => <option key={e.id} value={e.name}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
+                      {globalBranch && employeesForBranch(globalBranch).map(e => <option key={e.id} value={e.id}>{e.name} — {summaryReady ? arabicReviewCount(e.reviewsCount) : '…'}</option>)}
                     </select>
                     <textarea placeholder="وصف المخالفة..." value={safetyText} onChange={e => setSafetyText(e.target.value)} className="w-full p-2 border rounded-lg bg-white h-24"></textarea>
                     <button onClick={handleSubmitSafety} className="w-full bg-orange-600 text-white py-2 rounded-lg font-bold hover:bg-orange-700">اعتماد المخالفة</button>
@@ -670,7 +515,7 @@ export const SystemAdminDashboard: React.FC = () => {
 
               <h3 className="font-bold text-lg mb-4 text-gray-800 border-b pb-2">السجل الأخير</h3>
               <div className="grid gap-4">
-                {timeline.filter(t => (globalBranch !== 'all' ? t.branch === globalBranch : true) && (t.title.includes('شكوى') || t.title.includes('سلامة') || t.title.includes('مخالفة'))).sort(newestFirst).slice(0, 15).map(t => (
+                {timeline.filter(t => t.branch === globalBranch && (t.title.includes('شكوى') || t.title.includes('سلامة') || t.title.includes('مخالفة'))).sort(newestFirst).slice(0, 15).map(t => (
                   <div key={t.id} className={`p-4 rounded-xl border flex items-start justify-between gap-4 ${t.title.includes('شكوى') ? 'bg-red-50 border-red-100' : 'bg-orange-50 border-orange-100'}`}>
                     <div className="flex items-start gap-4 flex-1">
                       {t.title.includes('شكوى') ? <AlertOctagon className="text-red-500 shrink-0 mt-1" /> : <ShieldAlert className="text-orange-500 shrink-0 mt-1" />}
@@ -734,37 +579,10 @@ export const SystemAdminDashboard: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'stats' && <ReviewsTab globalBranch={globalBranch} branches={branches}
-            selectedTimelineBranch={selectedTimelineBranch} effectiveTimelineBranch={effectiveTimelineBranch}
-            viewingReviewsMonth={viewingReviewsMonth} setSelectedTimelineBranch={setSelectedTimelineBranch}
-            setViewingReviewsMonth={setViewingReviewsMonth} onFeatures={() => setActiveTab('features')}
-            handleGlobalBranchChange={handleGlobalBranchChange} />}
+          {branchOpen && branchView === 'reviews' && <ReviewsTab key={globalBranch} branch={globalBranch} />}
+          {branchOpen && branchView === 'calendar' && <AdminShiftCalendar key={globalBranch} branch={globalBranch} />}
 
-          {activeTab === 'shifts' && (
-            <div>
-              <div className="flex items-center justify-between mb-6 border-b pb-4">
-                <div className="flex items-center gap-3">
-                  <CalendarClock className="text-indigo-600" size={28} />
-                  <h2 className="text-2xl font-bold text-gray-800">استعراض شفتات الفرع</h2>
-                </div>
-                <div className="flex items-center gap-3">
-                  {globalBranch === 'all' ? (
-                    <select value={selectedTimelineBranch} onChange={e => setSelectedTimelineBranch(e.target.value)} className="p-2 border border-indigo-200 rounded-lg bg-indigo-50 font-bold text-indigo-800">
-                      {branches.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                  ) : (
-                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-lg text-sm font-bold">
-                      فرع {globalBranch}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <AdminShiftCalendar key={effectiveTimelineBranch} branch={effectiveTimelineBranch} />
-            </div>
-          )}
-
-
-          {activeTab === 'analytics' && <UsageAnalytics branch={globalBranch === 'all' ? '' : globalBranch} onBranchChange={b => handleGlobalBranchChange(b || 'all')} />}
+          {activeTab === 'analytics' && <UsageAnalytics branch={analyticsBranch} onBranchChange={setAnalyticsBranch} />}
           {activeTab === 'avatars' && <AvatarStoreAdmin />}
 
           {/* Windsor.ai Integration Tab */}
@@ -793,7 +611,7 @@ export const SystemAdminDashboard: React.FC = () => {
             <button
               key={item.id}
               aria-current={isActive ? 'page' : undefined}
-              data-usage-action="navigation" onClick={() => setActiveTab(item.id as any)}
+              data-usage-action="navigation" onClick={() => navigate(item.id)}
               className={`shrink-0 min-w-[65px] flex-1 flex flex-col items-center justify-center gap-1 py-1.5 rounded-xl transition-all duration-200 ${
                 isActive
                   ? `${item.activeBg} scale-105 font-bold`

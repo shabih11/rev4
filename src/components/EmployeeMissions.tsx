@@ -1,14 +1,13 @@
+import { MissionRewards, RewardAmount } from './RewardAmount';
 import { AchievementBadge } from './AchievementBadge';
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Flag, Trophy } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { employeeMissions, levelCost } from '../lib/employeeMissions';
-import { formatDate } from '../lib/formatDate';
+import { employeeMissions, employeeLevel, missionGrades } from '../lib/employeeMissions';
 
 const number = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 
 export function EmployeeMissions({ employeeId }: { employeeId: string }) {
-  const { reviewSummaries, summaryReady, syncError, resultsMode } = useData();
+  const { reviewSummaries, summaryReady, syncError, resultsMode, features } = useData();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const refresh = () => setNow(new Date());
@@ -16,7 +15,9 @@ export function EmployeeMissions({ employeeId }: { employeeId: string }) {
     window.addEventListener('focus', refresh);
     return () => { window.clearInterval(interval); window.removeEventListener('focus', refresh); };
   }, []);
-  const state = useMemo(() => employeeMissions(employeeId, reviewSummaries, now), [employeeId, reviewSummaries, now]);
+  const progress = useMemo(() => employeeMissions(employeeId, reviewSummaries, now), [employeeId, reviewSummaries, now]);
+  const stars = features?.store?.wallet?.stars ?? progress.stars;
+  const state = { ...progress, stars, bonusStars: Math.max(0, stars - progress.ratingStars), level: employeeLevel(stars) };
   if (resultsMode) return <section aria-label="رحلة الإنجاز" className="mx-6 mb-6 rounded-3xl border bg-white p-6">
     <h2 className="text-xl font-black">رحلة الإنجاز</h2>
     <p className="mt-2 text-sm text-slate-600">تعود المهام والمستويات عند عرض الشهر الحالي. أنتِ الآن في عرض نتائج الشهر الماضي.</p>
@@ -27,46 +28,35 @@ export function EmployeeMissions({ employeeId }: { employeeId: string }) {
   </section>;
   return <section aria-label="رحلة الإنجاز" className="mx-6 mb-8 overflow-hidden rounded-3xl border border-cyan-200 bg-white">
     <header className="bg-cyan-950 p-5 text-white sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div><h2 className="flex items-center gap-2 text-xl font-black"><Flag aria-hidden="true" size={22} />رحلة الإنجاز</h2>
-          <p className="mt-2 text-sm text-cyan-100">نجومك تصنع مستواك · {formatDate(state.today)}</p></div>
-        <p className="flex items-center gap-2 rounded-full bg-cyan-900 px-3 py-2 font-black text-amber-200"><Trophy aria-hidden="true" size={20} />المستوى {number(state.level.level)}</p>
-      </div>
-      <div className="mt-5 flex justify-between gap-3 text-sm"><span>نحو المستوى {number(state.level.level + 1)}</span><span>{number(state.level.current)} / {number(state.level.required)} نجمة</span></div>
+      <div className="flex justify-between gap-3 text-sm"><span>نحو المستوى {number(state.level.level + 1)}</span><RewardAmount kind="stars" value={`${number(state.level.current)} / ${number(state.level.required)}`} /></div>
       <div role="progressbar" aria-label="تقدم المستوى" aria-valuemin={0} aria-valuemax={state.level.required} aria-valuenow={state.level.current} className="mt-2 h-3 overflow-hidden rounded-full bg-cyan-800">
         <div className="h-full rounded-full bg-amber-300" style={{ width: `${state.level.current / state.level.required * 100}%` }} />
       </div>
-      <p className="mt-2 text-xs text-cyan-100">باقي {number(state.level.remaining)} نجمة للارتقاء · مجموعك {number(state.stars)} نجمة</p>
+      <p className="mt-2 text-xs text-cyan-100">باقي <RewardAmount kind="stars" value={state.level.remaining} /> · مجموعك <RewardAmount kind="stars" value={state.stars} /></p>
     </header>
     <div className="p-5 sm:p-6">
       <dl className="mb-5 grid grid-cols-2 gap-3 border-b border-slate-100 pb-5 text-sm">
-        <div><dt className="text-slate-500">نجوم التقييمات</dt><dd className="mt-1 font-black text-cyan-900">{number(state.ratingStars)}</dd></div>
-        <div><dt className="text-slate-500">مكافآت المهام</dt><dd className="mt-1 font-black text-amber-800">{number(state.bonusStars)}</dd></div>
+        <div><dt className="text-slate-500">نجوم التقييمات</dt><dd className="mt-1 font-black text-cyan-900"><RewardAmount kind="stars" value={state.ratingStars} /></dd></div>
+        <div><dt className="text-slate-500">مكافآت المهام</dt><dd className="mt-1 font-black text-amber-800"><RewardAmount kind="stars" value={state.bonusStars} /></dd></div>
       </dl>
-      <p className="mb-4 text-xs leading-6 text-slate-600">كل تقييم إيجابي (4 أو 5) يمنحكِ 5 عملات و5 نجوم تقدم كاملة حتى مع شريكة. العملات من أول تقييم مستورد، والنجوم والمستويات من 1 نوفمبر 2026. تكتمل المهام تلقائيًا بعد المزامنة.</p>
-      {(['daily', 'monthly'] as const).map(period => <div key={period} className="mb-5">
+      {(['daily', 'monthly'] as const).filter(period => state.missions.some(mission => mission.period === period)).map(period => <div key={period} className="mb-5">
         <h3 className="flex items-center justify-between gap-2 font-black text-slate-800">{period === 'daily' ? 'تحدي اليوم' : 'مهام الشهر'}<span className="text-xs font-normal text-slate-500">{state.missions.filter(mission => mission.period === period && mission.current + 1e-9 >= mission.target).length}/{state.missions.filter(mission => mission.period === period).length} مكتملة</span></h3>
-        <div className="divide-y divide-slate-100">{state.missions.filter(mission => mission.period === period).map(mission => {
+        <ul className="divide-y divide-slate-100">{state.missions.filter(mission => mission.period === period).map(mission => {
           const done = mission.current + 1e-9 >= mission.target;
-          return <details key={`${state.today}-${mission.id}`} className="group py-3">
-            <summary className="flex cursor-pointer list-none items-center gap-3 rounded-xl py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-700">
-              <AchievementBadge progress={mission.current / mission.target} missionId={mission.id}/>
-              <span className="min-w-0 flex-1"><span className="block font-bold text-slate-800">{mission.title}</span><span className="mt-1 block text-xs leading-5 text-slate-600">{mission.description}</span>
-                <span className={`mt-1 block text-xs font-bold ${done ? 'text-emerald-700' : 'text-cyan-800'}`}>{done ? 'مكتملة' : 'عرض المهمة'} · {number(mission.current)}/{number(mission.target)} · +{number(mission.stars)} نجمة للمستوى · +{number(mission.coins)} عملة</span></span>
-              <ChevronDown aria-hidden="true" className="shrink-0 text-slate-500 group-open:rotate-180" size={18} />
-            </summary>
-            <div className="mt-2 rounded-xl bg-slate-50 p-4 text-sm leading-7 text-slate-600"><p className="mb-1 font-bold">{mission.effort}</p><p>{mission.hint}</p></div>
-          </details>;
-        })}</div>
+          return <li key={mission.id} className="flex items-center gap-2 py-3 sm:gap-3">
+            <AchievementBadge progress={mission.current / mission.target} missionId={mission.id} band={mission.band} />
+            <div className="min-w-0 flex-1">
+              <h4 className="font-bold text-slate-800">{mission.title}</h4>
+              <p className="text-xs font-bold text-slate-600">الدرجة {missionGrades[mission.band ?? 0]} · {mission.completedBands ?? 0}/3 درجات مكتملة</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{mission.description}</p>
+              <p className={`mt-1 text-xs font-bold ${done ? 'text-emerald-700' : 'text-cyan-800'}`}>
+                {done && 'مكتملة · '}<bdi dir="ltr">{number(mission.current)}/{number(mission.target)}</bdi>
+              </p>
+            </div>
+            <MissionRewards stars={mission.stars} coins={mission.coins} />
+          </li>;
+        })}</ul>
       </div>)}
-      <details className="rounded-2xl border border-cyan-100 bg-cyan-50 p-4 text-sm text-cyan-950">
-        <summary className="cursor-pointer rounded font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-700">كيف تُحسب المستويات والمكافآت؟</summary>
-        <p className="mt-3 leading-7">التقييم الإيجابي هو 4 أو 5 نجوم؛ يمنح كل موظفة مرتبطة به 5 عملات و5 نجوم تقدم. نجوم المهام مكافأة إضافية وليست تقييمات جديدة. قد يخدم التقييم أكثر من مهمة، ولكل مهمة مكافأة واحدة في فترتها. تقدير المجهود مبني على العدد والاستمرارية والتعاون، ولا يقيس وقت العمل الفعلي.</p>
-        <p className="mt-3 leading-7">يبدأ المستوى من 1. يتطلب الانتقال الأول 50 نجمة، ثم يزيد المطلوب 25٪ لكل انتقال مع التقريب لأقرب 5 نجوم. تنتقل النجوم الزائدة إلى المستوى التالي.</p>
-        <div className="mt-3 overflow-x-auto"><table className="w-full text-right text-xs"><caption className="mb-2 text-right font-bold">نجوم كل انتقال</caption><thead><tr><th scope="col" className="py-2">من ← إلى</th><th scope="col">النجوم المطلوبة</th></tr></thead><tbody>{Array.from({ length: 11 }, (_, index) => index + 1).map(level => <tr key={level} className="border-t border-cyan-100"><td className="py-2">{number(level)} ← {number(level + 1)}</td><td>{number(levelCost(level))}</td></tr>)}</tbody></table></div>
-        <p className="mt-3 leading-7">يتجدد تحدي اليوم عند منتصف الليل بتوقيت الرياض، وتتجدد مهام الشهر في بدايته. تثبت صعوبة المهام عند بداية الشهر بحسب المستوى حينها. يبقى المستوى ومجموع النجوم عبر الأشهر منذ 1 نوفمبر 2026، ويُعاد حسابهما عند تصحيح التقييمات أو حذفها.</p>
-      </details>
-      <p className="mt-5 text-xs leading-6 text-slate-500">نقاط المستوى للتشجيع، ولا تغيّر نقاط التقييم الوظيفي أو المكافأة المالية. تظهر مهمة محو الأثر فقط عند وجود تقييم سلبي مستورد هذا الشهر.</p>
     </div>
   </section>;
 }

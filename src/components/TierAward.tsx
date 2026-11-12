@@ -1,11 +1,16 @@
-import { useId } from 'react';
-export function TierAward({ gold }: { gold: boolean }) {
-  const gradient = useId();
-  const label = gold ? 'متميزة' : 'خبيرة';
+export function TierAward({ gold, iconOnly = false }: { gold: boolean; iconOnly?: boolean }) {
+  const colors = gold
+    ? ['#f8c743', '#ffe384', '#edaa27', '#ffda6c', '#d88a16']
+    : ['#aebed7', '#e7eef9', '#8fa4c6', '#d0dced', '#758db6'];
   return <span className={`tier-award ${gold ? 'tier-award-gold' : 'tier-award-silver'}`}>
-    <svg viewBox="0 0 64 56" aria-hidden="true"><defs><linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1"><stop stopColor={gold ? '#a96a05' : '#6e7c8d'}/><stop offset=".3" stopColor={gold ? '#ffda55' : '#e5edf7'}/><stop offset=".5" stopColor={gold ? '#fff2a5' : '#ffffff'}/><stop offset=".7" stopColor={gold ? '#e7ae1c' : '#b3c2d4'}/><stop offset="1" stopColor={gold ? '#ac7104' : '#718198'}/></linearGradient></defs><g fill={`url(#${gradient})`}>{gold ? <><path d="M29 50C12 45 6 29 15 12l3 2C9 30 16 43 30 47Zm6 0c17-5 23-21 14-38l-3 2c9 16 2 29-12 33Z"/>
-      <path d="M14 31C5 30 4 25 5 21c7 0 11 4 9 10Zm2 9C7 40 5 35 6 31c7 0 12 3 10 9Zm7 7c-9 3-13-1-14-6 7-2 12 0 14 6ZM14 21C7 17 8 12 11 8c6 3 7 8 3 13Z"/>
-      <path d="M50 31c9-1 10-6 9-10-7 0-11 4-9 10Zm-2 9c9 0 11-5 10-9-7 0-12 3-10 9Zm-7 7c9 3 13-1 14-6-7-2-12 0-14 6Zm9-26c7-4 6-9 3-13-6 3-7 8-3 13ZM32 10l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1Z"/></> : <><path d="M32 5 40 21 58 24 45 37 48 53 32 45 16 53 19 37 6 24 24 21Z" stroke="#65758b" strokeWidth="2" strokeLinejoin="round"/><path d="m32 9 0 33-13 7 4-14-12-9 16-2Z" fill="#fff" opacity=".35"/></>}</g></svg>
-    <span>{label}</span>
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path d="M21.7 4.7a2.6 2.6 0 0 1 4.6 0l5.1 10.4 11.5 1.7a2.6 2.6 0 0 1 1.4 4.4L36 29.3l2 11.5a2.6 2.6 0 0 1-3.8 2.7L24 38.1l-10.2 5.4a2.6 2.6 0 0 1-3.8-2.7l2-11.5-8.3-8.1a2.6 2.6 0 0 1 1.4-4.4l11.5-1.7z" fill={colors[0]} />
+      <path d="M24 3.3v20.1L16.6 15.1l5.1-10.4A2.6 2.6 0 0 1 24 3.3Z" fill={colors[1]} />
+      <path d="m43 16.8-19 6.6 12 5.9 8.3-8.1a2.6 2.6 0 0 0-1.3-4.4Z" fill={colors[1]} />
+      <path d="M24 23.4v14.7l10.2 5.4a2.6 2.6 0 0 0 3.8-2.7l-2-11.5z" fill={colors[2]} />
+      <path d="M24 23.4 12 29.3l-2 11.5a2.6 2.6 0 0 0 1.6 2.8z" fill={colors[3]} />
+      <path d="m3.7 21.2 8.3 8.1 12-5.9-19-6.6a2.6 2.6 0 0 0-1.3 4.4Z" fill={colors[4]} />
+    </svg>
+    {!iconOnly && <span>{gold ? 'متميزة' : 'خبيرة'}</span>}
   </span>;
 }

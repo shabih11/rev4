@@ -1,4 +1,3 @@
-import type { MagicState } from './gems';
 export interface FeatureSettings {
   competition: boolean;
   balanceGrowth: boolean;
@@ -21,7 +20,7 @@ export interface FeatureState {
 export const defaultFeatures: FeatureSettings = { competition: false, balanceGrowth: false, tiers: false, avatars: false, rounding: false, missions: false, branchBadges: false, silverAt: 8, goldAt: 11 };
 export function employeeTier(points: number, settings: FeatureSettings): Tier {
   if (!settings.tiers || !Number.isFinite(points) || points < 8) return 'bronze';
-  return points >= settings.goldAt ? 'gold' : points >= settings.silverAt ? 'silver' : 'bronze';
+  return points >= 11 ? 'gold' : 'silver';
 }
 export function validFeatureSettings(value: FeatureSettings) {
   return ['competition', 'balanceGrowth', 'tiers', 'avatars'].every(key => typeof value[key as keyof FeatureSettings] === 'boolean') &&
@@ -32,16 +31,18 @@ export function validFeatureSettings(value: FeatureSettings) {
 }
 export interface AvatarVariant {
   id: string; name: string; imagePath: string; enabled: boolean;
+  price?: number; abayaGrade?: number; includedGoldBurqa?: boolean; paidPrice?: number | null; goldUpgrade?: 'pending' | 'locked' | 'delivered' | null;
   ownerId: string | null; ownerName: string | null;
 }
 export interface AvatarCollection {
   id: string; name: string; price: number; enabled: boolean; variants: AvatarVariant[];
 }
 export interface AvatarStoreState {
-  magic?: MagicState | null;
+  goldEntitled?: boolean;
   collections: AvatarCollection[];
-  wallet: { earned: number; spent: number; available: number } | null;
+  wallet: { earned: number; stars?: number; highestTier?: Tier; spent: number; available: number } | null;
   equipped: Record<string, string>;
+  goldRequests?: { id: string; name: string; imagePath: string }[];
   selectedVariant: string | null;
 }
 type RankedEmployee = { id: string; name: string; monthReviewsCount?: number; manualStats?: { monthReviews?: number } };

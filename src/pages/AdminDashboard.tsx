@@ -16,7 +16,7 @@ import { useRecordScope } from '../hooks/useRecordScope';
 import { formatTime, timeMinutes } from '../lib/formatDate';
 import { UserProfileTab } from '../components/UserProfileTab';
 import { LeaderboardLink } from '../components/LeaderboardLink';
-import employeeImg from '../assets/employee.png';
+import { EmployeeAvatar } from '../components/EmployeeFeatures';
 
 // Rules for editable months: current month anytime; previous month only within 2 days from the end of that month
 function checkMonthEditable(year: number, month: number, refDate: Date = new Date()): { editable: boolean; reason?: string; type: 'current' | 'previous_grace' | 'locked' } {
@@ -400,10 +400,8 @@ export const AdminDashboard: React.FC = () => {
                               }`}>
                                 {isSelected && <Check size={12} strokeWidth={3} />}
                               </div>
-                              <img
-                                src={emp.imageUrl || employeeImg}
-                                alt={emp.name}
-                                className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
+                              <EmployeeAvatar employee={emp}
+                                className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
                                   isSelected ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-100'
                                 }`}
                               />
@@ -501,10 +499,8 @@ export const AdminDashboard: React.FC = () => {
                                     }`}>
                                       {isSelected && <Check size={12} strokeWidth={3} />}
                                     </div>
-                                    <img
-                                      src={emp.imageUrl || employeeImg}
-                                      alt={emp.name}
-                                      className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
+                                    <EmployeeAvatar employee={emp}
+                                      className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
                                         isSelected ? 'border-indigo-600 ring-2 ring-indigo-200' : 'border-slate-100'
                                       }`}
                                     />
@@ -541,11 +537,7 @@ export const AdminDashboard: React.FC = () => {
                               key={emp.id}
                               className="p-2 sm:p-2.5 rounded-2xl flex flex-col items-center justify-between text-center bg-indigo-50 border border-indigo-200 text-indigo-900 aspect-square shadow-sm"
                             >
-                              <img
-                                src={u?.imageUrl || employeeImg}
-                                alt={emp.name}
-                                className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 border-indigo-300 shadow-sm shrink-0"
-                              />
+                              {u && <EmployeeAvatar employee={u} className="w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 border-indigo-300 shadow-sm shrink-0" />}
                               <span className="text-[11px] sm:text-xs font-bold truncate w-full text-center mt-1">
                                 {emp.name}
                               </span>
@@ -605,10 +597,8 @@ export const AdminDashboard: React.FC = () => {
                               }`}>
                                 {isSelected && <Check size={12} strokeWidth={3} />}
                               </div>
-                              <img
-                                src={emp.imageUrl || employeeImg}
-                                alt={emp.name}
-                                className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
+                              <EmployeeAvatar employee={emp}
+                                className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
                                   isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-slate-100'
                                 }`}
                               />
@@ -706,10 +696,8 @@ export const AdminDashboard: React.FC = () => {
                                     }`}>
                                       {isSelected && <Check size={12} strokeWidth={3} />}
                                     </div>
-                                    <img
-                                      src={emp.imageUrl || employeeImg}
-                                      alt={emp.name}
-                                      className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
+                                    <EmployeeAvatar employee={emp}
+                                      className={`w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 shadow-sm shrink-0 transition-transform group-hover:scale-105 ${
                                         isSelected ? 'border-purple-600 ring-2 ring-purple-200' : 'border-slate-100'
                                       }`}
                                     />
@@ -746,11 +734,7 @@ export const AdminDashboard: React.FC = () => {
                               key={emp.id}
                               className="p-2 sm:p-2.5 rounded-2xl flex flex-col items-center justify-between text-center bg-purple-50 border border-purple-200 text-purple-900 aspect-square shadow-sm"
                             >
-                              <img
-                                src={u?.imageUrl || employeeImg}
-                                alt={emp.name}
-                                className="w-11 h-11 sm:w-14 sm:h-14 rounded-full object-cover object-top border-2 border-purple-300 shadow-sm shrink-0"
-                              />
+                              {u && <EmployeeAvatar employee={u} className="w-11 h-11 sm:w-14 sm:h-14 rounded-full border-2 border-purple-300 shadow-sm shrink-0" />}
                               <span className="text-[11px] sm:text-xs font-bold truncate w-full text-center mt-1">
                                 {emp.name}
                               </span>

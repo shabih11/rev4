@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { moduleUrl } from './helpers/typescript.mjs';
-const { employeeMissions, employeeLevel, levelCost } = await import(moduleUrl('employeeMissions'));
+const { employeeMissions, employeeLevel, levelCost, gradeReward, employeeAchievementEvidence } = await import(moduleUrl('employeeMissions'));
 const now = new Date('2026-11-08T15:00:00+03:00');
 const review = (id, date = '08-11-2026', ids = ['a'], rating = '5') => ({ id, date, linkedEmployeeIds: ids, rating });
 const positives = (count, date = '08-11-2026', ids = ['a']) => Array.from({ length: count }, (_, i) => review(`${date}-${i}`, date, ids));
@@ -26,11 +26,11 @@ test('historical coins include all periods but stars and badges start in Novembe
   const rows = [...positives(10, '08-10-2026'), ...positives(10)];
   const state = employeeMissions('a', rows, now);
   assert.equal(state.ratingCoins, 100);
-  assert.equal(state.bonusCoins, 60);
-  assert.equal(state.coins, 160);
+  assert.equal(state.bonusCoins, 96.56);
+  assert.equal(state.coins, 196.56);
   assert.equal(state.ratingStars, 50);
-  assert.equal(state.bonusStars, 35);
-  assert.equal(state.stars, 85);
+  assert.equal(state.bonusStars, 71.56);
+  assert.equal(state.stars, 121.56);
   assert.ok(state.achievements.every(a => a.month === '2026-11'));
   const december = employeeMissions('a', rows, new Date('2026-12-01T00:00:00+03:00'));
   assert.equal(december.stars, state.stars);
@@ -60,17 +60,35 @@ test('Riyadh midnight resets daily goal, never its historical rewards', () => {
   assert.equal(after.stars,before.stars);
 });
 
-test('monthly difficulty is locked to opening level, then higher effort unlocks larger rewards next month', () => {
-  const rows = [...positives(40), ...positives(20, '01-12-2026')];
-  const november = employeeMissions('a', rows, now);
-  assert.ok(november.level.level >= 4);
-  assert.equal(task(november,'ten').target,10);
-  const december = employeeMissions('a', rows, new Date('2026-12-02T00:00:00+03:00'));
-  assert.equal(december.band,1);
-  assert.equal(task(december,'ten').target,20);
-  assert.equal(task(december,'ten').coins,60);
-  assert.equal(task(december,'ten').stars,75);
-  assert.equal(task(december,'daily-two').target,3);
+test('each mission advances independently and resets to green each month', () => {
+  for (const [count, target, band, completed] of [[0,2,0,0],[1,2,0,0],[2,3,1,1],[3,5,2,2],[4,5,2,2],[5,5,2,3]]) {
+    const state = employeeMissions('a', positives(count), now);
+    const daily = task(state, 'daily-two');
+    assert.equal(daily.target, target);
+    assert.equal(daily.band, band);
+    assert.equal(daily.completedBands, completed);
+    assert.equal(daily.stars, gradeReward(5, band));
+    assert.equal(task(state, 'ten').band, 0);
+  }
+  const rows = positives(40);
+  const december = employeeMissions('a', rows, new Date('2026-12-01T00:00:00+03:00'));
+  assert.equal(task(december, 'ten').target, 10);
+  assert.equal(task(december, 'daily-two').target, 2);
+  assert.equal(december.coins, employeeMissions('a', rows, now).coins);
+});
+
+test('all grades reward once, including thresholds crossed in a single import', () => {
+  assert.deepEqual([0,1,2].map(band => gradeReward(5, band)), [5,11.25,25.31]);
+  const state = employeeMissions('a', positives(5), now);
+  assert.equal(state.bonusStars, 41.56);
+  assert.equal(state.bonusCoins, 41.56);
+  assert.equal(state.achievements.length, 3);
+  assert.deepEqual(employeeMissions('a', positives(5).reverse(), now), state);
+  for (const badge of state.achievements) {
+    assert.ok(employeeAchievementEvidence('a', positives(5), badge, state.today));
+  }
+  const corrected = employeeMissions('a', positives(4), now);
+  assert.equal(Math.round((state.coins - corrected.coins) * 100) / 100, 30.31);
 });
 
 test('distinct days and partners award separate effort bonuses', () => {
@@ -87,7 +105,7 @@ test('recovery uses fractional surplus shares after 20 and compensates only firs
     const negative = review('negative','01-11-2026',members,'1');
     const before = employeeMissions('a',[...positives(count-1,'08-11-2026',members),negative],now);
     const after = employeeMissions('a',[...positives(count,'08-11-2026',members),negative],now);
-    assert.equal(task(after,'recovery').target,target);
+    assert.equal(task(after,'recovery').target,target * 1.5);
     assert.equal(task(after,'recovery').current,target);
     assert.equal(after.bonusStars-before.bonusStars,25);
     assert.equal(after.bonusCoins-before.bonusCoins,20);
@@ -101,4 +119,23 @@ test('corrected or deleted ratings remove derived earnings without repeat claims
   assert.equal(before.stars-after.stars,35);
   assert.equal(before.coins-after.coins,30);
   assert.equal(employeeMissions('a',[],now).stars,0);
+});
+
+test('monthly missions advance through all three independent targets', () => {
+  const end = new Date('2026-11-30T12:00:00+03:00');
+  for (const [id, thresholds, makeRows] of [
+    ['ten', [10,20,35], count => positives(count)],
+    ['partner', [2,4,6], count => positives(count, '08-11-2026', ['a','b'])],
+    ['days', [5,8,12], count => Array.from({length:count}, (_,i) => review(`day-${i}`, `${i+1}-11-2026`))],
+    ['partners', [3,4,5], count => Array.from({length:count}, (_,i) => review(`partner-${i}`, '08-11-2026', ['a',`b${i}`]))],
+  ]) {
+    for (let grade = 0; grade < 3; grade++) {
+      const before = task(employeeMissions('a', makeRows(thresholds[grade]-1), end), id);
+      const after = task(employeeMissions('a', makeRows(thresholds[grade]), end), id);
+      assert.equal(before.target, thresholds[grade]);
+      assert.equal(before.band, grade);
+      assert.equal(after.completedBands, grade+1);
+      assert.equal(after.band, Math.min(2,grade+1));
+    }
+  }
 });

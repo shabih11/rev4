@@ -11,7 +11,10 @@ export interface Employee {
     complaints: number;
     safety: number;
   };
+  ordinaryReviewBalance?: number;
+  goldPlusCents?: number;
   monthReviewsCount?: number;
+  previousMonthWinner?: boolean;
   manualStats?: {
     totalReviews?: number;
     monthReviews?: number;

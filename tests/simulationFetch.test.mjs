@@ -50,3 +50,14 @@ test('single reads unwrap correctly and expired/denied gateway reads never retry
    assert.equal(calls, 1);
  } finally { setSimulation(null); globalThis.fetch = original; }
 });
+test('monthly podium avatars are shared reads and preserve the requested month in simulation', async () => {
+ const original = globalThis.fetch, calls = [];
+ globalThis.fetch = async request => { calls.push(request); return new Response('{}'); };
+ setSimulation(context);
+ try {
+   await simulationFetch(base + '/rest/v1/rpc/get_monthly_avatars', { method: 'POST', body: JSON.stringify({ requested_month: '2026-10-01' }) });
+   assert.equal(calls.length, 1);
+   assert.equal(calls[0].url, base + '/rest/v1/rpc/get_monthly_avatars');
+   assert.deepEqual(await calls[0].json(), { requested_month: '2026-10-01' });
+ } finally { setSimulation(null); globalThis.fetch = original; }
+});

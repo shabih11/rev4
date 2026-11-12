@@ -4,7 +4,6 @@ import { useRecordScope } from '../hooks/useRecordScope';
 import { formatDate } from '../lib/formatDate';
 import { employeeQualityPoints, qualityDeductions } from '../lib/employeeQuality';
 import { employeeTier } from '../lib/employeeFeatures';
-import { rewardTier } from '../lib/employeeRewards';
 import type { UserAccount } from '../lib/mockData';
 import { Award, ChevronDown } from 'lucide-react';
 import { ResultProblemReport } from './ResultProblemReport';
@@ -23,7 +22,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
   const periodLabel = resultsMode ? 'الشهر الماضي' : 'الشهر الحالي';
   const reasons = { review: 'رصيد تقييم سلبي', complaint: 'شكوى مؤكدة', safety: 'حادث سلامة', 'review-balance': 'رصيد جودة التقييمات المسجل', 'conduct-balance': 'رصيد الشكاوى المؤكدة وحوادث السلامة المسجل' };
   const roundedPoints = resultsMode && features?.settings.rounding === true ? Math.ceil(user.points) : user.points;
-  const tier = features ? resultsMode && features.settings.tiers ? rewardTier(user.points, features.settings.rounding === true) : employeeTier(user.points, features.settings) : 'bronze';
+  const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
   return <section aria-label="نتائجي" aria-busy={!ready && !error} className="px-6 mb-8">
     {!ready || error ? <div className="rounded-2xl border bg-white p-6">
       {error ? <p role="alert" className="text-red-700">تعذر تحميل النتائج. لا يمكن عرض نتيجة مؤكدة الآن.</p> : <p role="status">جارٍ تحميل نتائجك…</p>}

@@ -14,7 +14,9 @@ import distantNightMobile from '../assets/sea/ocean-distant-night-mobile.webp';
 import distantNightDesktop from '../assets/sea/ocean-distant-night-desktop.webp';
 import glareMobile from '../assets/sea/ocean-distant-glare-mobile.webp';
 import glareDesktop from '../assets/sea/ocean-distant-glare-desktop.webp';
-import boatWake from '../assets/sea/boat-wake.webp';
+import rainBackdrop from '../assets/sea/weather-rain.webp';
+import cloudsBackdrop from '../assets/sea/weather-clouds.webp';
+import stormBackdrop from '../assets/sea/weather-storm.webp';
 import waterContact from '../assets/sea/boat-water-contact.webp';
 import './SeaMission.css';
 
@@ -44,8 +46,12 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
     ? { mobile: distantNightMobile, desktop: distantNightDesktop }
     : glare ? { mobile: glareMobile, desktop: glareDesktop }
       : { mobile: distantMobile, desktop: distantDesktop };
-  const backdrop = distance === 'distant' ? distantBackdrop : SEA_BACKDROPS[light];
   const atmosphere = seaWeather(weather);
+  const weatherBackdrop = weather && atmosphere !== 'clear'
+    ? atmosphere === 'storm' ? stormBackdrop : atmosphere === 'rain' ? rainBackdrop : cloudsBackdrop
+    : null;
+  const backdrop = weatherBackdrop ? { mobile: weatherBackdrop, desktop: weatherBackdrop }
+    : distance === 'distant' ? distantBackdrop : SEA_BACKDROPS[light];
   const berths = seaSceneBerths(fleet, now);
   const mapRef = useRef<HTMLElement>(null);
   const [layout, setLayout] = useState<SeaFleetPosition[]>([]);
@@ -94,12 +100,12 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
 
   return <main className="sea-mission" id="sea-mission-content">
     <h1 className="sr-only">مهمة البحر</h1>
-    <section ref={mapRef} className="sea-map" data-distance={distance} data-light={light} data-rescuing={rescueCount > 0} data-weather={weather ? atmosphere : 'unavailable'} aria-label={capsizedScene ? "مشهد القوارب المقلوبة" : "رحلة الفروع إلى الجزيرة"} style={{ '--journey-progress': mission.journeyProgress, '--rescue-rows': Math.ceil(rescueCount / 2), '--rescue-vessel-max-width': rescueCount === 1 ? '23rem' : '18rem' } as CSSProperties}>
+    <section ref={mapRef} className="sea-map" data-weather-art={Boolean(weatherBackdrop)} data-distance={distance} data-light={light} data-rescuing={rescueCount > 0} data-weather={weather ? atmosphere : 'unavailable'} aria-label={capsizedScene ? "مشهد القوارب المقلوبة" : "رحلة الفروع إلى الجزيرة"} style={{ '--journey-progress': mission.journeyProgress, '--rescue-rows': Math.ceil(rescueCount / 2), '--rescue-vessel-max-width': rescueCount === 1 ? '23rem' : '18rem' } as CSSProperties}>
       <picture className="sea-backdrop" aria-hidden="true">
         <source media="(max-width:760px)" srcSet={backdrop.mobile} />
         <img src={backdrop.desktop} alt="" width="1536" height="1024" fetchPriority="high" />
       </picture>
-      {distance === 'distant' && light !== 'night' && <picture className="sea-distant-water" aria-hidden="true">
+      {distance === 'distant' && light !== 'night' && !weatherBackdrop && <picture className="sea-distant-water" aria-hidden="true">
         <source media="(max-width:760px)" srcSet={SEA_BACKDROPS[light].mobile} />
         <img src={SEA_BACKDROPS[light].desktop} alt="" width="1536" height="1024" />
       </picture>}
@@ -114,7 +120,7 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
         {fleet.map(item => {
           const scene = seaBranchScene(item, now);
           const day = item.status !== 'sunk' && seaBranchClock(item.name, now).isOpen ? item.current : undefined;
-          const completed = Boolean(day && day.count >= day.target);
+          const completed = Boolean(day?.manuallyCompleted);
           return <li key={item.name} data-branch={item.name} data-order={berths.find(position => position.name === item.name)!.y} style={berth(item.name)}>
           <button type="button" className="sea-vessel" data-scene={scene} aria-pressed={item.name === selected} aria-label={`${item.name}، ${SEA_SCENE_LABELS[scene]}، ${statusLabels[item.status]}${item.current ? `، ${number(item.current.count)} من ${number(item.current.target)}` : ''}`} onClick={event => {
             const time = performance.now();
@@ -126,10 +132,10 @@ export function SeaMissionView({ reviews, now, weather = null, completions = [],
             setSelected(current => reveal || current !== item.name ? item.name : '');
           }}>
             <span className="sea-vessel-art">
+              <span className="sea-hull-ripples" aria-hidden="true" /><span className="sea-hull-ripples sea-hull-ripples-extra" aria-hidden="true" />
               <span className="sea-water-shadow" aria-hidden="true" />
               <img className="sea-water-contact" src={waterContact} alt="" width="768" height="256" />
-              {(scene === 'adventure' || scene === 'halfway' || scene === 'celebrate') && <img className="sea-vessel-wake" src={boatWake} alt="" width="640" height="640" />}
-              <img className="sea-vessel-boat" src={seaSceneAsset(item, scene, now)} alt={SEA_SCENE_LABELS[scene]} width="640" height="896" />
+              <img className="sea-vessel-boat" src={seaSceneAsset(item, scene, now, atmosphere)} alt={SEA_SCENE_LABELS[scene]} width="640" height="896" />
               <img className="sea-water-front" src={waterContact} alt="" width="768" height="256" />
             </span>
             {(scene === 'celebrate' || selected === item.name) && <span className="sea-branch-name">{item.name}</span>}

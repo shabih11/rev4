@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { belongsToBranch } from '../lib/employeeBranches';
 import { supabase } from '../lib/supabase';
 
 interface ResultReport {
@@ -26,13 +27,13 @@ const periodFormat = new Intl.DateTimeFormat('ar-SA', {
   calendar: 'gregory', timeZone: 'Asia/Riyadh', month: 'long', year: 'numeric',
 });
 
-export function ResultReportsInbox() {
+export function ResultReportsInbox({ branch }: { branch: string }) {
   const { currentAccount } = useData();
   // Remount on account changes so private reports never carry over to another session.
-  return currentAccount?.role === 'admin' ? <AdminReports key={currentAccount.id} /> : null;
+  return currentAccount?.role === 'admin' ? <AdminReports key={currentAccount.id} branch={branch} /> : null;
 }
 
-function AdminReports() {
+function AdminReports({ branch }: { branch: string }) {
   const { users, disabledEmployees } = useData();
   const [reports, setReports] = useState<ResultReport[]>([]);
   const [page, setPage] = useState(0);
@@ -42,14 +43,23 @@ function AdminReports() {
   const [hasMore, setHasMore] = useState(false);
   const directory = new Map([...disabledEmployees, ...users].map(user => [user.id, user]));
 
+  const reporterIds = JSON.stringify([...directory.values()].filter(user => belongsToBranch(user, branch)).map(user => user.id).sort());
+
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
     const timeout = window.setTimeout(() => controller.abort(), 15000);
     async function load() {
       try {
+        const ids: string[] = JSON.parse(reporterIds);
+        if (ids.length === 0) {
+          setReports([]);
+          setHasMore(false);
+          return;
+        }
         const { data, error: failure } = await supabase.from('result_problem_reports')
           .select('id,reporter_profile_id,category,target_employee_id,description,results_period,created_at')
+          .in('reporter_profile_id', ids)
           .order('created_at', { ascending: false }).order('id', { ascending: false })
           .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
           .abortSignal(controller.signal);
@@ -66,7 +76,7 @@ function AdminReports() {
     }
     void load();
     return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
-  }, [page, revision]);
+  }, [page, reporterIds, revision]);
 
   function navigate(next: number) {
     setLoading(true); setError(false); setReports([]); setPage(next);
@@ -80,7 +90,7 @@ function AdminReports() {
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h3 className="flex items-center gap-2 text-lg font-bold text-slate-800"><ShieldCheck size={22} aria-hidden="true" />بلاغات الموظفات</h3>
-        <p className="mt-2 text-sm text-slate-600">بلاغات النتائج من جميع الفروع، من الأحدث إلى الأقدم. سرية ومتاحة لمدير النظام فقط.</p>
+
       </div>
       <button type="button" disabled={loading} className={`${buttonClass} inline-flex items-center gap-2`} onClick={refresh}><RefreshCw size={16} aria-hidden="true" />تحديث البلاغات</button>
     </div>

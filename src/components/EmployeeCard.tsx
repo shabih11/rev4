@@ -1,13 +1,16 @@
+import { LevelStar } from './EmployeeLevelBadge';
+import { GoldPlusBadge } from './GoldPlusBadge';
 import { BranchMilestoneBadge } from './BranchMilestoneBadge';
-import { EmployeeProgress } from './EmployeeProgress';
+import { EmployeeAchievementRow, EmployeeAvatarStack } from './EmployeeProgress';
+import { employeeLevel, employeeMissions } from '../lib/employeeMissions';
+import { employeeTier } from '../lib/employeeFeatures';
 import { employeeQualityPoints } from '../lib/employeeQuality';
 import { EmployeeIdentity } from './EmployeeIdentity';
 import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { shiftReviewCounts } from '../lib/shiftReviewCounts';
 import { employeeReviewBranches, employeeBranchLabel } from '../lib/employeeBranches';
-import { gemTheme } from '../lib/gems';
-import { EmployeeAvatar, BalanceGrowth } from './EmployeeFeatures';
-import React, { useState, useEffect } from 'react';
+import { BalanceGrowth } from './EmployeeFeatures';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ShiftReviewCounts } from './ShiftReviewCounts';
 import { favoritePartner, newestFirst } from '../lib/employeeActivity';
@@ -61,6 +64,15 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'summary' | 'points'>('summary');
   const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount, resultsMode, resultsDate } = useData();
   useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
+  const showProgress = summaryReady && !syncError && !resultsMode;
+  const showMissions = showProgress && features?.settings.missions;
+  const progress = useMemo(() => showMissions ? employeeMissions(employee.id, reviewSummaries, resultsDate) : undefined,
+    [showMissions, employee.id, reviewSummaries, resultsDate]);
+  const ownWallet = currentAccount?.id === employee.id ? features?.store?.wallet : undefined;
+  const level = progress ? employeeLevel(ownWallet?.stars ?? progress.stars).level : null;
+  const currentTier = showProgress && features?.settings.tiers ? employeeTier(employee.points, features.settings) : undefined;
+  const earnedTier = ownWallet?.highestTier;
+  const badgeTier = !currentTier ? undefined : earnedTier === 'gold' ? 'gold' : earnedTier === 'silver' && currentTier === 'bronze' ? 'silver' : currentTier;
   const multipleReviewBranches = employeeReviewBranches(reviewSummaries, employee.id).length > 1;
   const [selectedShift, setSelectedShift] = useState<TimelineEvent | null>(null);
 
@@ -116,13 +128,13 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          data-gem-theme={gemTheme(features?.store?.magic, employee.id)}
-          className="gem-employee-page relative w-full max-w-2xl min-w-0 glass-modal-shell rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+          className="relative w-full max-w-2xl min-w-0 glass-modal-shell rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="glass-modal-header p-4 sm:p-6 flex justify-between items-center sticky top-0 z-10">
-            <h2 className="min-w-0 flex flex-wrap items-baseline gap-x-2 text-xl sm:text-2xl">
+            <h2 className="min-w-0 flex flex-wrap items-center gap-x-2 text-xl sm:text-2xl">
+              {level !== null && <LevelStar level={level} gold={badgeTier === 'gold'} silver={badgeTier === 'silver'} />}
               <span className="font-extrabold break-words">{employee.name}</span>
               <span className="text-base sm:text-xl font-medium break-words">({employeeBranchLabel(employee, showCoverageBranch)})</span>
             </h2>
@@ -134,6 +146,8 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               <X size={20} />
             </button>
           </div>
+
+          <EmployeeAchievementRow employeeId={employee.id} progress={progress} tier={badgeTier} />
 
           <div className="border-b bg-white px-4 py-3 text-sm text-slate-700" role="status">
             <span className="font-bold">آخر شفت مسجل: </span>
@@ -179,7 +193,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                         </div>
                       )}
                       <div className="flex justify-between items-start">
-                        <div className="flex text-yellow-400 mb-2">{'★'.repeat(Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}{'☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}</div>
+                        <div className="flex items-center gap-2 text-yellow-400 mb-2">{r.goldPlus && <GoldPlusBadge />}{'★'.repeat(Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}{'☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}</div>
                         <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
                           {formatDateTime(r.date, r.time)}
                         </span>
@@ -225,7 +239,6 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               </div>
             ) : activeTab === 'summary' ? (
               summaryReady && !syncError ? <section className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)] items-center gap-3 sm:gap-6 min-h-full text-slate-800" aria-label="ملخص بيانات الموظفة">
-                <EmployeeProgress employeeId={employee.id} />
                 <div className="min-w-0 space-y-4 text-right">
                   <div className="flex flex-wrap items-center gap-2">
                     <EmployeeIdentity employee={employee} showCoverageBranch={showCoverageBranch} className="items-start text-lg sm:text-2xl" />
@@ -235,7 +248,8 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     <div><dt className="text-xs text-slate-500">رصيد الشهر</dt><dd className="font-extrabold text-lg">{arabicReviewCount(employee.monthReviewsCount ?? 0)} <BalanceGrowth employee={employee} /></dd></div>
                     <div><dt className="text-xs text-slate-500">النقاط</dt><dd><button type="button" onClick={() => setActiveTab('points')} aria-label="عرض تفاصيل النقاط من الملخص" className="font-extrabold text-lg underline decoration-slate-300 underline-offset-4">{roundedPoints.toFixed(1)}</button></dd></div>
                     {reward && reward.total > 0 && <>
-                      <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>
+                      {reward.tier !== 'bronze' && <div><dt className="text-xs text-slate-500">فئة المكافأة</dt><dd className="font-bold">{{ gold: 'ذهبية', silver: 'فضية', bronze: 'غير مستحقة' }[reward.tier]}</dd></div>}
+                      {!!employee.goldPlusCents && <div><dt className="text-xs text-slate-500">حصة تقييمات Plus</dt><dd className="font-bold">{(employee.goldPlusCents / 100).toLocaleString('ar-SA-u-nu-latn')} ريال</dd></div>}
                       <div><dt className="text-xs text-slate-500">المكافأة الشهرية</dt><dd className="font-extrabold text-lg">{reward.total.toLocaleString('ar-SA-u-nu-latn')} ريال</dd>
                         {reward.increase > 0 && <p className="text-xs text-slate-500 mt-1">المكافأة الاساسية ({reward.base.toLocaleString('ar-SA-u-nu-latn')}) ريال</p>}
                       </div>
@@ -244,7 +258,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                     {favoritePartnerName && <div><dt className="text-xs text-slate-500">شريكتي المفضلة</dt><dd className="font-bold break-words">{favoritePartnerName}</dd></div>}
                   </dl>
                 </div>
-                <EmployeeAvatar employee={employee} className="block w-full h-[clamp(240px,38svh,360px)]" />
+                <EmployeeAvatarStack employee={employee} />
               </section> : null
             ) : activeTab === 'points' ? (
               <div className="space-y-4">
@@ -324,7 +338,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
                           <div className="flex items-center gap-3">
                              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shrink-0">{r.reviewerName.charAt(0)}</div>
                              <div>
-                                <p className="font-bold text-gray-800 text-sm">{r.reviewerName}</p>
+                                <p className="flex flex-wrap items-center gap-2 font-bold text-gray-800 text-sm">{r.reviewerName}{r.goldPlus && <GoldPlusBadge />}</p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                   {[1,2,3,4,5].map(s => <Star key={s} size={12} className={s <= parseInt(r.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'} />)}
                                   <span className="text-[10px] text-gray-400 mr-2">{formatDateTime(r.date, r.time)}</span>

@@ -1,7 +1,7 @@
 import { createEmployeeActions } from '../lib/employeeActions';
 import { createTimelineActions } from '../lib/timelineActions';
 import { createReviewActions } from '../lib/reviewActions';
-import { enrichEmployees } from '../lib/employeeMetrics';
+import { enrichEmployees, previousMonthWinnerIds } from '../lib/employeeMetrics';
 import { comparisonFromRecords } from '../lib/employeeFeatures';
 import { useSeaCompletions } from '../hooks/useSeaCompletions';
 import { seaMission } from '../lib/seaMission';
@@ -79,7 +79,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const reviews = reviewCloud.rows, setReviews = reviewCloud.change;
   const timeline = timelineCloud.rows, setTimeline = timelineCloud.change;
   const branchSettings = React.useMemo(() => Object.fromEntries(branchCloud.rows.map(({ id, name: _name, ...settings }) => [id, settings])), [branchCloud.rows]);
-  const setBranchSettings = (settings: typeof branchSettings) => branchCloud.change(Object.entries(settings).map(([id, value]) => ({ id, name: id, ...value })));
   const clouds = [userCloud, reviewCloud, timelineCloud, branchCloud];
   const syncError = session.error || daily.error || clouds.find(cloud => cloud.error)?.error || null;
   const syncStatus = !session.account ? 'تسجيل الدخول مطلوب' : syncError ? 'تعذرت المزامنة' : clouds.some(cloud => cloud.pending > 0) ? 'جارٍ حفظ التعديلات…' : clouds.every(cloud => cloud.ready) ? 'متصل بـ Supabase' : 'جارٍ تحميل البيانات…';
@@ -94,11 +93,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     users, setUsers, session, summaryReady: daily.ready, branchSettings, client: supabase,
     invalidate: () => invalidateRows(readNamespace(session)), notify: message => window.alert(message),
   });
-  const updateBranchSettings = (branch: string, start: string, end: string, googleApi?: string, nextDayTime?: string) => {
-    const current = branchSettings[branch] || {};
-    setBranchSettings({ ...branchSettings, [branch]: { start, end,
-      googleApi: googleApi !== undefined ? googleApi : current.googleApi,
-      nextDayTime: nextDayTime !== undefined ? nextDayTime : current.nextDayTime } });
+  const updateBranchGoogleLink = (branch: string, googleApi: string) => {
+    if (!branchCloud.ready || !branchCloud.rows.some(row => row.id === branch)) return false;
+    branchCloud.change(branchCloud.rows.map(row => row.id === branch ? { ...row, googleApi } : row));
+    return true;
   };
   const { addTimelineComment, addTimelineEvent, updateTimelineEvent, acceptShiftRequest, deleteTimelineEvent, commitShifts } = createTimelineActions({
     timeline, setTimeline, scope: timelineScope, ready: timelineCloud.ready, notify: message => window.alert(message),
@@ -108,8 +106,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     reviewReady: reviewCloud.ready, timelineReady: timelineCloud.ready, deleteTimelineEvent, notify: message => window.alert(message),
   });
 
-  const enrichedUsers = React.useMemo(() => enrichEmployees(users, reviewSignals.rows, noteSignals.rows, resultsDate,
-    Boolean(daily.data), employeeImg), [users, reviewSignals.rows, noteSignals.rows, resultsDate, daily.data]);
+  const enrichedUsers = React.useMemo(() => {
+    const winners = previousMonthWinnerIds(users, allReviewSignals, allNoteSignals, new Date(`${today}T12:00:00+03:00`));
+    return enrichEmployees(users, reviewSignals.rows, noteSignals.rows, resultsDate, Boolean(daily.data), employeeImg)
+      .map(user => ({ ...user, name: user.name.replace(/👑/gu, '').trim(), previousMonthWinner: Boolean(daily.data) && winners.has(user.id) }));
+  }, [users, allReviewSignals, allNoteSignals, today, reviewSignals.rows, noteSignals.rows, resultsDate, daily.data]);
 
   const disabledIds = new Set(daily.data?.disabledEmployeeIds || []);
   const activeUsers = enrichedUsers.filter(user => !disabledIds.has(user.id));
@@ -129,8 +130,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const resetReviewsToInjected = resetUsersToRoster;
 
   const sanitizedReviews = React.useMemo(() => {
-    return (resultsMode ? recordsThroughDate(reviews, resultsDate) : reviews).map(r => ({ ...r, comment: stripReviewTranslation(r.comment) }));
-  }, [reviews, resultsMode, resultsDate]);
+    const plusIds = new Set(reviewSignals.rows.filter(review => review.goldPlus).map(review => review.id));
+    return (resultsMode ? recordsThroughDate(reviews, resultsDate) : reviews).map(review => ({
+      ...review, goldPlus: plusIds.has(review.id), comment: stripReviewTranslation(review.comment),
+    }));
+  }, [reviews, reviewSignals.rows, resultsMode, resultsDate]);
   // Keep complete cloud rows for writes; the cutoff only changes the displayed projection.
   const displayedTimeline = React.useMemo(() => resultsMode ? recordsThroughDate(timeline, resultsDate) : timeline, [timeline, resultsMode, resultsDate]);
 
@@ -140,12 +144,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       coverageBranchError: coverageBranches.error, coverageBranches: coverageBranches.branches,
       features: featureState,
       requestRecords,
-      users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, transferEmployee, mergeEmployees, branchSettings, updateBranchSettings,
+      users: activeUsers, disabledEmployees, updateUser, addUser, setEmployeeDisabled, transferEmployee, mergeEmployees, branchSettings, updateBranchGoogleLink,
       timeline: displayedTimeline, acceptShiftRequest, addTimelineComment, addTimelineEvent, updateTimelineEvent, deleteTimelineEvent,
       reviews: sanitizedReviews, parseReviewsText, commitReviews, commitShifts, updateReview, deleteReview, undoBatch, clearData,
       resetUsersToRoster,
       resetTimelineToInjectedShifts,
       resetReviewsToInjected,
+      branchBadgeRewards: daily.data?.branchBadgeRewards ?? [],
       seaWinningBranches,
       rocketLaunchWinningBranches,
       sundayCoffeeWinningBranch,

@@ -38,3 +38,6 @@ tests/verifiedReviewImport.test.mjs
 # Isolated browser test artifacts
 playwright-report/
 test-results/
+
+# Local server credentials
+/ebd.rtf

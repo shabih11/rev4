@@ -25,16 +25,17 @@ update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb wh
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_employee_features((select data||'{"avatars":true,"tiers":true}' from public.employee_feature_settings where id=1),(select data from public.employee_feature_settings where id=1));
-select set_config('shop.collection',public.save_avatar_collection(null,'Shop test',2,true)::text,true);
+select set_config('shop.collection',public.save_avatar_collection(null,'Shop test',349,true)::text,true);
 insert into storage.objects(bucket_id,name,metadata) select 'avatar-store',path,'{"mimetype":"image/webp"}'::jsonb from (values
  ('10000000-0000-4000-8000-000000000011.webp'),('10000000-0000-4000-8000-000000000012.webp'),('10000000-0000-4000-8000-000000000013.webp'),('10000000-0000-4000-8000-000000000014.webp')) f(path);
 select set_config('shop.v1',public.add_avatar_variant(current_setting('shop.collection')::uuid,'One','10000000-0000-4000-8000-000000000011.webp')::text,true);
 select set_config('shop.v2',public.add_avatar_variant(current_setting('shop.collection')::uuid,'Two','10000000-0000-4000-8000-000000000012.webp')::text,true);
 select set_config('shop.v3',public.add_avatar_variant(current_setting('shop.collection')::uuid,'Three','10000000-0000-4000-8000-000000000013.webp')::text,true);
 select set_config('shop.v4',public.add_avatar_variant(current_setting('shop.collection')::uuid,'Four','10000000-0000-4000-8000-000000000014.webp')::text,true);
+select public.set_avatar_abaya_grade(current_setting('shop.v2')::uuid,1);
 do $$ declare cleanup_policy text; permitted boolean; begin
  begin perform public.add_avatar_variant(current_setting('shop.collection')::uuid,'Missing','10000000-0000-4000-8000-000000000099.webp'); raise exception 'Missing upload accepted'; exception when invalid_parameter_value then null; end;
- begin perform public.save_avatar_collection(current_setting('shop.collection')::uuid,'Stale',9,true,'{}'); raise exception 'Admin conflict accepted'; exception when sqlstate 'PT409' then null; end;
+ begin perform public.save_avatar_collection(current_setting('shop.collection')::uuid,'Stale',399,true,'{}'); raise exception 'Admin conflict accepted'; exception when sqlstate 'PT409' then null; end;
  -- Supabase forbids direct SQL deletion from Storage. Evaluate the deployed cleanup policy without deleting an object.
  select pg_get_expr(polqual,polrelid) into cleanup_policy from pg_policy where polrelid='storage.objects'::regclass and polname='avatar_art_cleanup';
  if cleanup_policy is null then raise exception 'Artwork cleanup policy missing'; end if;
@@ -44,7 +45,7 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000002","role":"authenticated"}',true);
 do $$ begin
  begin perform public.save_avatar_collection(null,'Denied',1,true); raise exception 'Manager edits catalog'; exception when insufficient_privilege then null; end;
- begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,2); raise exception 'Manager purchases employee items'; exception when insufficient_privilege then null; end;
+ begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,349); raise exception 'Manager purchases employee items'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 do $$ begin
@@ -54,38 +55,36 @@ do $$ begin
  begin insert into public.avatar_purchases(variant_id,profile_id,price_paid) values(current_setting('shop.v1')::uuid,'shop-test-a',0); raise exception 'Direct purchase bypass'; exception when insufficient_privilege then null; end;
  begin insert into storage.objects(bucket_id,name) values('avatar-store','10000000-0000-4000-8000-000000000099.webp'); raise exception 'Employee uploads artwork'; exception when insufficient_privilege then null; end;
 end $$;
--- A funded bronze employee must be rejected by SQL, regardless of client controls.
 reset role;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-update public.profiles set data=data||'{"manualStats":{"positive":0}}'::jsonb where id='shop-test-a';
-set local role authenticated;
+insert into public.reviews(id,data)
+select 'shop-funding-'||profile||'-'||n,
+ jsonb_build_object('id','shop-funding-'||profile||'-'||n,'branch','shop-test-branch','rating','5',
+ 'date','01-10-2026','time','12:00','linkedEmployeeIds',jsonb_build_array(profile))
+from (values ('shop-test-a',150),('shop-test-duplicate',75)) funding(profile,quantity)
+cross join lateral generate_series(1,quantity) n;
+-- A funded bronze employee can purchase; ownership and balance remain enforced.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
-do $$ begin
- begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,2); raise exception 'Bronze employee purchased an avatar'; exception when insufficient_privilege then null; end;
-end $$;
-reset role;
-select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb where id='shop-test-a';
 set local role authenticated;
-select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
-select public.purchase_avatar(current_setting('shop.v1')::uuid,2);
-select public.purchase_avatar(current_setting('shop.v2')::uuid,2);
+select set_config('shop.funds',public.get_avatar_store()#>>'{wallet,available}',true);
+select public.purchase_avatar(current_setting('shop.v1')::uuid,349);
+select public.purchase_avatar(current_setting('shop.v2')::uuid,399);
 do $$ begin
- if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>1 then raise exception 'Purchase did not deduct currency'; end if;
+ if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>current_setting('shop.funds')::numeric-748 then raise exception 'Purchase did not deduct currency'; end if;
  if (select count(*) from public.reviews where id like 'shop-test-review-%')<>1 then raise exception 'Purchase changed ranking data'; end if;
- begin perform public.purchase_avatar(current_setting('shop.v3')::uuid,2); raise exception 'Overspending accepted'; exception when invalid_parameter_value then null; end;
+ begin perform public.purchase_avatar(current_setting('shop.v3')::uuid,349); raise exception 'Overspending accepted'; exception when invalid_parameter_value then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000004","role":"authenticated"}',true);
 do $$ begin
- begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,2); raise exception 'Exclusive variant resold'; exception when unique_violation then null; end;
+ begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,349); raise exception 'Exclusive variant resold'; exception when unique_violation then null; end;
  begin perform public.equip_avatar(current_setting('shop.v1')::uuid); raise exception 'Another employees avatar equipped'; exception when insufficient_privilege then null; end;
  if (public.get_avatar_store()#>>'{wallet,spent}')::numeric<>0 then raise exception 'Failed purchase deducted currency'; end if;
  if (select profile_id from public.avatar_purchases where variant_id=current_setting('shop.v1')::uuid)<>'shop-test-a' then raise exception 'Ownership changed'; end if;
 end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
-select public.save_avatar_collection(current_setting('shop.collection')::uuid,'Shop test',0,true,'{"name":"Shop test","price":2,"enabled":true}');
+select public.save_avatar_collection(current_setting('shop.collection')::uuid,'Shop test',349,true,'{"name":"Shop test","price":349,"enabled":true}');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000005","role":"authenticated"}',true);
-select public.purchase_avatar(current_setting('shop.v4')::uuid,0);
+select public.purchase_avatar(current_setting('shop.v4')::uuid,349);
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.merge_employees('shop-test-a','shop-test-duplicate','Shop merged','shop-test-branch');
 do $$ begin

@@ -18,8 +18,9 @@ export async function simulationFetch(input: RequestInfo | URL, init?: RequestIn
     return denied();
   }
   if (['/rest/v1/rpc/stop_simulation', '/rest/v1/rpc/simulation_targets', '/rest/v1/rpc/start_simulation'].includes(url.pathname)) return execute(request);
-  // Weather and artwork are shared member resources, never employee activity.
+  // Weather, artwork, and monthly podium avatars are shared member resources.
   if (url.pathname === '/functions/v1/riyadh-weather' && request.method === 'GET' || url.pathname.startsWith('/storage/v1/object/sign/avatar-store/') && request.method === 'POST' || url.pathname.startsWith('/storage/v1/object/sign/avatar-store/') && request.method === 'GET') return execute(request);
+  if (url.pathname === '/rest/v1/rpc/get_monthly_avatars' && request.method === 'POST') return execute(request);
   const operation = url.pathname.split('/rest/v1/rpc/')[1];
   const table = url.pathname.split('/rest/v1/')[1];
   if (!(operation && reads.has(operation)) && !(request.method === 'GET' && table && tables.has(table))) return denied();

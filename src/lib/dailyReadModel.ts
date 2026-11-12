@@ -4,8 +4,9 @@ import { supabase } from './supabase';
 import { cachedRows, readNamespace } from './browserReadCache';
 import type { CloudSession } from './cloudSync';
 import type { UserAccount } from './mockData';
-import type { ReviewSummary, TimelineEvent } from '../context/DataContext';
+import type { BranchBadgeReward, ReviewSummary, TimelineEvent } from '../context/DataContext';
 export interface DailyReadModel {
+  branchBadgeRewards?: BranchBadgeReward[];
   disabledEmployeeIds?: string[]; features: FeatureState | null; generatedAt: string; directory: UserAccount[]; reviews: ReviewSummary[]; notes: TimelineEvent[]; hours: Record<string, number>;
 }
 export function useDailyReadModel(session: CloudSession) {

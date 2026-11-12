@@ -17,14 +17,15 @@ async function signedImage(path: string, account: string) {
 }
 export function AvatarImage({ path, alt, className = '' }: { path: string | null; alt: string; className?: string }) {
   const { currentAccount } = useData();
+  const bundled = path?.startsWith('bundled/') ? `${import.meta.env.BASE_URL}avatars/${path.slice('bundled/'.length)}` : null;
   const accountId = currentAccount?.id || '';
   const [image, setImage] = useState<{ key: string; url: string } | null>(null);
   const key = `${accountId}:${path}`;
   useEffect(() => {
-    if (!path || !accountId) return;
+    if (!path || bundled || !accountId) return;
     let active = true;
     void signedImage(path, accountId).then(url => { if (active && url) setImage({ key: `${accountId}:${path}`, url }); });
     return () => { active = false; };
-  }, [path, accountId]);
-  return <img src={image?.key === key ? image.url : employeeImg} alt={alt} className={className} />;
+  }, [path, bundled, accountId]);
+  return <img src={bundled ?? (image?.key === key ? image.url : employeeImg)} alt={alt} className={className} style={path ? { scale: '0.85 1', transformOrigin: 'center' } : undefined} />;
 }

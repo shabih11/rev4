@@ -1,3 +1,5 @@
+import { EmployeeLevelBadge } from '../components/EmployeeLevelBadge';
+import { MonthlyWinnerBadge } from '../components/MonthlyWinnerBadge';
 import { BranchBadgePreview } from '../components/BranchBadgePreview';
 import { SeaMissionBadge } from '../components/SeaMissionBadge';
 import { RocketLaunchBadge } from '../components/RocketLaunchBadge';
@@ -10,7 +12,6 @@ import { arabicReviewCount } from '../lib/arabicReviewCount';
 import { CrystalPlatform } from '../components/CrystalPlatform';
 import { praiseCycle, nextPraiseCycle, praisedEmployee, recentPraiseCount } from '../lib/praisedEmployee';
 import { EmployeeIdentity } from '../components/EmployeeIdentity';
-import { gemTheme } from '../lib/gems';
 import { employeeTier } from '../lib/employeeFeatures';
 import type { SceneryHandle } from '../components/LeaderboardScenery';
 import { LeaderboardScenery } from '../components/LeaderboardScenery';
@@ -28,12 +29,13 @@ import 'swiper/css';
 import { EmployeeCard } from '../components/EmployeeCard';
 import { useData } from '../context/DataContext';
 import { ActivityChart } from '../components/ActivityChart';
+import { useMonthlyAvatars } from '../hooks/useMonthlyAvatars';
 import { ResultsPodium } from '../components/ResultsPodium';
 import { calculateEmployeeRewards } from '../lib/employeeRewards';
 import { formatTimestamp, isWithinLastDays } from '../lib/formatDate';
 import type { UserAccount } from '../lib/mockData';
 import { isInCurrentMonth, isPositiveReview, previousMonthEnd } from '../lib/reviewPeriod';
-import { favoritePartner, newestFirst, monthlyEmployeeOrder, weeklyActivity, periodReviewLeaders } from '../lib/employeeActivity';
+import { newestFirst, monthlyEmployeeOrder, weeklyActivity, periodReviewLeaders } from '../lib/employeeActivity';
 
 type SlideData =
   | { type: 'employee'; data: UserAccount; rank: number }
@@ -51,6 +53,7 @@ export const Leaderboard: React.FC = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
   const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  const monthlyAvatars = useMonthlyAvatars(resultsMode && !seaMode, resultsDate);
   const accountName = (currentAccount?.role === 'manager' ? currentAccount.branch : currentAccount?.name)?.trim() || 'حسابي';
   const resultsMonth = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', calendar: 'gregory', month: 'long' })
     .format(resultsMode ? resultsDate : previousMonthEnd(resultsDate));
@@ -197,8 +200,6 @@ export const Leaderboard: React.FC = () => {
     if (modalOpen || seaMode) autoplay.stop();
     else autoplay.start();
   }, [modalOpen, seaMode]);
-  const activePartner = activeSlide?.type === 'employee' ? favoritePartner(activeSlide.data.id, reviewSummaries, resultsDate) : { id: '', count: 0 };
-  const partnerAccount = users.find(user => user.id === activePartner.id);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
   const navigation = <header className="recognition-header relative z-30">
@@ -215,13 +216,13 @@ export const Leaderboard: React.FC = () => {
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
       </header>;
 
+  if (resultsMode && !seaMode && !monthlyAvatars.ready) return <div className="results-page" dir="rtl">{navigation}<PageLoading error={monthlyAvatars.error ? 'تعذر تحميل أفتارات شهر النتيجة. حدّثي الصفحة لإعادة المحاولة.' : undefined} /></div>;
   if (!summaryReady && !seaMode) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
   if (!seaMode && !resultsMode && slidesData.length === 0) return <div className="recognition-page" dir="rtl">{navigation}<p className="p-8 text-center">{syncError || 'لا توجد نتائج لعرضها بعد.'}</p></div>;
 
   return (
     <div
       data-motion="full"
-      data-gem-theme={!seaMode && !resultsMode && activeSlide?.type === 'employee' ? gemTheme(features?.store?.magic, activeSlide.data.id) : undefined}
       data-tier={!seaMode && !resultsMode && activeSlide?.type === 'employee' && features ? employeeTier(activeSlide.data.points, features.settings) : 'bronze'}
       className={seaMode ? 'sea-page font-alexandria' : resultsMode ? 'results-page' : 'recognition-page recognition-composition w-full min-w-0 min-h-[100svh] overflow-x-clip overscroll-y-contain flex flex-col justify-between items-center relative font-alexandria touch-pan-y'}
       dir="rtl"
@@ -230,7 +231,7 @@ export const Leaderboard: React.FC = () => {
       {navigation}
       {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /></div>}
       {seaMode ? <SeaMission /> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
-        renderAvatar={employee => <EmployeeAvatar employee={employee} />}
+        renderAvatar={employee => <EmployeeAvatar employee={employee} avatarPath={monthlyAvatars.paths[employee.id] ?? null} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
       /> : <>
       <section className="recognition-glass-data" aria-label="ترتيب الموظفة ونتائجها"
@@ -279,9 +280,7 @@ export const Leaderboard: React.FC = () => {
                       <p className="text-xl sm:text-3xl font-extrabold">{arabicReviewCount(activeSlide.data.monthReviewsCount ?? 0)} <BalanceGrowth employee={activeSlide.data} /></p>
                     </div>
                   </div>
-                  <p className="text-xs text-blue-100 mt-2">شريكتي المفضلة</p>
-                  <h2 className="text-2xl sm:text-4xl font-bold mb-1">{partnerAccount?.name || 'لازلت أعمل على ذلك'}</h2>
-                  {partnerAccount && <p className="text-[10px] sm:text-xs text-blue-100 mt-2">اكتسبت مع {partnerAccount.name} {arabicReviewCount(activePartner.count)} خلال هذا الشهر</p>}
+
                 </>
               )}
 
@@ -443,21 +442,20 @@ export const Leaderboard: React.FC = () => {
                 </button>
               </div>
               <div className="p-4 bg-gray-50 overflow-y-auto flex-1 space-y-3">
-                {listedEmployees.map((emp, idx) => (
+                {listedEmployees.map((emp) => (
                   <EmployeeCard showCoverageBranch key={emp.id} employee={emp} onModalOpen={handleModalOpen} onModalClose={handleModalClose}>
                     <button className="w-full bg-white p-3 rounded-xl border shadow-sm flex items-center gap-4 hover:bg-gray-50 transition-colors text-right">
-                      <EmployeeAvatar employee={emp} className="w-12 h-12 rounded-full border-2 border-gray-100 shrink-0" />
+                      <span className="employee-card-avatar flex size-12 shrink-0 items-center justify-center [&_.employee-level-star]:size-12">{emp.previousMonthWinner ? <MonthlyWinnerBadge className="size-12" /> : <EmployeeLevelBadge inList employeeId={emp.id} gold={Boolean(features && employeeTier(emp.points, features.settings) === 'gold')} />}</span>
                       <div className="flex-1 min-w-0 space-y-1">
-                        <EmployeeIdentity showCoverageBranch employee={emp} className="text-gray-800" nameContent={<><bdi dir="ltr">{(idx + 1).toLocaleString('ar-SA-u-nu-latn')}</bdi>{' '}{emp.name}</>}/>
-                        <Overtaken employee={emp} />
+                        <EmployeeIdentity hideTierBadge hideWinnerBadge showCoverageBranch employee={emp} className="text-gray-800 employee-list-identity" nameAside={<Overtaken employee={emp} />}/>
                         {currentAccount?.role === 'admin' && <p className="text-[10px] text-slate-500">
                           آخر حضور: {!employeePresence ? 'جارٍ التحميل…' : employeePresence.error ? 'تعذر التحميل' : employeePresence.data?.[emp.id] === null ? 'لم يُسجل حضور بعد' : employeePresence.data?.[emp.id] ? formatTimestamp(Date.parse(employeePresence.data[emp.id]!)) : 'غير متاح'}
                         </p>}
                       </div>
                       <div className="text-center shrink-0">
-                        <p className="text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}</p>
+                        <p dir="ltr" className="flex items-baseline justify-center gap-1.5 whitespace-nowrap text-lg font-black text-blue-600">{emp.monthReviewsCount != null ? (emp.monthReviewsCount % 1 === 0 ? emp.monthReviewsCount : emp.monthReviewsCount.toFixed(1)) : 0}{!resultsMode && <BalanceGrowth employee={emp} />}</p>
                         <p className="text-[10px] text-gray-400">رصيد الشهر</p>
-                        {resultsMode ? rewardSummary ? (rewardSummary.rewards[emp.id]?.total > 0 && <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال</p>) : <p className="mt-1 text-xs text-slate-500">المكافأة غير متاحة</p> : <BalanceGrowth employee={emp} />}
+                        {resultsMode ? rewardSummary ? (rewardSummary.rewards[emp.id]?.total > 0 && <p className="mt-1 text-xs font-bold text-emerald-700">{rewardSummary.rewards[emp.id].total.toLocaleString('ar-SA-u-nu-latn')} ريال</p>) : <p className="mt-1 text-xs text-slate-500">المكافأة غير متاحة</p> : null}
                       </div>
                     </button>
                   </EmployeeCard>

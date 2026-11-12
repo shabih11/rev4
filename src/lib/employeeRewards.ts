@@ -4,6 +4,8 @@ export interface RewardEmployee {
   id: string;
   points: number;
   monthReviewsCount?: number;
+  ordinaryReviewBalance?: number;
+  goldPlusCents?: number;
 }
 
 export interface EmployeeReward {
@@ -32,7 +34,7 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     const monetaryTier = rewardTier(qualifyingPoints, false);
     const balance = employee.monthReviewsCount;
     const rate = monetaryTier === 'gold' ? 14 : monetaryTier === 'silver' ? 10 : 0;
-    const cents = balance !== undefined && Number.isFinite(balance) && balance >= 7.1 ? Math.round(balance * rate * 100) : 0;
+    const cents = balance !== undefined && Number.isFinite(balance) && balance >= 7.1 ? Math.round(Math.max(0, employee.ordinaryReviewBalance ?? balance) * rate * 100) : 0;
     return { employee, tier, qualifyingPoints, cents: Number.isSafeInteger(cents) ? cents : 0 };
   });
   const eligible = bases.filter(item => item.cents > 0);
@@ -50,11 +52,12 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     }
     // The minimum is unconditional for recipients; it is the sole cap exception.
     if (cents > 0) total = Math.max(10000, total);
+    const plus = employee.goldPlusCents ?? 0;
     rewards[employee.id] = {
       tier,
       qualifyingPoints,
-      base: cents / 100,
-      total: total / 100,
+      base: (cents + plus) / 100,
+      total: (total + plus) / 100,
       increase: (total - cents) / 100,
     };
   }
