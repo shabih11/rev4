@@ -93,10 +93,10 @@ language sql stable security definer set search_path='' as $$
  peak as (select private.tier_peak_points(profile,month_start,now()) points from period),
  missions as (
   select 'tier:'||to_char(p.month_start,'YYYY-MM')||':'||t.tier id,t.tier,t.target,t.reward,
-   least(t.target,greatest(0,k.points)) current,k.points>=t.target completed
+   least(t.target,greatest(0,k.points)) progress_value,k.points>=t.target completed
   from period p cross join peak k cross join (values ('silver',8::numeric,100::numeric),('gold',11::numeric,250::numeric)) t(tier,target,reward)
  )
- select coalesce(jsonb_agg(jsonb_build_object('id',m.id,'tier',m.tier,'target',m.target,'current',m.current,
+ select coalesce(jsonb_agg(jsonb_build_object('id',m.id,'tier',m.tier,'target',m.target,'current',m.progress_value,
   'coins',m.reward,'stars',m.reward,'completed',m.completed,'collected',coalesce(c.coins,0)>=m.reward) order by m.target),'[]')
  from missions m left join private.coin_achievement_collections c on c.profile_id=profile and c.achievement_id=m.id;
 $$;
