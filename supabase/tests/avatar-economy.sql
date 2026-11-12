@@ -20,7 +20,7 @@ select 'economy-dec-'||n,jsonb_build_object('id','economy-dec-'||n,'branch','eco
 from generate_series(1,20) n;
 do $$ declare earned jsonb; begin
  earned:=private.employee_progression('economy-owner','2026-12-31');
- if (earned->>'coins')::numeric<>444.38 or (earned->>'stars')::numeric<>513.44 or earned->>'highestTier'<>'silver' then
+ if (earned->>'coins')::numeric<>514.38 or (earned->>'stars')::numeric<>588.44 or earned->>'highestTier'<>'silver' then
    raise exception 'Monthly rewards mismatch: %',earned;
  end if;
  if (private.employee_progression('economy-owner','2026-11-30')->>'coins')::numeric<>0 then raise exception 'Future month paid early'; end if;
@@ -129,7 +129,8 @@ set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"50000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 -- Collect synthetic funding through the same employee endpoint as the UI.
 do $$ declare item jsonb; begin
- for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}') loop
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}')
+ where value->>'id' not like 'tier:%' and value->>'id' not like 'rank:%' loop
   perform public.collect_coin_achievement(item->>'id');
  end loop;
 end $$;

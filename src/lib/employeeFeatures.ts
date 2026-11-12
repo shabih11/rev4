@@ -60,6 +60,17 @@ export interface EmployeeWallet {
   pendingCoins?: number;
   pendingAchievements?: CoinAchievement[];
   rankChallenge?: RankChallenge | null;
+  tierMissions?: TierMission[];
+}
+export interface TierMission {
+  id: string;
+  tier: 'silver' | 'gold';
+  target: number;
+  current: number;
+  coins: number;
+  stars: number;
+  completed: boolean;
+  collected: boolean;
 }
 export interface AvatarStoreState {
   goldEntitled?: boolean;

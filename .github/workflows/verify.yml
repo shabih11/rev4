@@ -78,6 +78,8 @@ jobs:
         run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/coin-collection.sql
       - name: Verify monthly rank challenge rewards
         run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/rank-challenge.sql
+      - name: Verify silver and gold achievement rewards
+        run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/tier-missions.sql
       - run: npm run test:db
       - name: Stop isolated stack
         if: always()

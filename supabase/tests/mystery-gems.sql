@@ -21,7 +21,8 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"20000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 -- Collect synthetic funding through the same employee endpoint as the UI.
 do $$ declare item jsonb; begin
- for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}') loop
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}')
+ where value->>'id' not like 'tier:%' and value->>'id' not like 'rank:%' loop
   perform public.collect_coin_achievement(item->>'id');
  end loop;
 end $$;
