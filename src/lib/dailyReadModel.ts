@@ -17,7 +17,7 @@ export function useDailyReadModel(session: CloudSession) {
     const timer = window.setInterval(() => setDay(new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })), 30000);
     return () => window.clearInterval(timer);
   }, []);
-  const namespace = readNamespace(session) + '|employee-deactivation-v1|' + day + '|', uid = session.account ? session.uid : null;
+  const namespace = readNamespace(session) + '|employee-deactivation-v1|features-retry-v2|' + day + '|', uid = session.account ? session.uid : null;
   const [value, setValue] = useState<{ namespace: string; revision: string; data: DailyReadModel } | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
@@ -46,8 +46,9 @@ export function useDailyReadModel(session: CloudSession) {
             supabase.rpc('get_employee_features').abortSignal(AbortSignal.timeout(15000)),
           ]);
           if (error) throw error;
+          if (featureResult.error) throw featureResult.error;
           if (!data || typeof data.generatedAt !== 'string' || !Array.isArray(data.directory) || !Array.isArray(data.reviews) || !Array.isArray(data.notes)) throw new Error('invalid-summary');
-          return [{ ...data, features: featureResult.error ? null : featureResult.data } as DailyReadModel];
+          return [{ ...data, features: featureResult.data } as DailyReadModel];
         }, true);
         if (active && epoch === revision) { loadedVersion = version; failures = 0; setError(null); setValue({ namespace, revision: version, data: rows[0] }); }
       } catch (reason) {
