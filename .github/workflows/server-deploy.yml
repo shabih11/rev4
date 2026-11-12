@@ -1,0 +1,59 @@
+name: Deploy production server (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-server
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'shabih11/rev4' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/verify.yml
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production-server
+      url: https://revo.iamspecial.com.sa
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build -- --base=/
+      - name: Configure restricted SSH identity
+        env:
+          DEPLOY_KEY: ${{ secrets.REVO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.REVO_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/revo_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/revo_deploy ~/.ssh/known_hosts
+      - name: Activate versioned release
+        env:
+          RELEASE_ID: ${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          tar -czf "$RUNNER_TEMP/revo-dist.tar.gz" -C dist .
+          ssh -T -i ~/.ssh/revo_deploy -o IdentitiesOnly=yes \
+            -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            root@179.198.207.72 "deploy $RELEASE_ID" < "$RUNNER_TEMP/revo-dist.tar.gz"
+      - name: Remove SSH identity
+        if: always()
+        run: rm -f ~/.ssh/revo_deploy
