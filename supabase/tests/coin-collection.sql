@@ -35,11 +35,13 @@ end $$;
 reset role;
 
 -- New earnings on an already collected source expose only the increment.
+select set_config('request.jwt.claims','{"sub":"72000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 insert into public.reviews(id,data) values ('coins-third',jsonb_build_object('id','coins-third','branch','coins-test','rating','4',
  'date',to_char(now() at time zone 'Asia/Riyadh','DD-MM-YYYY'),'time','10:00','linkedEmployeeIds',jsonb_build_array('coins-a')));
 do $$ declare pending jsonb:=private.pending_coin_achievements('coins-a'); begin
  if not exists(select 1 from jsonb_array_elements(pending) item where item->>'id' like 'ratings:%' and (item->>'coins')::numeric=5) then raise exception 'New review increment missing'; end if;
 end $$;
+select set_config('request.jwt.claims','{"sub":"72000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 set local role authenticated;
 do $$ declare item jsonb; wallet jsonb; begin
  for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}') loop
@@ -50,6 +52,7 @@ end $$;
 reset role;
 
 -- Removing and restoring evidence must not allow another payment.
+select set_config('request.jwt.claims','{"sub":"72000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 update public.reviews set data=jsonb_set(data,'{rating}','"1"') where id='coins-third';
 update public.reviews set data=jsonb_set(data,'{rating}','"4"') where id='coins-third';
 do $$ begin
