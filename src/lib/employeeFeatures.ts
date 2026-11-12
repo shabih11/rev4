@@ -43,10 +43,23 @@ export interface CoinAchievement {
   period: string;
   coins: number;
 }
+export interface RankChallenge {
+  active: boolean;
+  leading?: boolean;
+  rank?: number;
+  targetId?: string;
+  targetName?: string;
+  targetBranch?: string;
+  targetRank?: number;
+  coins?: number;
+  stars?: number;
+  alreadyEarned?: boolean;
+}
 export interface EmployeeWallet {
   earned: number; stars?: number; highestTier?: Tier; spent: number; available: number;
   pendingCoins?: number;
   pendingAchievements?: CoinAchievement[];
+  rankChallenge?: RankChallenge | null;
 }
 export interface AvatarStoreState {
   goldEntitled?: boolean;

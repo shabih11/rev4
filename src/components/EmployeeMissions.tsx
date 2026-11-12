@@ -1,5 +1,6 @@
 import { MissionRewards, RewardAmount } from './RewardAmount';
 import { AchievementBadge } from './AchievementBadge';
+import { EmployeeRankMission } from './EmployeeRankMission';
 import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { employeeMissions, employeeLevel, missionGrades } from '../lib/employeeMissions';
@@ -39,6 +40,7 @@ export function EmployeeMissions({ employeeId }: { employeeId: string }) {
         <div><dt className="text-slate-500">نجوم التقييمات</dt><dd className="mt-1 font-black text-cyan-900"><RewardAmount kind="stars" value={state.ratingStars} /></dd></div>
         <div><dt className="text-slate-500">مكافآت المهام</dt><dd className="mt-1 font-black text-amber-800"><RewardAmount kind="stars" value={state.bonusStars} /></dd></div>
       </dl>
+      <EmployeeRankMission />
       {(['daily', 'monthly'] as const).filter(period => state.missions.some(mission => mission.period === period)).map(period => <div key={period} className="mb-5">
         <h3 className="flex items-center justify-between gap-2 font-black text-slate-800">{period === 'daily' ? 'تحدي اليوم' : 'مهام الشهر'}<span className="text-xs font-normal text-slate-500">{state.missions.filter(mission => mission.period === period && mission.current + 1e-9 >= mission.target).length}/{state.missions.filter(mission => mission.period === period).length} مكتملة</span></h3>
         <ul className="divide-y divide-slate-100">{state.missions.filter(mission => mission.period === period).map(mission => {

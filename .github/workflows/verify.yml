@@ -76,6 +76,8 @@ jobs:
         run: npx --yes supabase@3.0.0 start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit
       - name: Verify coin collection authorization and idempotency
         run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/coin-collection.sql
+      - name: Verify monthly rank challenge rewards
+        run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/rank-challenge.sql
       - run: npm run test:db
       - name: Stop isolated stack
         if: always()
