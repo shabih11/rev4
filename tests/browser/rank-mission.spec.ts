@@ -24,7 +24,7 @@ for (const width of [390, 1280]) test(`rank mission names the next employee, bra
   await expect(mission.getByRole('heading', { name: 'تجاوزي فاطمة (المملكة)', exact: true })).toBeVisible();
   await expect(mission).toContainText('+90 عملة');
   await expect(mission).toContainText('+90 نجمة');
-  await expect(mission).toContainText('التعادل لا يُعد تجاوزًا');
+  await expect(mission).not.toContainText('التعادل لا يُعد تجاوزًا');
   await mission.screenshot({ path: test.info().outputPath(`rank-mission-${width}.png`) });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(service.writes).toEqual([]);
