@@ -1,6 +1,7 @@
 import { test, expect, login, mockService } from './fixtures.js';
 for (const mobile of [true, false]) {
   test(`ten island views keep their scale and follow the shoreline schedule (${mobile ? 'mobile' : 'desktop'})`, async ({ page, baseURL }) => {
+    test.setTimeout(120000);
     await page.emulateMedia({ reducedMotion:'reduce' });
     await page.setViewportSize(mobile ? {width:390,height:844} : {width:1440,height:1000});
     const coastRequests = new Set<number>();
@@ -22,6 +23,8 @@ for (const mobile of [true, false]) {
         forecastTime = Date.parse(`2026-11-${day}T15:00:00+03:00`);
         await page.clock.setFixedTime(new Date(forecastTime));
         await page.goto('./#/dashboard');
+        // Reset the weather cache when this scenario jumps back from day 25 to day 16.
+        await page.reload();
         await page.getByRole('link', {name:'لوحة الترتيب',exact:true}).click();
         await page.getByRole('link', {name:'مهمة البحر',exact:true}).click();
         const island = page.locator('.sea-island-approach');

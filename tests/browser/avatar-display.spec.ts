@@ -20,8 +20,8 @@ for (const width of [390,1280]) test(`equipped avatars fit dashboard, store, lea
     }
   }
   await login(page);
-  await fit('.employee-avatar img');
-  const hero=page.locator('.employee-avatar').first();
+  await fit('.employee-avatar.h-52 img');
+  const hero=page.locator('.employee-avatar.h-52');
   expect((await hero.boundingBox())!.height).toBeGreaterThanOrEqual(208);
   await hero.screenshot({path:`/tmp/avatar-dashboard-${width}.png`});
   await page.getByRole('button',{name:'افتار',exact:true}).click();
