@@ -97,7 +97,7 @@ export function BranchBadgeRewardsAdmin() {
         {branch === name && <span className="text-sm">المكافأة: <RewardAmount kind="coins" value={coins} /> فقط</span>}
       </label>)}
     </fieldset>
-    {branch && <div role="status" className="rounded-xl bg-amber-50 p-4 space-y-2">
+    {branch && <div role="status" className="rounded-xl bg-slate-50 p-4 space-y-2">
       <p className="font-bold">{branch} · {badges[badge].name}</p>
       <p className="text-sm">المكافأة لكل موظفة تختارينها أدناه:</p>
       <RewardAmount kind="coins" value={coins} /><p className="text-sm">عملات فقط، دون نجوم أو مكافآت إضافية.</p>

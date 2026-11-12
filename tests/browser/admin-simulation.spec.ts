@@ -23,7 +23,11 @@ test('admin simulates employee and manager, blocks writes and presence, and retu
       expect(args.simulation_id).toBe(activeId); reads.push(args.operation);
       if (args.operation === 'get_my_account') return reply({ ...target, mustSetUsername: false, mustChangePassword: false });
       if (args.operation === 'get_read_model') return reply({ generatedAt: '2026-11-04T12:00:00+03:00', directory: [target], reviews: [], notes: [], hours: {} });
-      if (args.operation === 'get_employee_features') return reply(null);
+      if (args.operation === 'get_employee_features') return reply({
+        settings: { missions: true, avatars: true },
+        store: { collections: [], equipped: {}, wallet: { available: 20, pendingCoins: 10,
+          pendingAchievements: [{ id: 'sea', title: 'إنجاز مهمة البحر', period: '2026-11', coins: 10 }] } },
+      });
       if (args.operation === 'app_state') return reply([{ version: 1 }]);
       if (args.operation === 'sea_mission_completions') return reply([]);
       if (args.operation === 'read_rows') return reply(args.args.source === 'branches' ? [{ id: 'جاليري', name: 'جاليري', start: '16:00', end: '07:00', nextDayTime: '07:00' }] : []);
@@ -57,6 +61,16 @@ test('admin simulates employee and manager, blocks writes and presence, and retu
   await floating.click();
   await expect(bar.getByLabel('اختيار حساب للمحاكاة')).toBeVisible();
   await expect.poll(() => reads.includes('get_read_model')).toBe(true);
+  await bar.getByRole('button', { name: 'طي تفاصيل المحاكاة' }).click();
+  await page.goto('./#/');
+  await page.getByRole('button', { name: /لديكِ عملات بانتظار الجمع/ }).click();
+  const rewards = page.getByRole('dialog', { name: 'الإنجازات والمكافآت' });
+  await expect(rewards).toContainText('المحاكاة للعرض فقط');
+  await expect(rewards.getByRole('button', { name: 'جمع مكافأة إنجاز مهمة البحر' })).toBeDisabled();
+  await rewards.getByRole('button', { name: 'إغلاق الإنجازات' }).click();
+  await page.goto('./#/dashboard');
+  await floating.click();
+
   // Exercise the same shared client used by every mutation component.
   const write = await page.evaluate(async () => {
     const modulePath = '/rev4/src/lib/supabase.ts';

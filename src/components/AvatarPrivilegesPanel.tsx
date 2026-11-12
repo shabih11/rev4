@@ -73,18 +73,18 @@ export function AvatarPrivilegesPanel({ employee }: { employee: UserAccount }) {
     } catch { setMessage('لم يُطبق الامتياز. تحققي من أهلية الحالة وعدم استخدام الميزة أو إغلاق الشهر.'); }
     finally { setBusy(false); }
   }
-  return <section aria-label="امتيازات أفتارك" className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+  return <section aria-label="امتيازات أفتارك" className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
     <h3 className="mb-3 flex items-center gap-2 font-black"><AvatarEffectIcon gold={gold} />امتيازات أفتارك</h3>
     <ul className="space-y-1">
       {(Object.keys(labels) as Action[]).map(kind => {
         const lit = months.some(month => available(kind, month));
-        return <li key={kind}><button type="button" onClick={() => open(kind)} data-available={lit} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-start text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-600 ${lit ? 'bg-amber-100 text-amber-950' : 'text-slate-500 hover:bg-white/60'}`}>
-          <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${lit ? 'bg-amber-500 shadow-[0_0_10px_#f59e0b]' : 'bg-slate-300'}`} />
+        return <li key={kind}><button type="button" onClick={() => open(kind)} data-available={lit} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-start text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 ${lit ? 'bg-blue-50 text-[#142b54]' : 'text-slate-500 hover:bg-white/60'}`}>
+          <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${lit ? 'bg-teal-500 shadow-[0_0_10px_#14b8a6]' : 'bg-slate-300'}`} />
           {labels[kind]}{lit && <span className="sr-only">، متاحة</span>}
         </button></li>;
       })}
     </ul>
-    <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else setAction(null); }} onClose={() => setAction(null)} aria-label={action ? labels[action] : 'امتيازات أفتارك'} className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-amber-200 bg-white p-5 text-slate-900 shadow-xl backdrop:bg-slate-950/40" dir="rtl">
+    <dialog ref={dialog} onCancel={event => { if (busy) event.preventDefault(); else setAction(null); }} onClose={() => setAction(null)} aria-label={action ? labels[action] : 'امتيازات أفتارك'} className="m-auto max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-xl backdrop:bg-slate-950/40" dir="rtl">
       {action && <>
         <header className="mb-4 flex items-center justify-between gap-3"><h3 className="font-black">{labels[action]}</h3><button type="button" disabled={busy} onClick={() => setAction(null)} className="min-h-11 px-2 text-sm">إغلاق</button></header>
         {months.length > 1 && <label className="mb-4 block text-sm">شهر الاستحقاق <select aria-label="شهر الاستحقاق" disabled={busy} value={period} onChange={event => { setPeriod(event.target.value); setReviewId(''); setTargetId(''); setMessage(''); }} className="rounded-lg border bg-white p-2">{months.map(month => <option key={month}>{month}</option>)}</select></label>}
@@ -94,7 +94,7 @@ export function AvatarPrivilegesPanel({ employee }: { employee: UserAccount }) {
             const detail = reviews.find(item => item.id === review.id);
             const members = [...new Set(review.linkedEmployeeIds)].sort();
             const cents = Math.floor(1600 / members.length) + Number(members.indexOf(employee.id) < 1600 % members.length);
-            return <li key={review.id} className="rounded-xl bg-amber-50 p-3 text-sm"><p className="font-bold">{detail?.reviewerName && `${detail.reviewerName} · `}{review.date} · {review.time}</p>{detail?.comment && <p className="my-2 whitespace-pre-wrap break-words">{detail.comment}</p>}<p>{review.linkedEmployeeIds.map(id => users.find(user => user.id === id)?.name || 'موظفة').join('، ')}</p><p className="mt-1 font-bold text-amber-900">حصتك {(cents / 100).toLocaleString('ar-SA', { maximumFractionDigits: 2 })} ريال</p></li>;
+            return <li key={review.id} className="rounded-xl bg-slate-50 p-3 text-sm"><p className="font-bold">{detail?.reviewerName && `${detail.reviewerName} · `}{review.date} · {review.time}</p>{detail?.comment && <p className="my-2 whitespace-pre-wrap break-words">{detail.comment}</p>}<p>{review.linkedEmployeeIds.map(id => users.find(user => user.id === id)?.name || 'موظفة').join('، ')}</p><p className="mt-1 font-bold text-[#142b54]">حصتك {(cents / 100).toLocaleString('ar-SA', { maximumFractionDigits: 2 })} ريال</p></li>;
           })}</ul> : <p className="text-sm text-slate-500">لا توجد تقييمات بلس محتسبة لكِ في هذا الشهر.</p>}
         </> : data.locked ? <p className="text-sm text-slate-500">{state?.closures.some(item => item.period === period) ? 'أُغلقت مكافآت هذا الشهر.' : syncError ? 'تعذر التحقق من الاستحقاق. حاولي بعد تحديث البيانات.' : 'اشتري أفتارًا في هذا الشهر لفتح الامتيازات.'}</p> : <>
           {data.used(action) ? <p className="text-sm text-slate-500">استُخدمت هذه الميزة لهذا الشهر.</p> : action === 'erase' ? <>

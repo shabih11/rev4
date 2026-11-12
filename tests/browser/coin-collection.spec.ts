@@ -1,8 +1,8 @@
 import { test, expect, mockService, login } from './fixtures.js';
 import type { Page } from '@playwright/test';
 
-async function coinService(page: Page, { failFirst = false, delay = 0, empty = false, role = 'employee' }: {
-  failFirst?: boolean; delay?: number; empty?: boolean; role?: 'employee' | 'admin' | 'manager' | 'viewer';
+async function coinService(page: Page, { failFirst = false, delay = 0, empty = false, lostResponse = false, role = 'employee' }: {
+  failFirst?: boolean; delay?: number; empty?: boolean; lostResponse?: boolean; role?: 'employee' | 'admin' | 'manager' | 'viewer';
 } = {}) {
   const service = await mockService(page, { role });
   const origin = new URL(test.info().project.use.baseURL!).origin;
@@ -21,6 +21,7 @@ async function coinService(page: Page, { failFirst = false, delay = 0, empty = f
     settings: { competition: false, balanceGrowth: false, tiers: false, avatars: false, missions: true, silverAt: 8, goldAt: 11 },
     baseline: {}, baselineDay: null, store: { collections: [], equipped: {}, selectedVariant: null, wallet: wallet() },
   } }));
+  await page.route('**/rpc/get_avatar_store', route => route.fulfill({ json: { wallet: wallet() } }));
   await page.route('**/rpc/collect_coin_achievement', async route => {
     const args = route.request().postDataJSON();
     expect(Object.keys(args)).toEqual(['achievement_id']);
@@ -31,6 +32,7 @@ async function coinService(page: Page, { failFirst = false, delay = 0, empty = f
     if (achievement) available += achievement.coins;
     pending = pending.filter(item => item.id !== args.achievement_id);
     version++;
+    if (lostResponse && calls.length === 1) return route.abort('failed');
     return route.fulfill({ json: wallet() });
   });
   return { ...service, calls };
@@ -48,6 +50,10 @@ for (const width of [390, 1280]) {
     await notification.click();
     const dialog = page.getByRole('dialog', { name: 'الإنجازات والمكافآت' });
     await expect(dialog.getByRole('listitem')).toHaveCount(2);
+    await expect(dialog.getByText('2026-11-04', { exact: true })).toHaveCount(0);
+    await expect(dialog.getByText('اضغطي «جمع»', { exact: false })).toHaveCount(0);
+    await expect(dialog.locator('header')).toHaveClass(/glass-modal-header/);
+    await expect(dialog.getByRole('button', { name: 'جمع مكافأة أثران في يوم واحد · الخضراء', exact: true })).toHaveText('10 عملة');
     await page.screenshot({ path: test.info().outputPath(`coin-collection-${width}.png`) });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await dialog.getByRole('button', { name: 'جمع مكافأة أثران في يوم واحد · الخضراء', exact: true }).click();
@@ -127,4 +133,28 @@ test('an empty leaderboard still exposes the signed-in employee collection dialo
   await dialog.getByRole('button', { name: 'جمع مكافأة أثران في يوم واحد · الخضراء', exact: true }).click();
   await expect(dialog.getByText('رصيدك المتاح:')).toContainText('30');
   expect(service.calls).toEqual(['daily:2026-11-04:1']);
+});
+
+test('lost collection response verifies the server wallet without paying twice', async ({ page }) => {
+  const service = await coinService(page, { lostResponse: true });
+  await login(page, { destination: 'leaderboard' });
+  await page.getByRole('button', { name: /لديكِ عملات بانتظار الجمع/ }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'جمع مكافأة أثران في يوم واحد · الخضراء', exact: true }).click();
+  await expect(dialog.getByRole('status')).toHaveText('تم تحديث رصيدك.');
+  await expect(dialog.getByText('رصيدك المتاح:')).toContainText('30');
+  await expect(dialog.getByRole('listitem')).toHaveCount(1);
+  expect(service.calls).toHaveLength(1);
+  expect(service.unexpected).toEqual([]);
+});
+
+test('collection works when AbortSignal.timeout is unavailable', async ({ page }) => {
+  const service = await coinService(page);
+  await login(page, { destination: 'leaderboard' });
+  await page.getByRole('button', { name: /لديكِ عملات بانتظار الجمع/ }).click();
+  await page.evaluate(() => Object.defineProperty(AbortSignal, 'timeout', { value: undefined, configurable: true }));
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'جمع مكافأة أثران في يوم واحد · الخضراء', exact: true }).click();
+  await expect(dialog.getByRole('status')).toHaveText('تم جمع المكافأة وتحديث رصيدك.');
+  expect(service.calls).toHaveLength(1);
 });
