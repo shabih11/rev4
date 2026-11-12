@@ -1,3 +1,4 @@
+import { AvatarEffectBadge } from './AvatarEffectBadge';
 import { LevelStar } from './EmployeeLevelBadge';
 import { GoldPlusBadge } from './GoldPlusBadge';
 import { BranchMilestoneBadge } from './BranchMilestoneBadge';
@@ -49,7 +50,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
       </span>
 
       {showModal && typeof document !== 'undefined' && createPortal(
-        <EmployeeModalContent 
+        <EmployeeDetails
           employee={employee}
           showCoverageBranch={showCoverageBranch}
           onClose={() => setShowModal(false)} 
@@ -60,7 +61,7 @@ export const EmployeeCard: React.FC<Props> = ({ employee, children, onModalOpen,
   );
 };
 
-const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => void; showCoverageBranch: boolean }> = ({ employee, onClose, showCoverageBranch }) => {
+export const EmployeeDetails: React.FC<{ employee: UserAccount; onClose?: () => void; showCoverageBranch?: boolean; embedded?: boolean }> = ({ employee, onClose, showCoverageBranch = false, embedded = false }) => {
   const [activeTab, setActiveTab] = useState<'reviews' | 'shifts' | 'summary' | 'points'>('summary');
   const { reviews, reviewSummaries, users, timeline, recordsReady, summaryReady, employeeHours, syncError, features, currentAccount, resultsMode, resultsDate } = useData();
   useRecordScope({ users: currentAccount?.role === 'admin', reviews: { employeeIds: [employee.id] }, timeline: { employeeIds: [employee.id] } });
@@ -109,26 +110,26 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
   return (
     <>
       <div 
-        className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 font-alexandria touch-auto"
-        dir="rtl" role="dialog" aria-modal="true" aria-label={`بيانات ${employee.name}`}
+        className={embedded ? "w-full font-alexandria" : "fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4 font-alexandria touch-auto"}
+        dir="rtl" role={embedded ? "region" : "dialog"} aria-modal={embedded ? undefined : true} aria-label={`بيانات ${employee.name}`}
         onClick={event => event.stopPropagation()}
       >
         {/* Backdrop */}
-        <motion.div 
+        {!embedded && <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
-        />
+        />}
         
         {/* Modal */}
         <motion.div 
-          initial={{ y: '100%' }}
+          initial={embedded ? false : { y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-2xl min-w-0 glass-modal-shell rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"
+          className={embedded ? "relative w-full min-w-0 rounded-3xl border border-slate-200 bg-white overflow-hidden" : "relative w-full max-w-2xl min-w-0 glass-modal-shell rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden"}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -138,13 +139,13 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
               <span className="font-extrabold break-words">{employee.name}</span>
               <span className="text-base sm:text-xl font-medium break-words">({employeeBranchLabel(employee, showCoverageBranch)})</span>
             </h2>
-            <button 
+            {!embedded && <button
               onClick={onClose}
               className="glass-modal-control p-2 rounded-full transition-colors self-start shrink-0"
               aria-label="إغلاق"
             >
               <X size={20} />
-            </button>
+            </button>}
           </div>
 
           <EmployeeAchievementRow employeeId={employee.id} progress={progress} tier={badgeTier} />
@@ -179,7 +180,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
           </div>
 
           {/* Body */}
-          <div className={`p-4 sm:p-6 h-[50vh] overflow-y-auto ${activeTab === 'summary' ? 'bg-white' : 'bg-gray-50'}`}>
+          <div className={`p-4 sm:p-6 ${embedded ? '' : 'h-[50vh] overflow-y-auto'} ${activeTab === 'summary' ? 'bg-white' : 'bg-gray-50'}`}>
             {syncError ? <p role="alert" className="text-red-700 text-center">{syncError}</p> : !tabReady && <p role="status" className="text-center text-gray-500">جارٍ تحميل السجلات…</p>}
             {activeTab === 'reviews' ? (
               <div className="space-y-4 pt-2 pb-2">
@@ -193,7 +194,7 @@ const EmployeeModalContent: React.FC<{ employee: UserAccount; onClose: () => voi
                         </div>
                       )}
                       <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2 text-yellow-400 mb-2">{r.goldPlus && <GoldPlusBadge />}{'★'.repeat(Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}{'☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}</div>
+                        <div className="flex items-center gap-2 text-yellow-400 mb-2">{r.goldPlus && <GoldPlusBadge />}<AvatarEffectBadge employeeId={employee.id} reviewId={r.id} />{'★'.repeat(Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}{'☆'.repeat(5 - Math.min(5, Math.max(0, parseInt(toEnglishNumerals(r.rating), 10) || 0)))}</div>
                         <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
                           {formatDateTime(r.date, r.time)}
                         </span>
@@ -338,7 +339,7 @@ export const ShiftDetailsModal = ({ shift, onClose, reviews, users }: { shift: T
                           <div className="flex items-center gap-3">
                              <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg shrink-0">{r.reviewerName.charAt(0)}</div>
                              <div>
-                                <p className="flex flex-wrap items-center gap-2 font-bold text-gray-800 text-sm">{r.reviewerName}{r.goldPlus && <GoldPlusBadge />}</p>
+                                <p className="flex flex-wrap items-center gap-2 font-bold text-gray-800 text-sm">{r.reviewerName}{r.goldPlus && <GoldPlusBadge />}{r.linkedEmployeeIds.map((id: string) => <AvatarEffectBadge key={id} employeeId={id} reviewId={r.id} />)}</p>
                                 <div className="flex items-center gap-1 mt-0.5">
                                   {[1,2,3,4,5].map(s => <Star key={s} size={12} className={s <= parseInt(r.rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'} />)}
                                   <span className="text-[10px] text-gray-400 mr-2">{formatDateTime(r.date, r.time)}</span>

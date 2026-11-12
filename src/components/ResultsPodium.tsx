@@ -17,13 +17,19 @@ interface Props {
 
 // The same block dimensions are used at every rank. Position, rather than
 // platform height, makes the pyramid: 4/3/2/1/2/3/4 from the back to the front.
-const positions = [
+const originalPositions = [
   { rank: 7, x: 0, y: 0 }, { rank: 5, x: 169, y: 60 },
   { rank: 3, x: 338, y: 120 }, { rank: 1, x: 507, y: 180 },
   { rank: 2, x: 676, y: 120 }, { rank: 4, x: 845, y: 60 },
   { rank: 6, x: 1014, y: 0 },
 ];
 export function ResultsPodium({ employees, rewards, period, renderAvatar, renderEmployee }: Props) {
+  const columns = employees.length > 7 ? Math.ceil(employees.length / 2) : employees.length;
+  const sceneWidth = Math.max(podiumWidth, columns * 205 + 24);
+  const sceneHeight = employees.length > 7 ? 880 : podiumHeight;
+  const positions = employees.length <= 7
+    ? originalPositions.filter(position => position.rank <= employees.length)
+    : employees.map((_, index) => ({ rank: index + 1, x: (index % columns) * 205, y: index < columns ? 0 : 430 }));
   const viewport = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(1200);
   const [zoom, setZoom] = useState(1);
@@ -41,7 +47,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
     const timer = window.setTimeout(() => setCelebrating(false), 1250);
     return () => window.clearTimeout(timer);
   }, []);
-  const fit = Math.min(1, Math.max(0.1, (width - 24) / podiumWidth));
+  const fit = Math.min(1, Math.max(0.1, (width - 24) / sceneWidth));
   const scale = fit * zoom;
   useLayoutEffect(() => {
     if (!viewport.current || !pendingScroll.current) return;
@@ -64,7 +70,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
         setZoom(target.zoom);
       }
     };
-    const at = (nextZoom: number, x: number, y: number) => apply(zoomPodiumAtPoint({ width: node.clientWidth, fit, zoom: zoomValue.current, nextZoom, scrollLeft: node.scrollLeft, scrollTop: node.scrollTop, x, y }));
+    const at = (nextZoom: number, x: number, y: number) => apply(zoomPodiumAtPoint({ sceneWidth, width: node.clientWidth, fit, zoom: zoomValue.current, nextZoom, scrollLeft: node.scrollLeft, scrollTop: node.scrollTop, x, y }));
     const wheel = (event: WheelEvent) => {
       if (event.shiftKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
       const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? node.clientHeight : 1);
@@ -88,7 +94,7 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
       if (!pinch || event.touches.length !== 2 || pinch.distance === 0) return;
       event.preventDefault();
       const point = touchPoint(event.touches);
-      apply(zoomPodiumAtPoint({ width: node.clientWidth, fit, ...pinch, nextZoom: pinch.zoom * point.distance / pinch.distance, nextX: point.x, nextY: point.y }));
+      apply(zoomPodiumAtPoint({ sceneWidth, width: node.clientWidth, fit, ...pinch, nextZoom: pinch.zoom * point.distance / pinch.distance, nextX: point.x, nextY: point.y }));
       suppressClickUntil = performance.now() + 350;
     };
     const touchEnd = () => { if (pinch) suppressClickUntil = performance.now() + 350; pinch = null; };
@@ -135,21 +141,22 @@ export function ResultsPodium({ employees, rewards, period, renderAvatar, render
       node.removeEventListener('pointerup', pointerEnd); node.removeEventListener('pointercancel', pointerEnd);
       node.removeEventListener('click', click, true); node.removeEventListener('keydown', key);
     };
-  }, [fit]);
+  }, [fit, sceneWidth]);
   const monthLabel = period.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', { timeZone: 'Asia/Riyadh', month: 'long' });
   const money = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
 
-  return <main className="results-podium" aria-label="منصة الأوائل السبع" dir="rtl">
+  return <main className="results-podium" aria-label="تتويج جميع موظفات الفئة الذهبية" dir="rtl">
     <div className="results-spotlights" aria-hidden="true"><i /><i /><i /><i /></div>
     {celebrating && <ConfettiBurst />}
     <header className="results-podium-heading">
       <span className="results-podium-eyebrow"><Trophy size={17} aria-hidden="true" /> نتائج {monthLabel}</span>
-      <h1>منصة الأوائل</h1>
+      <h1>تتويج الفئة الذهبية</h1>
+      {employees.length === 0 && <p>لا توجد موظفات في الفئة الذهبية لهذا الشهر.</p>}
     </header>
     <p id="results-podium-help" className="sr-only">قرّبي بإصبعين أو بعجلة الفأرة، واسحبي لقراءة التفاصيل. بلوحة المفاتيح استخدمي + و- للتقريب و0 لإظهار الكل.</p>
-    <div ref={viewport} className="results-podium-viewport" style={{ height: Math.max(240, podiumHeight * scale + 32) }} tabIndex={0} role="region" aria-label="منصة ترتيب قابلة للتكبير والتمرير" aria-describedby="results-podium-help">
-      <div className="results-podium-scroll-space" style={{ width: Math.max(width, podiumWidth * scale + 24), height: podiumHeight * scale + 32 }}>
-        <ol className="results-podium-scene" style={{ transform: `scale(${scale})` }} aria-label="ترتيب الأوائل حسب رصيد التقييمات">
+    <div ref={viewport} className="results-podium-viewport" style={{ height: Math.max(240, sceneHeight * scale + 32) }} tabIndex={0} role="region" aria-label="منصة ترتيب قابلة للتكبير والتمرير" aria-describedby="results-podium-help">
+      <div className="results-podium-scroll-space" style={{ width: Math.max(width, sceneWidth * scale + 24), height: sceneHeight * scale + 32 }}>
+        <ol className="results-podium-scene" style={{ transform: `scale(${scale})`, width: sceneWidth, height: sceneHeight, marginLeft: -sceneWidth / 2 }} aria-label="ترتيب الأوائل حسب رصيد التقييمات">
           {[...positions].sort((a, b) => a.rank - b.rank).map(position => {
             const employee = employees[position.rank - 1];
             const reward = employee ? rewards?.[employee.id] : undefined;

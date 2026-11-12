@@ -1,3 +1,6 @@
+import { RewardMonthClosure } from '../components/RewardMonthClosure';
+import { CoinCollection } from '../components/CoinCollection';
+import { OnlineEmployees } from '../components/OnlineEmployees';
 import { EmployeeLevelBadge } from '../components/EmployeeLevelBadge';
 import { MonthlyWinnerBadge } from '../components/MonthlyWinnerBadge';
 import { BranchBadgePreview } from '../components/BranchBadgePreview';
@@ -53,6 +56,7 @@ export const Leaderboard: React.FC = () => {
   const [loggingOut, setLoggingOut] = useState(false);
   const reduceMotion = false;
   const { users: directoryUsers, coverageBranches = {}, reviewSummaries, summaryReady, syncError, features, currentAccount, resultsMode, resultsDate, setResultsMode } = useData();
+  const showPreviousMonth = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Riyadh', day: 'numeric' }).format(new Date())) <= 15;
   const monthlyAvatars = useMonthlyAvatars(resultsMode && !seaMode, resultsDate);
   const accountName = (currentAccount?.role === 'manager' ? currentAccount.branch : currentAccount?.name)?.trim() || 'حسابي';
   const resultsMonth = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', calendar: 'gregory', month: 'long' })
@@ -202,7 +206,7 @@ export const Leaderboard: React.FC = () => {
   }, [modalOpen, seaMode]);
   const rankNames = ['الأولى', 'الثانية', 'الثالثة', 'الرابعة', 'الخامسة', 'السادسة', 'السابعة', 'الثامنة', 'التاسعة', 'العاشرة'];
 
-  const navigation = <header className="recognition-header relative z-30">
+  const navigation = <><header className="recognition-header relative z-30">
         <nav className="recognition-header-actions sea-navigation" aria-label="التنقل">
           {currentAccount?.role === 'viewer' ? <button type="button" disabled={loggingOut} onClick={async () => {
             setLoggingOut(true); setLogoutError('');
@@ -210,11 +214,13 @@ export const Leaderboard: React.FC = () => {
           }}><LogOut size={16} aria-hidden="true" />{loggingOut ? 'جارٍ الخروج…' : 'خروج'}</button> : <Link to="/dashboard"><UserRound size={16} aria-hidden="true" />{accountName}</Link>}
           <button type="button" onClick={() => { setShowAllEmployeesModal(true); handleModalOpen(); }}><Users size={16} aria-hidden="true" />الموظفات</button>
           <button type="button" onClick={() => { setShowAllBranchesModal(true); handleModalOpen(); }}><Building2 size={16} aria-hidden="true" />الفروع</button>
-          <button type="button" aria-label={`نتائج ${resultsMonth}`} aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><Podium size={16} aria-hidden="true" />{resultsMonth}</button>
+          {showPreviousMonth && <button type="button" aria-label={`نتائج ${resultsMonth}`} aria-pressed={resultsMode && !seaMode} onClick={() => { setSearchParams({}); setResultsMode(!resultsMode); }}><Podium size={16} aria-hidden="true" />{resultsMonth}</button>}
           <Link to={seaMode ? '/' : '/?view=sea'} aria-current={seaMode ? 'page' : undefined} aria-label={seaMode ? 'مهمة البحر، العودة إلى لوحة الترتيب' : 'مهمة البحر'} onClick={() => setResultsMode(false)}><Waves size={16} aria-hidden="true" />مهمة البحر</Link>
         </nav>
         {logoutError && <p role="alert" className="text-sm text-red-700">{logoutError}</p>}
-      </header>;
+      </header>
+      {!seaMode && !resultsMode && currentAccount?.role === 'employee' && <div className="relative z-30 w-full max-w-2xl"><CoinCollection key={currentAccount.id} /></div>}
+      </>;
 
   if (resultsMode && !seaMode && !monthlyAvatars.ready) return <div className="results-page" dir="rtl">{navigation}<PageLoading error={monthlyAvatars.error ? 'تعذر تحميل أفتارات شهر النتيجة. حدّثي الصفحة لإعادة المحاولة.' : undefined} /></div>;
   if (!summaryReady && !seaMode) return <div className="recognition-page" dir="rtl">{navigation}<PageLoading error={syncError} /></div>;
@@ -229,8 +235,9 @@ export const Leaderboard: React.FC = () => {
     >
 
       {navigation}
-      {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /></div>}
-      {seaMode ? <SeaMission /> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.slice(0, 7)} rewards={rewardSummary?.rewards || null} period={resultsDate}
+      {!seaMode && !resultsMode && <OnlineEmployees />}
+      {!seaMode && resultsMode && <div className="flex justify-center px-4 py-3"><ResultProblemReport /><RewardMonthClosure /></div>}
+      {seaMode ? <SeaMission /> : resultsMode ? <ResultsPodium employees={allEmployeesSorted.filter(employee => rewardSummary ? rewardSummary.rewards[employee.id]?.tier === 'gold' : employee.points >= 11)} rewards={rewardSummary?.rewards || null} period={resultsDate}
         renderAvatar={employee => <EmployeeAvatar employee={employee} avatarPath={monthlyAvatars.paths[employee.id] ?? null} />}
         renderEmployee={(employee, front) => <EmployeeCard showCoverageBranch employee={employee} onModalOpen={handleModalOpen} onModalClose={handleModalClose}><button type="button" aria-label={`بيانات ${employee.name}`}>{front}</button></EmployeeCard>}
       /> : <>

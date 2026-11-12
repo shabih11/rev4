@@ -31,4 +31,12 @@ do $$ begin
  if (select private.avatar_sale_price(c,v) from public.avatar_variants v join public.avatar_collections c on c.id=v.collection_id where v.id='80000000-0000-4000-8000-000000000003')<>12549 then raise exception 'Floor-adjusted step mismatch'; end if;
  if exists(select 1 from public.avatar_variants v join public.avatar_collections c on c.id=v.collection_id where lower(trim(c.name))='lv olympia' and private.avatar_sale_price(c,v)>0 and private.avatar_sale_price(c,v)<12499) then raise exception 'Premium below minimum'; end if;
 end $$;
+set local role authenticated;
+select public.adjust_avatar_price('80000000-0000-4000-8000-000000000002','80000000-0000-4000-8000-000000000003',0,12549);
+select public.adjust_avatar_price('80000000-0000-4000-8000-000000000002',null,0,12499);
+reset role;
+do $$ begin
+ if (select enabled or price<>0 from public.avatar_collections where id='80000000-0000-4000-8000-000000000002') then raise exception 'Direct zero did not hide premium collection'; end if;
+ if (select v.enabled or private.avatar_sale_price(c,v)<>0 from public.avatar_variants v join public.avatar_collections c on c.id=v.collection_id where v.id='80000000-0000-4000-8000-000000000003') then raise exception 'Direct zero did not clear premium model'; end if;
+end $$;
 rollback;

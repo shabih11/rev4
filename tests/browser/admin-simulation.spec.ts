@@ -38,7 +38,9 @@ test('admin simulates employee and manager, blocks writes and presence, and retu
   const bar = page.getByRole('complementary', { name: 'محاكاة الحسابات' });
   const floating = bar.getByRole('button', { name: 'إظهار تفاصيل المحاكاة' });
   await expect(floating).toBeVisible();
-  expect((await floating.boundingBox())!.y).toBeLessThan(50);
+  const position = (await floating.boundingBox())!;
+  expect(position.x).toBeLessThan(24);
+  expect(position.y + position.height).toBeGreaterThan(page.viewportSize()!.height - 24);
   await floating.click();
   const toggle = bar.getByRole('checkbox', { name: 'تفعيل المحاكاة' });
   await toggle.click();

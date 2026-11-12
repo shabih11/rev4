@@ -26,12 +26,12 @@ for (const width of [390, 1280]) {
     await page.getByRole('button', { name: 'الموظفات', exact: true }).click();
     await page.getByRole('button').filter({ hasText: 'حساب اختبار' }).last().click();
     const modal = page.getByRole('dialog', { name: 'بيانات حساب اختبار' });
-    await expect(modal.getByRole('heading', { name: /حساب اختبار.*المستوى 3/ })).toBeVisible();
+    await expect(modal.getByRole('img', { name: 'المستوى 3', exact: true })).toBeVisible();
     await expect(modal.getByRole('progressbar')).toHaveCount(0);
     const badges = modal.getByRole('region', { name: 'شارات الموظفة' });
     const harvest = badges.getByRole('button', { name: 'حصاد الشهر' });
     await expect(badges).not.toContainText('تفاصيل المهمة');
-    await expect(harvest.locator('img')).toHaveAttribute('src', /ten-2\.png$/);
+    await expect(harvest.locator('img')).toHaveAttribute('src', /\/grades\//);
     await expect.poll(() => harvest.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
     await harvest.click();
     await expect(harvest).toHaveAttribute('aria-expanded', 'true');
@@ -40,12 +40,12 @@ for (const width of [390, 1280]) {
     await expect(harvest).toHaveAttribute('aria-expanded', 'false');
     await page.clock.setFixedTime(new Date('2026-12-01T12:00:00+03:00'));
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-    await expect(harvest.locator('img')).toHaveAttribute('src', /ten-2\.png$/);
+    await expect(harvest.locator('img')).toHaveAttribute('src', /\/grades\//);
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00+03:00'));
     await page.evaluate(() => window.dispatchEvent(new Event('focus')));
     const collection = modal.getByRole('region', { name: 'مجموعة أفاتارات الموظفة' });
     await expect(collection).not.toContainText('أفاتاراتي');
-    await expect(collection).toContainText('125 عملة');
+    await expect(collection).toContainText('130 عملة');
     await expect(collection.getByRole('img', { name: 'حساب اختبار' })).toBeVisible();
     await collection.getByRole('button', { name: 'الأفاتار التالي' }).click();
     await expect(collection.getByRole('img', { name: 'أفاتار مقتنى' })).toBeVisible();
@@ -68,11 +68,11 @@ test('bronze may collect coins and use owned avatars while purchases are locked'
   } }));
   await login(page);
   await page.getByRole('button', { name: 'افتار', exact: true }).click();
-  const heading = page.getByRole('heading', { name: 'متجر الأفاتار', exact: true });
-  await expect(heading.locator('..')).toContainText('1,000');
+  const heading = page.locator('.avatar-shop header');
+  await expect(heading).toContainText('1,000');
   await expect(page.getByText('رصيد المتجر', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: /اختبار شراء/ }).click();
-  await expect(page.getByRole('button', { name: 'للفضية فأعلى', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: /اقتناء بـ/ })).toBeEnabled();
   expect(service.unexpected).toEqual([]);
 });
 
@@ -99,10 +99,7 @@ test('sea mission appears before opening and the gold upgrade uses the fixed bur
   await expect(sea).toContainText('بانتظار اكتمال الهدف');
   await page.getByRole('button', { name: 'افتار', exact: true }).click();
   await page.getByRole('button', { name: /موديل اختبار/ }).click();
-  await page.getByRole('button', { name: /شراء برقع أم خماس.*9,500/ }).click();
-  const confirmation = page.getByRole('dialog', { name: 'شراء برقع أم خماس' });
-  await expect(confirmation).toBeVisible();
-  await confirmation.getByRole('button', { name: 'تأكيد الاقتناء' }).click();
-  await expect(page.getByText('أم خماس · بانتظار المصمم')).toBeVisible();
+  await expect(page.getByRole('button', { name: /شراء برقع أم خماس/ })).toHaveCount(0);
+  expect(requested).toBe(false);
   expect(service.unexpected).toEqual([]);
 });

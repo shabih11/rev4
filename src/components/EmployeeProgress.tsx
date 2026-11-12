@@ -64,7 +64,7 @@ export function EmployeeAvatarStack({ employee }: { employee: UserAccount }) {
   const [message, setMessage] = useState('');
   const store = features?.settings.avatars ? features.store : null;
   const own = currentAccount?.id === employee.id;
-  const owned = store?.collections.flatMap(collection => collection.variants.filter(variant => variant.ownerId === employee.id)) ?? [];
+  const owned = store?.collections.flatMap(collection => collection.variants.filter(variant => variant.ownerId === employee.id && store?.monthActive !== false)) ?? [];
   const activePath = store?.equipped[employee.id] ?? null;
   const active = owned.find(avatar => avatar.id === equippedId) ?? owned.find(avatar => avatar.imagePath === activePath);
   const primary = active ?? { id: '', name: employee.name, imagePath: activePath };

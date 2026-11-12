@@ -19,12 +19,7 @@ for (const scenario of [
     await expect(page).toHaveURL(/#\/dashboard$/);
     await page.goto('./#/?view=sea');
     const boats = page.locator(`.sea-vessel[data-scene="${scenario.scene}"]`);
-    if (scenario.scene === 'capsized') {
-      const open = page.getByRole('button', { name: 'مشهد القوارب المقلوبة' });
-      await expect(open).toBeVisible();
-      await expect(boats).toHaveCount(0);
-      await open.click();
-    }
+    await expect(page.getByRole('button', { name: 'مشهد القوارب المقلوبة' })).toHaveCount(0);
     await expect(boats).toHaveCount(6);
     await expect(page.locator('.sea-vessel-wake')).toHaveCount(0);
     await expect(boats.locator('.sea-hull-ripples')).toHaveCount(12);
@@ -87,3 +82,23 @@ for (const mobile of [false, true]) {
     expect(service.unexpected).toEqual([]);
   });
 }
+
+for (const width of [390,1280]) test(`capsized and sailing boats share the same scene at ${width}px`, async ({page}) => {
+  await page.setViewportSize({width,height:900});
+  await page.clock.setFixedTime(new Date('2026-11-06T14:00:00+03:00'));
+  const service=await mockService(page);
+  await page.route('**/rpc/get_read_model',route=>route.fulfill({json:{
+    generatedAt:'2026-11-06T14:00:00+03:00',directory:[service.account],notes:[],hours:{},disabledEmployeeIds:[],
+    reviews:['جاليري','ذافيو','سلام','القصر','المملكة'].flatMap(branch=>[0,1].map(i=>({id:`${branch}-${i}`,branch,rating:'5',date:'2026-11-05',time:'15:00:00',linkedEmployeeIds:[]}))),
+  }}));
+  await page.route('**/functions/v1/riyadh-weather',route=>route.fulfill({status:503,json:{}}));
+  await login(page);
+  await page.goto('./#/?view=sea');
+  const scene=page.getByRole('region',{name:'رحلة الفروع إلى الجزيرة',exact:true});
+  await expect(scene.locator('.sea-vessel')).toHaveCount(6);
+  await expect(scene.locator('.sea-vessel[data-scene="capsized"]')).toHaveCount(1);
+  await expect(scene.locator('.sea-vessel:not([data-scene="capsized"])')).toHaveCount(5);
+  await expect(page.getByRole('button',{name:'مشهد القوارب المقلوبة'})).toHaveCount(0);
+  await scene.screenshot({path:`/tmp/sea-unified-${width}.png`});
+  expect(service.unexpected).toEqual([]);
+});

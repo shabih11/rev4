@@ -1,5 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { UserAccount } from '../lib/mockData';
+import type { AvatarPrivilegeState } from '../lib/avatarPrivileges';
 import type { FeatureState } from '../lib/employeeFeatures';
 import type { RecordDemand } from '../lib/cloudReadPlan';
 
@@ -41,6 +42,7 @@ export interface TimelineEvent {
 export type BranchBadgeReward = { branch: string; badge: 'coffee' | 'rocket' | 'milestone' | 'milestone500'; period: string };
 
 export interface DataContextType {
+  avatarPrivileges?: AvatarPrivilegeState;
   resultsMode: boolean;
   resultsDate: Date;
   setResultsMode: (enabled: boolean) => void;

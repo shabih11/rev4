@@ -20,7 +20,7 @@ async function openStore(page: Page, initial = 1949, fail = false, collectionNam
     expect(body.expected_price).toBe(body.requested_variant ? modelPrice : base);
     const minimum = collectionName === 'LV Olympia' ? 12499 : 0;
     const maximum = minimum ? 1000000 : 4000;
-    const next = body.step < 0 && body.expected_price <= minimum ? 0 : Math.max(minimum, Math.min(maximum, body.expected_price + body.step));
+    const next = body.step === 0 || (body.step < 0 && body.expected_price <= minimum) ? 0 : Math.max(minimum, Math.min(maximum, body.expected_price + body.step));
     if (body.requested_variant) modelPrice = next;
     else { modelPrice = next === 0 ? 0 : Math.max(0, Math.min(4000, modelPrice + next - base)); base = next; }
     version++;
@@ -36,18 +36,19 @@ async function openStore(page: Page, initial = 1949, fail = false, collectionNam
 test('admin prices remain separate and models use the full white store area', async ({ page }) => {
   const { model, shoe, changes } = await openStore(page);
   await shoe.getByRole('button', { name: /زيادة/ }).click();
-  await expect(shoe).toContainText('1,999');
-  await expect(model).toContainText('1,999');
+  await expect(shoe).toContainText('2,000');
+  await expect(model).toContainText('2,000');
   await model.getByRole('button', { name: /زيادة/ }).click();
-  await expect(model).toContainText('2,049');
+  await expect(model).toContainText('2,050');
   await shoe.getByRole('button', { name: /خفض/ }).click();
-  await expect(model).toContainText('1,999');
+  await expect(model).toContainText('2,000');
   const art = page.locator('#admin-avatar-group-shoe .shop-art-stage');
   await expect(art).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(art.locator('img')).toHaveCSS('object-fit', 'contain');
   await expect(art.locator('img')).toHaveCSS('scale', '0.85 1');
   await expect(page.getByText('نسخة واحدة متاحة', { exact: true })).toHaveCount(0);
-  await expect(page.locator('#admin-avatar-group-shoe h4')).toHaveCount(0);
+  await expect(page.locator('#admin-avatar-group-shoe h4')).toHaveText('نموذج اختبار');
+  await expect(page.getByText(/أشكال متاحة|استكشاف الأشكال|إخفاء الأشكال/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: /إخفاء نموذج/ })).toHaveCount(0);
   await expect(page.locator('.avatar-shop').first()).toHaveCSS('border-top-width', '0px');
   await expect(page.locator('.workspace-panel')).toHaveCount(0);
@@ -55,7 +56,7 @@ test('admin prices remain separate and models use the full white store area', as
   await expect(main).toHaveCSS('padding-right', '0px');
   await expect(main).toHaveCSS('padding-left', '0px');
   expect(changes.map(change => change.step)).toEqual([50, 50, -50]);
-  await page.locator('#admin-avatar-group-shoe').screenshot({ path: '/tmp/rev4-price-model.png' });
+  await page.locator('#admin-avatar-group-shoe').screenshot({ path: test.info().outputPath('price-model.png') });
 });
 
 test('holding changes 500 per second, clamps at zero and 4000, and stops on release', async ({ page }) => {
@@ -73,7 +74,7 @@ test('holding changes 500 per second, clamps at zero and 4000, and stops on rele
   await expect(page.locator('#admin-avatar-group-shoe')).toContainText('غير معروض للبيع');
   expect(changes.map(change => change.step)).toEqual([-500]);
   await hold(/زيادة/);
-  await expect(model).toContainText('500');
+  await expect(model.locator('bdi').first()).toHaveText('500');
   await page.mouse.up();
   const count = changes.length;
   await page.waitForTimeout(1200);
@@ -89,7 +90,7 @@ test('a stale price stops holding and displays a save error', async ({ page }) =
   const { model, changes } = await openStore(page, 449, true);
   await model.getByRole('button', { name: /زيادة/ }).click();
   await expect(page.getByRole('alert')).toContainText('تعذر حفظ السعر');
-  await expect(model).toContainText('449');
+  await expect(model).toContainText('450');
   expect(changes).toHaveLength(1);
 });
 
@@ -99,8 +100,28 @@ test('a stale price stops holding and displays a save error', async ({ page }) =
   await model.getByRole('button', { name: /خفض/ }).click();
   await expect(model.getByRole('button', { name: /خفض/ })).toBeDisabled();
   await model.getByRole('button', { name: /زيادة/ }).click();
-  await expect(model).toContainText('12,499');
+  await expect(model).toContainText('12,500');
   await model.getByRole('button', { name: /زيادة/ }).click();
-  await expect(model).toContainText('12,549');
+  await expect(model).toContainText('12,550');
   expect(changes.map(change => change.expected_price)).toEqual([12499, 0, 12499]);
+});
+
+test.describe('mobile price shortcuts', () => {
+  test.use({ hasTouch: true });
+for (const premium of [false, true]) test(`direct price shortcuts update model and collection on mobile (premium=${premium})`, async ({ page }) => {
+  const initial = premium ? 20000 : 1949;
+  const { model, shoe, changes } = await openStore(page, initial, false, premium ? 'LV Olympia' : 'Test Shoes');
+  await model.getByRole('button', { name: /إضافة 500/ }).tap();
+  await expect(model).toContainText((Math.round((initial + 500) / 10) * 10).toLocaleString('en-US'));
+  await model.getByRole('button', { name: /تصفير/ }).tap();
+  await expect(model.getByRole('button', { name: /تصفير/ })).toBeDisabled();
+  await expect(page.locator('#admin-avatar-group-shoe')).toContainText('غير معروض للبيع');
+  await shoe.getByRole('button', { name: /تصفير/ }).tap();
+  await expect(shoe.getByRole('button', { name: /تصفير/ })).toBeDisabled();
+  await shoe.getByRole('button', { name: /إضافة 500/ }).tap();
+  await expect(shoe).toContainText(premium ? '12,500' : '500');
+  expect(changes.map(({ step }) => step)).toEqual([500, 0, 0, 500]);
+  await page.screenshot({ path: test.info().outputPath('price-shortcuts-mobile.png'), fullPage: true });
+});
+
 });

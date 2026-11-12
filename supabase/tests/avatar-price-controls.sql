@@ -55,4 +55,17 @@ do $$ begin
  if (select private.avatar_sale_price(c,v) from public.avatar_variants v join public.avatar_collections c on c.id=v.collection_id where v.id='70000000-0000-4000-8000-000000000004')<>500 then raise exception 'Base-price restore mismatch'; end if;
  if has_function_privilege('anon','public.adjust_avatar_price(uuid,uuid,integer,numeric)','EXECUTE') then raise exception 'Anonymous can adjust'; end if;
 end $$;
+-- Direct zero must hide a high-price offer in one call.
+select public.adjust_avatar_price('70000000-0000-4000-8000-000000000003','70000000-0000-4000-8000-000000000004',500,500);
+select public.adjust_avatar_price('70000000-0000-4000-8000-000000000003','70000000-0000-4000-8000-000000000004',0,1000);
+reset role;
+do $$ begin
+ if (select v.enabled or private.avatar_sale_price(c,v)<>0 from public.avatar_variants v join public.avatar_collections c on c.id=v.collection_id where v.id='70000000-0000-4000-8000-000000000004') then raise exception 'Direct zero did not hide model'; end if;
+end $$;
+set local role authenticated;
+select public.adjust_avatar_price('70000000-0000-4000-8000-000000000003',null,0,500);
+reset role;
+do $$ begin
+ if (select enabled or price<>0 from public.avatar_collections where id='70000000-0000-4000-8000-000000000003') then raise exception 'Direct zero did not hide collection'; end if;
+end $$;
 rollback;

@@ -1,3 +1,4 @@
+import { AvatarEffectBadge } from './AvatarEffectBadge';
 import { TrendingUp } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { dailyProgress, employeeTier } from '../lib/employeeFeatures';
@@ -7,8 +8,8 @@ import { AvatarImage } from './AvatarImage';
 export function TierBadge({ employee }: { employee: UserAccount }) {
   const { features } = useData();
   const tier = features ? employeeTier(employee.points, features.settings) : 'bronze';
-  if (tier === 'bronze' || employee.role !== 'employee') return null;
-  return <TierAward gold={tier === 'gold'} />;
+  if (employee.role !== 'employee') return null;
+  return <>{tier !== 'bronze' && <TierAward gold={tier === 'gold'} />}<AvatarEffectBadge employeeId={employee.id} /></>;
 }
 export function BalanceGrowth({ employee }: { employee: UserAccount }) {
   const { features, users } = useData();

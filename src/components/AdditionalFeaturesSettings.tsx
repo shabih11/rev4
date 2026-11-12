@@ -1,3 +1,4 @@
+import { OwnerPresenceSettings } from './OwnerPresenceSettings';
 import { BranchBadgeRewardsAdmin } from './BranchBadgeMissions';
 import { useState } from 'react';
 import { useData } from '../context/DataContext';
@@ -12,12 +13,12 @@ const switches = [
   ['tiers', 'شارات الفئات', 'خبيرة للفئة الفضية ومتميزة للفئة الذهبية.'],
   ['avatars', 'متجر الأفاتار', 'أفاتارات كاملة بأشكال حصرية، تُقتنى من رصيد مستقل دون خفض الترتيب.'],
   ['missions', 'المهام والمستويات', 'رحلة إنجاز مرتبطة بالتقييمات المستوردة، مع نجوم ومهام ومستويات للموظفات. تعطيلها يخفيها دون حذف التقدم المحسوب من التقييمات.'],
-  ['rounding', 'نظام الجبر', 'جبر نقاط الفئة إلى العدد الصحيح الأعلى، ودمج زيادة المكافأة مع الزيادة الجماعية. المكافأة من مضاعفات العشرة، وسقف الزيادة 20 ريال إلا عند الحاجة لضمان الحد الأدنى 100 ريال للمستحقة.'],
+  ['rounding', 'نظام الجبر', 'جبر نقص نقاط الفئة بحد أقصى 0.20 نقطة، ودمج زيادة المكافأة مع الزيادة الجماعية. المكافأة من مضاعفات العشرة، وسقف الزيادة 20 ريال إلا عند الحاجة لضمان الحد الأدنى 100 ريال للمستحقة.'],
 ] as const;
 export function AdditionalFeaturesSettings() {
   const { features } = useData();
   if (!features) return <p role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-amber-900">إعدادات الميزات غير متاحة. تحققي من الاتصال وتطبيق تحديث قاعدة البيانات.</p>;
-  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><BranchBadgeRewardsAdmin/></div>;
+  return <div className="space-y-8"><SettingsForm key={JSON.stringify(features.settings)} initial={features.settings}/><BranchBadgeRewardsAdmin/><OwnerPresenceSettings/></div>;
 }
 function SettingsForm({ initial }: { initial: FeatureSettings }) {
   const [settings, setSettings] = useState({ ...initial, silverAt: 8, goldAt: 11 });

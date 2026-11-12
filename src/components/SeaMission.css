@@ -79,6 +79,36 @@
   pointer-events:none;
 }
 .sea-island img { display:block; width:100%; height:auto; max-height:45dvh; }
+/* The first five days keep the shoreline; the final five approach vertically too. */
+.sea-map[data-approach-day] {
+  --approach-base-shoreline:34.25%;
+  --coast-before-landing:calc(var(--approach-base-shoreline) + var(--approach-advance,0)*1%);
+  --approach-shoreline:calc(var(--coast-before-landing)*(1 - var(--coast-landing-progress,0)) + var(--coast-arrival-y,52%)*var(--coast-landing-progress,0));
+}
+/* The smaller cutout must not reveal the old island baked into the backdrop. */
+.sea-approach-sky { position:absolute; inset:0 0 auto; height:var(--approach-shoreline); overflow:hidden; z-index:0; pointer-events:none; }
+.sea-approach-sky img { display:block; width:100%; height:400%; object-fit:fill; }
+.sea-map[data-light="soft"] .sea-approach-sky { filter:brightness(.88) saturate(.87); }
+.sea-map[data-light="dusk"] .sea-approach-sky { filter:brightness(.62) saturate(.65); }
+.sea-map[data-light="night"][data-weather-art="true"] .sea-approach-sky { filter:brightness(.3) saturate(.65); }
+.sea-map .sea-island-approach {
+  top:var(--approach-shoreline);
+  width:max(calc(110%*var(--approach-scale)),calc(108px*var(--island-aspect)*var(--approach-scale)));
+  height:auto; aspect-ratio:var(--island-frame-aspect); overflow:hidden;
+  transition:none;
+}
+/* Late views already contain the visible coastal window: no panorama zoom. */
+.sea-map .sea-island-coast { width:100%; }
+.sea-island-approach img {
+  position:absolute; left:var(--source-left); top:auto; bottom:0;
+  width:var(--source-width); height:auto; max-height:none;
+  transform:translateY(var(--source-bottom-shift));
+}
+.sea-map[data-approach-day][data-weather-art="true"] .sea-island-approach { filter:brightness(calc(var(--scene-brightness)*.78)) saturate(.75); }
+@media (min-width:761px) {
+  .sea-map[data-approach-day]:not([data-weather-art="true"]):not([data-light="night"]) { --approach-base-shoreline:33.3%; }
+  .sea-map[data-approach-day]:not([data-weather-art="true"]):not([data-light="night"]) .sea-backdrop img { position:absolute; bottom:0; height:106.25%; }
+}
 .sea-fleet { list-style:none; margin:0; padding:0; }
 .sea-fleet > li {
   --vessel-x:clamp(calc(15% + var(--berth-depth)*5%),var(--berth-x),calc(85% - var(--berth-depth)*5%));
@@ -241,12 +271,11 @@
 }
 .sea-completion[aria-pressed="true"] span { background:#14673d; }
 .sea-completion:disabled { cursor:default; }
-.sea-completion:focus-visible, .sea-scene-switch:focus-visible { outline:2px solid white; outline-offset:2px; }
-.sea-scene-switch, .sea-approval-message {
+.sea-completion:focus-visible { outline:2px solid white; outline-offset:2px; }
+.sea-approval-message {
   position:absolute; inset-block-start:.75rem; inset-inline-end:.75rem; z-index:30;
   padding:.55rem .85rem; border:1px solid #ffffffa6; border-radius:1rem; background:#123b55; color:white;
 }
-.sea-scene-switch { min-height:44px; cursor:pointer; }
 .sea-approval-message { inset-inline:auto .75rem; inset-block: auto .75rem; margin:0; font-size:.875rem; }
 
 @keyframes sea-hull-ripple {
@@ -254,4 +283,27 @@
   24% { opacity:var(--ripple-strength); }
   65% { opacity:calc(var(--ripple-strength) * .45); }
   100% { transform:translate(4%,28%) scale(var(--ripple-spread-x),var(--ripple-spread-y)); opacity:0; }
+}
+
+/* Wash overlaps both the sand and ocean, rather than ending at a cut edge. */
+.sea-island-coast {
+  -webkit-mask-image:linear-gradient(#000 calc(100% - 4px),transparent);
+  mask-image:linear-gradient(#000 calc(100% - 4px),transparent);
+}
+.sea-shore-break {
+  position:absolute; top:var(--approach-shoreline); left:-2%; width:104%;
+  height:calc(clamp(24px,6vw,64px)*var(--shore-scale)); z-index:2;
+  transform:translateY(-40%); overflow:hidden; pointer-events:none; opacity:.85;
+  -webkit-mask-image:linear-gradient(transparent,#000 28%,#000 65%,transparent);
+  mask-image:linear-gradient(transparent,#000 28%,#000 65%,transparent);
+  filter:brightness(var(--scene-brightness)) saturate(var(--scene-saturation));
+}
+.sea-shore-break img { position:absolute; top:var(--shore-source-top); left:0; width:100%; height:var(--shore-source-height); }
+.sea-map[data-weather-art="true"] .sea-shore-break { filter:brightness(calc(var(--scene-brightness)*.78)) saturate(.55); }
+@media (prefers-reduced-motion:no-preference) {
+  .sea-shore-break img { animation:sea-shore-wash 5s ease-in-out infinite alternate; }
+}
+@keyframes sea-shore-wash {
+  from { transform:translateY(3px) scaleX(.995); opacity:.7; }
+  to { transform:translateY(-2px) scaleX(1.005); opacity:1; }
 }

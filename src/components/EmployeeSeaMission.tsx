@@ -29,7 +29,7 @@ export function EmployeeSeaMission({ employeeId, branch }: { employeeId: string;
   </section>;
   const completed = summaryReady && ready && !error && now >= mission.start && mission.count >= mission.target;
   return <section aria-label="مهمة البحر اليوم" className={`mx-6 mb-6 rounded-3xl border p-5 ${completed ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
-    <div className="flex items-center gap-2"><h2 className="text-xl font-black text-cyan-950">مهمة البحر (يوميًا)</h2><MissionRewards stars={10} coins={10} /></div>
+    <div className="flex items-center gap-2"><h2 className="text-xl font-black text-cyan-950">مهمة البحر (يوميًا)</h2><MissionRewards stars={20} coins={25} /></div>
     {completed && <p className="mt-2 flex items-center gap-1 text-sm font-bold text-emerald-800"><CheckCircle2 size={18} aria-hidden="true" />تم اكتساب المكافأة لجميع موظفات الفرع</p>}
     <p className="mt-2 text-sm text-slate-700">هدف الفرع {mission.target} تقييمات إيجابية.</p>
     <p className="mt-2 text-sm font-bold text-cyan-900">{summaryReady ? `التقدم ${mission.count} / ${mission.target}` : 'جارٍ تحميل التقدم…'} · {error ? 'تعذر تحميل الاعتماد' : !ready ? 'جارٍ تحميل حالة الاعتماد' : completed ? 'مكتملة' : 'بانتظار اكتمال الهدف'}</p>

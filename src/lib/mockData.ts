@@ -3,6 +3,7 @@ import type { Employee } from '../types';
 export type Role = 'manager' | 'employee' | 'admin' | 'viewer';
 
 export interface UserAccount extends Employee {
+  frozenReward?: import('./avatarPrivileges').FrozenReward;
   email: string;
   mustChangePassword?: boolean;
   mustSetUsername?: boolean;

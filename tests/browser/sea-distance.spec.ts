@@ -35,11 +35,11 @@ for (const mobile of [true, false]) {
       await page.goto('./#/?view=sea');
       await page.reload();
       await expect(page.locator('.sea-map')).toHaveAttribute('data-light', 'night');
-      const expected = `${day < 16 ? 'ocean-distant-night' : 'ocean-night'}-${mobile ? 'mobile' : 'desktop'}`;
+      const expected = `${day < 26 ? 'ocean-distant-night' : 'ocean-night'}-${mobile ? 'mobile' : 'desktop'}`;
       await expect.poll(() => page.locator('.sea-backdrop img').evaluate(el => (el as HTMLImageElement).currentSrc)).toContain(expected);
       await expect.poll(() => page.locator('.sea-backdrop img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
       await expect(page.locator('.sea-island')).toHaveCount(day < 16 ? 0 : 1);
-      await page.screenshot({ path: `/tmp/rev4-night-${mobile ? 'mobile' : 'desktop'}-${day}.png` });
+      await page.screenshot({ path: test.info().outputPath(`night-${mobile ? 'mobile' : 'desktop'}-${day}.png`) });
     }
     expect(service.unexpected).toEqual([]);
   });
@@ -105,14 +105,14 @@ for (const mobile of [true, false]) {
       await page.reload();
       await expect(page.locator('.sea-map')).toHaveAttribute('data-distance', day < 16 ? 'distant' : 'near');
       await expect(page.locator('.sea-island')).toHaveCount(day < 16 ? 0 : 1);
-      await expect(page.locator('.sea-distant-water')).toHaveCount(day < 16 ? 1 : 0);
+      await expect(page.locator('.sea-distant-water')).toHaveCount(day < 26 ? 1 : 0);
       await expect(page.locator('.sea-vessel')).toHaveCount(6);
       await expect.poll(() => page.locator('.sea-backdrop img').evaluate(el => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
       if (day < 16) {
         await expect.poll(() => page.locator('.sea-backdrop img').evaluate(el => (el as HTMLImageElement).currentSrc)).toContain(`ocean-distant-${mobile ? 'mobile' : 'desktop'}`);
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: `/tmp/rev4-distance-${mobile ? 'mobile' : 'desktop'}-${day}.png` });
+      await page.screenshot({ path: test.info().outputPath(`distance-${mobile ? 'mobile' : 'desktop'}-${day}.png`) });
     }
     expect(service.unexpected).toEqual([]);
   });

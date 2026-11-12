@@ -15,10 +15,10 @@ do $$ declare stars integer; expected integer; begin
  for stars in 1..5 loop
   update public.reviews set data=jsonb_set(data,'{rating}',to_jsonb(stars::text)) where id='shop-test-review-1';
   expected:=case when stars>=4 then 5 else 0 end;
-  if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>expected then raise exception 'Star currency mismatch'; end if;
+  if (private.graded_review_progression('shop-test-a',(now() at time zone 'Asia/Riyadh')::date)->>'coins')::numeric<>expected then raise exception 'Star currency mismatch'; end if;
  end loop;
  update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a","shop-test-b"]') where id='shop-test-review-1';
- if (private.avatar_wallet('shop-test-a')->>'earned')::numeric<>5 or (private.avatar_wallet('shop-test-b')->>'earned')::numeric<>5 then raise exception 'Shared stars incorrectly divided'; end if;
+ if (private.graded_review_progression('shop-test-a',(now() at time zone 'Asia/Riyadh')::date)->>'coins')::numeric<>5 or (private.graded_review_progression('shop-test-b',(now() at time zone 'Asia/Riyadh')::date)->>'coins')::numeric<>5 then raise exception 'Shared stars incorrectly divided'; end if;
  update public.reviews set data=jsonb_set(data,'{linkedEmployeeIds}','["shop-test-a"]') where id='shop-test-review-1';
 end $$;
 update public.profiles set data=data||'{"manualStats":{"positive":5}}'::jsonb where id in ('shop-test-a','shop-test-b','shop-test-duplicate');
@@ -48,6 +48,12 @@ do $$ begin
  begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,349); raise exception 'Manager purchases employee items'; exception when insufficient_privilege then null; end;
 end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
+do $$ declare item jsonb; begin
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}')
+ where value->>'id' not like 'tier:%' and value->>'id' not like 'rank:%' loop
+  perform public.collect_coin_achievement(item->>'id');
+ end loop;
+end $$;
 do $$ begin
  if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>5 then raise exception 'Cumulative currency incorrect'; end if;
  begin perform public.purchase_avatar(current_setting('shop.v1')::uuid,0); raise exception 'Client changed price'; exception when sqlstate 'PT409' then null; end;
@@ -66,6 +72,13 @@ cross join lateral generate_series(1,quantity) n;
 -- A funded bronze employee can purchase; ownership and balance remain enforced.
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000003","role":"authenticated"}',true);
 set local role authenticated;
+-- Collect synthetic funding through the same employee endpoint as the UI.
+do $$ declare item jsonb; begin
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}')
+ where value->>'id' not like 'tier:%' and value->>'id' not like 'rank:%' loop
+  perform public.collect_coin_achievement(item->>'id');
+ end loop;
+end $$;
 select set_config('shop.funds',public.get_avatar_store()#>>'{wallet,available}',true);
 select public.purchase_avatar(current_setting('shop.v1')::uuid,349);
 select public.purchase_avatar(current_setting('shop.v2')::uuid,399);
@@ -84,6 +97,13 @@ end $$;
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.save_avatar_collection(current_setting('shop.collection')::uuid,'Shop test',349,true,'{"name":"Shop test","price":349,"enabled":true}');
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000005","role":"authenticated"}',true);
+-- Collect synthetic funding through the same employee endpoint as the UI.
+do $$ declare item jsonb; begin
+ for item in select value from jsonb_array_elements(public.get_avatar_store()#>'{wallet,pendingAchievements}')
+ where value->>'id' not like 'tier:%' and value->>'id' not like 'rank:%' loop
+  perform public.collect_coin_achievement(item->>'id');
+ end loop;
+end $$;
 select public.purchase_avatar(current_setting('shop.v4')::uuid,349);
 select set_config('request.jwt.claims','{"sub":"10000000-0000-4000-8000-000000000001","role":"authenticated"}',true);
 select public.merge_employees('shop-test-a','shop-test-duplicate','Shop merged','shop-test-branch');

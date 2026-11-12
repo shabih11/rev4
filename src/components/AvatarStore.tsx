@@ -1,3 +1,4 @@
+import { AvatarPrivilegesPanel } from './AvatarPrivilegesPanel';
 import { avatarCatalog } from '../lib/avatarCatalog';
 import { RewardAmount } from './RewardAmount';
 import { useEffect, useRef, useState } from 'react';
@@ -8,17 +9,27 @@ import type { UserAccount } from '../lib/mockData';
 import type { AvatarCollection, AvatarVariant } from '../lib/employeeFeatures';
 import { AvatarImage } from './AvatarImage';
 import { AvatarPreview } from './AvatarPreview';
-import { EmployeeAvatar } from './EmployeeFeatures';
 const startingPrice = (collection: AvatarCollection) => {
   const available = collection.variants.filter(variant => priceFor(collection, variant) > 0);
   return available.length ? Math.min(...available.map(variant => priceFor(collection, variant))) : null;
 };
 const priceFor = (collection: AvatarCollection, variant: AvatarVariant) => variant.price ?? collection.price;
 export function AvatarStore({ employee }: { employee: UserAccount }) {
-  const { features, currentAccount } = useData();
+  const { features, currentAccount, avatarPrivileges } = useData();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [pending, setPending] = useState<{ collection: AvatarCollection; variant: AvatarVariant } | null>(null);
-  const [preview, setPreview] = useState<AvatarVariant | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [jumpTarget, setJumpTarget] = useState<string | null>(null);
+  useEffect(() => {
+    if (!jumpTarget) return;
+    const frame = requestAnimationFrame(() => {
+      const node = document.getElementById(`avatar-item-${jumpTarget}`);
+      node?.scrollIntoView({ block: 'center' });
+      node?.focus({ preventScroll: true });
+      setJumpTarget(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [jumpTarget, expanded]);
   const [receipt, setReceipt] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
@@ -27,6 +38,10 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   if (!store || !store.wallet) return <section className="bg-white p-4 sm:p-6"><h3 className="font-bold">متجر الأفاتار</h3><p role="status" className="mt-2 text-sm text-slate-600">المتجر غير متاح حاليًا. تحققي من الاتصال.</p></section>;
   const wallet = store.wallet;
   const collections = avatarCatalog(store.collections);
+  const catalog = collections.flatMap(collection => collection.variants.map(variant => ({ collection, variant })));
+  const previewIndex = catalog.findIndex(item => item.variant.id === previewId);
+  const preview = catalog[previewIndex];
+  const ownsAvatar = Boolean(store.selectedVariant || store.goldEntitled || avatarPrivileges?.purchaseMonths.length || catalog.some(item => item.variant.ownerId === employee.id));
   async function equip(variant: string | null) {
     if (busy) return; setBusy(true); setMessage('');
     try {
@@ -38,14 +53,12 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
   }
   return <section className="avatar-shop w-full bg-white px-4 py-5 sm:p-6 space-y-6">
     <header className="flex items-center gap-2 sm:gap-4">
-      <EmployeeAvatar employee={employee} className="h-24 w-14 shrink-0 sm:h-28 sm:w-20" />
-      <h3 className="min-w-0 text-lg font-black text-slate-900 sm:text-2xl">متجر الأفاتار</h3>
       <p className="ms-auto shrink-0 rounded-xl bg-teal-50 px-2 py-1 text-lg font-black text-teal-900 sm:px-3 sm:text-2xl">
         <span className="sr-only">الرصيد المتاح </span><RewardAmount kind="coins" value={wallet.available} />
       </p>
     </header>
+    {ownsAvatar && <AvatarPrivilegesPanel employee={employee} />}
     {store.goldEntitled && <p className="text-sm font-bold text-amber-900">امتياز أم خماس مملوك لحسابك؛ يُرسل طلب تحويل الأفتارات الجديدة تلقائيًا لمدير النظام.</p>}
-    <button type="button" disabled={busy || !store.selectedVariant} data-usage-action="equip" onClick={() => void equip(null)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-800 disabled:opacity-50">استخدام الأفاتار الافتراضي</button>
     {message && <p role="status" className="rounded-xl bg-indigo-50 p-3 text-sm text-indigo-900">{message}</p>}
     {store.collections.length === 0 && <p className="p-6 text-center text-slate-600">لا توجد أفاتارات متاحة حاليًا.</p>}
     <div className="space-y-4">{collections.map(collection => <article key={collection.id} className="overflow-hidden">
@@ -67,18 +80,23 @@ export function AvatarStore({ employee }: { employee: UserAccount }) {
           const owned = variant.ownerId === employee.id;
           const selected = store.selectedVariant === variant.id;
           const unavailable = Boolean(variant.ownerId) || !variant.enabled || !collection.enabled;
-          return <div key={variant.id} className={`min-w-0 bg-white space-y-3 ${selected ? 'ring-2 ring-inset ring-teal-500' : ''}`}>
-            <button type="button" aria-label={`عرض ${variant.name} مكبرًا`} onClick={() => setPreview(variant)} className="shop-art-stage block w-full cursor-zoom-in focus-visible:ring-2 focus-visible:ring-teal-600"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/></button>
+          return <div key={variant.id} id={`avatar-item-${variant.id}`} tabIndex={-1} className={`min-w-0 bg-white space-y-3 ${selected ? 'ring-2 ring-inset ring-teal-500' : ''}`}>
+            <button type="button" aria-label={`عرض ${variant.name} مكبرًا`} onClick={() => setPreviewId(variant.id)} className="shop-art-stage block w-full cursor-zoom-in focus-visible:ring-2 focus-visible:ring-teal-600"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/></button>
             <h4 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm font-bold text-slate-900 break-words"><span>{variant.name}</span></h4>
             {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : unavailable ? <p className="text-xs text-slate-600">غير معروض للبيع</p> : null}
             <p className="text-base font-black text-teal-900"><RewardAmount kind="coins" value={price} /></p>
-            {owned ? <button type="button" disabled={busy || selected} data-usage-action="equip" onClick={() => void equip(variant.id)} className="w-full rounded-xl border border-teal-300 bg-teal-50 px-2 py-3 text-xs font-bold text-teal-900 disabled:opacity-60">{selected ? <span className="inline-flex items-center gap-1"><Check size={14}/>الأفاتار الحالي</span> : 'استخدام هذا الشكل'}</button> : <button type="button" disabled={busy || unavailable || wallet.available < price} onClick={() => { setReceipt(false); setPending({ collection, variant }); }} className="w-full rounded-xl bg-teal-700 text-white px-3 py-3 text-sm font-bold transition-colors hover:bg-teal-800 active:bg-teal-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:bg-slate-100 disabled:text-slate-500">{variant.ownerId ? variant.ownerName || 'مالكتها' : unavailable ? 'غير معروض للبيع' : wallet.available < price ? 'الرصيد غير كافٍ' : <>اقتناء بـ <RewardAmount kind="coins" value={price} /></>}</button>}
+            {owned ? <button type="button" disabled={busy || selected || store.monthActive === false} data-usage-action="equip" onClick={() => void equip(variant.id)} className="w-full rounded-xl border border-teal-300 bg-teal-50 px-2 py-3 text-xs font-bold text-teal-900 disabled:opacity-60">{selected ? <span className="inline-flex items-center gap-1"><Check size={14}/>الأفاتار الحالي</span> : 'استخدام هذا الشكل'}</button> : <button type="button" disabled={busy || unavailable || wallet.available < price} onClick={() => { setReceipt(false); setPending({ collection, variant }); }} className="w-full rounded-xl bg-teal-700 text-white px-3 py-3 text-sm font-bold transition-colors hover:bg-teal-800 active:bg-teal-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700 disabled:bg-slate-100 disabled:text-slate-500">{variant.ownerId ? variant.ownerName || 'مالكتها' : unavailable ? 'غير معروض للبيع' : wallet.available < price ? 'الرصيد غير كافٍ' : <>اقتناء بـ <RewardAmount kind="coins" value={price} /></>}</button>}
 
           </div>;
         })}
       </div>}
     </article>)}</div>
-    {preview && <AvatarPreview path={preview.imagePath} name={preview.name} onClose={() => setPreview(null)} />}
+    {preview && <AvatarPreview path={preview.variant.imagePath} name={preview.variant.name} collectionName={preview.collection.name} price={priceFor(preview.collection, preview.variant)}
+      canNavigate={catalog.length > 1}
+      onPrevious={() => setPreviewId(catalog[(previewIndex - 1 + catalog.length) % catalog.length].variant.id)}
+      onNext={() => setPreviewId(catalog[(previewIndex + 1) % catalog.length].variant.id)}
+      onGoTo={() => { setExpanded(preview.collection.id); setJumpTarget(preview.variant.id); setPreviewId(null); }}
+      onClose={() => setPreviewId(null)} />}
     {pending && <PurchaseDialog item={pending} balance={wallet.available} buyer={employee.name} receipt={receipt} busy={busy} receiptMessage={message} onCancel={() => { if (!busy) setPending(null); }} onConfirm={async () => {
       if (busy) return false; setBusy(true); setMessage('');
       try {

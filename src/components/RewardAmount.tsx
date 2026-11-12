@@ -1,3 +1,5 @@
+import { formatRewardAmount } from '../lib/formatRewardAmount';
+
 type RewardKind = 'stars' | 'coins';
 
 export function RewardIcon({ kind, className = 'size-[1.15em]' }: { kind: RewardKind; className?: string }) {
@@ -19,7 +21,7 @@ export function RewardIcon({ kind, className = 'size-[1.15em]' }: { kind: Reward
 }
 
 export function RewardAmount({ kind, value }: { kind: RewardKind; value: number | string }) {
-  const amount = typeof value === 'number' ? value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 }) : value;
+  const amount = typeof value === 'number' ? formatRewardAmount(value) : value;
   return <span className="inline-flex items-center gap-1 whitespace-nowrap align-middle">
     <RewardIcon kind={kind} />
     <bdi dir="ltr">{amount}</bdi>
@@ -29,7 +31,7 @@ export function RewardAmount({ kind, value }: { kind: RewardKind; value: number 
 
 export function MissionRewards({ stars, coins }: { stars: number; coins: number }) {
   return <span className="ms-auto inline-flex shrink-0 flex-col items-end gap-1 text-xs font-bold tabular-nums text-slate-800 sm:flex-row sm:gap-3">
-    <RewardAmount kind="stars" value={`+${stars}`} />
-    <RewardAmount kind="coins" value={`+${coins}`} />
+    <RewardAmount kind="stars" value={`+${stars.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 0 })}`} />
+    <RewardAmount kind="coins" value={`+${coins.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 0 })}`} />
   </span>;
 }

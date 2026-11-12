@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { moduleUrl } from './helpers/typescript.mjs';
-const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaSunGlare, seaWreckVariant, seaViewDistance } = await import(moduleUrl('seaScene'));
+const { seaBranchClock, seaBranchScene, seaSceneBerths, seaLight, seaSunGlare, seaWreckVariant, seaViewDistance, seaIslandApproachDay } = await import(moduleUrl('seaScene'));
 const { seaMission, SEA_BRANCHES } = await import(moduleUrl('seaMission'));
 const at = value => Date.parse(value + '+03:00');
 test('sun glare ends at 15:00 Riyadh without changing the existing light schedule', () => {
@@ -266,4 +266,14 @@ test('rescue slots are separate foreground anchors for one through six simultane
     }
     assert.equal(new Set(rescues.map(p => `${p.x}:${p.y}`)).size, count);
   }
+});
+
+test('island approach images change at Riyadh midnight only on phase-two days 1–10', () => {
+  assert.equal(seaIslandApproachDay(at('2026-11-15T23:59:59.999')), null);
+  for (let i = 0; i < 10; i++) {
+    assert.equal(seaIslandApproachDay(at(`2026-11-${16+i}T00:00:00`)), i+1);
+    assert.equal(seaIslandApproachDay(at(`2026-11-${16+i}T23:59:59.999`)), i+1);
+  }
+  assert.equal(seaIslandApproachDay(at('2026-11-26T00:00:00')), null);
+  assert.equal(seaIslandApproachDay(at('2026-12-16T12:00:00')), null);
 });

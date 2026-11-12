@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 import { uploadAvatarArt } from '../lib/avatarUploads';
 import { AvatarImage } from './AvatarImage';
 import type { AvatarCollection } from '../lib/employeeFeatures';
-import { bundledAvatarShoes, bundledShoePrices, bundledAbayaGrades, bundledAvatarNames, abayaGrades, abayaPrice } from '../lib/bundledAvatars';
+import { abayaGrades, abayaPrice } from '../lib/bundledAvatars';
 const refresh = () => window.dispatchEvent(new Event('rev4-cache-changed'));
 const field = 'block mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm bg-white';
 const amount = (value: number) => value.toLocaleString('ar-SA-u-nu-latn', { maximumFractionDigits: 2 });
@@ -33,7 +33,7 @@ function PriceStepper({ collectionId, variantId = null, price, label, premium = 
   async function adjust(step: number) {
     if (inFlight.current) return;
     const expected = current.current;
-    const next = step < 0 && expected <= minimum ? 0 : Math.max(minimum, Math.min(maximum, expected + step));
+    const next = step === 0 || (step < 0 && expected <= minimum) ? 0 : Math.max(minimum, Math.min(maximum, expected + step));
     if (next === expected) { stop(); return; }
     inFlight.current = true; setBusy(true); setError('');
     try {
@@ -54,30 +54,16 @@ function PriceStepper({ collectionId, variantId = null, price, label, premium = 
   function release() { const wasHeld = held.current; stop(); if (wasHeld && longPress.current && !inFlight.current) refresh(); }
   const buttonClass = 'size-11 shrink-0 touch-none select-none rounded-xl border border-slate-300 bg-white text-xl font-bold disabled:opacity-50';
   return <div className="space-y-1" onClick={event => event.stopPropagation()}>
-    <div role="group" aria-label={`تعديل سعر ${label}`} aria-busy={busy} className="flex items-center justify-center gap-2">
-      <button type="button" disabled={value <= 0} aria-label={`خفض سعر ${label} ٥٠ عملة`} onPointerDown={event => press(event, -1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(-50); }} className={buttonClass}>−</button>
+    <div role="group" aria-label={`تعديل سعر ${label}`} aria-busy={busy} className="flex flex-wrap items-center justify-center gap-2">
+      <button type="button" disabled={value <= 0} aria-label={`خفض سعر ${label} 50 عملة`} onPointerDown={event => press(event, -1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(-50); }} className={buttonClass}>−</button>
       <RewardAmount kind="coins" value={value} />
-      <button type="button" disabled={value >= maximum} aria-label={`زيادة سعر ${label} ٥٠ عملة`} onPointerDown={event => press(event, 1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(50); }} className={buttonClass}>+</button>
+      <button type="button" disabled={value >= maximum} aria-label={`زيادة سعر ${label} 50 عملة`} onPointerDown={event => press(event, 1)} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release} onContextMenu={event => event.preventDefault()} onClick={event => { if (event.detail === 0 || !longPress.current) void adjust(50); }} className={buttonClass}>+</button>
+      <button type="button" disabled={busy || value >= maximum} aria-label={`إضافة 500 عملة إلى سعر ${label}`} onClick={() => { stop(); void adjust(500); }} className="min-h-11 rounded-xl border border-teal-300 bg-teal-50 px-3 text-sm font-bold text-teal-900 disabled:opacity-50">+500</button>
+      <button type="button" disabled={busy || value <= 0} aria-label={`تصفير سعر ${label} وإخفاؤه من البيع`} onClick={() => { stop(); void adjust(0); }} className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm font-bold text-slate-700 disabled:opacity-50">0</button>
     </div>
     {error && <p role="alert" className="text-xs text-red-700">{error}</p>}
   </div>;
 }
-
-const bundledCollections: AvatarCollection[] = bundledAvatarShoes.map((shoe, index) => {
-  const number = String(index + 1).padStart(2, '0');
-  const id = `bundled-shoe-${number}`;
-  const directory = index === 0 ? 'saudi-abaya-lv-olympia-gold-v1' : index === 1 ? 'saudi-abaya-nike-vomero-v1' : 'saudi-dark-v1';
-  return {
-    id, name: shoe, price: bundledShoePrices[index], enabled: false,
-    variants: ['a', 'b', 'c', 'd', 'e', 'f'].map((variant, position) => ({
-      id: `${id}-${variant}`,
-      name: bundledAvatarNames[index][position],
-      imagePath: `${import.meta.env.BASE_URL}avatars/${directory}/avatar-${number}-${variant}.${index === 0 ? 'png' : 'webp'}`,
-      price: abayaPrice(bundledShoePrices[index], Number(bundledAbayaGrades[index][position]), index === 0),
-      enabled: false, ownerId: null, ownerName: null,
-    })),
-  };
-});
 
 function CollectionPreview({ collection }: { collection: AvatarCollection }) {
   const [expanded, setExpanded] = useState(false);
@@ -85,8 +71,6 @@ function CollectionPreview({ collection }: { collection: AvatarCollection }) {
     <button type="button" aria-expanded={expanded} aria-controls={`admin-avatar-group-${collection.id}`} onClick={() => setExpanded(value => !value)} className="w-full text-right p-4 flex items-center gap-4 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-600">
       <AvatarImage path={collection.variants[0]?.imagePath || null} alt="" className="h-24 w-16 object-contain shrink-0"/>
       <span className="flex-1 min-w-0"><span className="block font-bold text-lg text-slate-900 break-words">{collection.name}</span>
-        <span className="block mt-2 text-sm text-slate-600">{`${collection.variants.filter(variant => !variant.ownerId && variant.enabled && collection.enabled).length} أشكال متاحة`}</span>
-        <span className="block mt-2 text-xs text-teal-800 font-bold">{expanded ? 'إخفاء الأشكال −' : 'استكشاف الأشكال +'}</span>
       </span>
       <span className="text-center shrink-0 text-teal-900 font-black"><RewardAmount kind="coins" value={collection.price} /></span>
     </button>
@@ -95,62 +79,12 @@ function CollectionPreview({ collection }: { collection: AvatarCollection }) {
       {collection.variants.length === 0 && <p className="col-span-full text-sm text-slate-600">ستُضاف أشكال هذه المجموعة قريبًا.</p>}
       {collection.variants.map(variant => <div key={variant.id} className="min-w-0 bg-white space-y-3">
         <div className="shop-art-stage"><AvatarImage path={variant.imagePath} alt={variant.name} className="h-40 w-full object-contain relative z-10"/></div>
+        <h4 className="text-center text-sm font-bold text-slate-900">{variant.name}</h4>
         {variant.ownerId ? <p className="text-xs text-purple-900 flex gap-1 items-start"><LockKeyhole size={13} className="shrink-0"/>حصرية لـ {variant.ownerName || 'مالكتها'}</p> : !variant.enabled || !collection.enabled ? <p className="text-xs text-slate-600">غير معروض للبيع</p> : null}
         <PriceStepper collectionId={collection.id} variantId={variant.id} price={variant.price ?? collection.price} label={`النموذج ${variant.name}`} premium={collection.name.trim().toLowerCase() === 'lv olympia'} />
       </div>)}
     </div>}
   </article>;
-}
-
-function ShoeBundleCatalog() {
-  const [selected, setSelected] = useState<AvatarCollection | null>(null);
-  return <section aria-labelledby="bundled-shoes-heading" className="space-y-4">
-    <div>
-      <h3 id="bundled-shoes-heading" className="text-lg font-bold text-slate-900">باقات الأحذية</h3>
-      <p className="mt-1 text-sm text-slate-600">{bundledCollections.length} باقة. لكل حذاء ست عبايات ونقابات سعودية بأسماء خاصة، للمعاينة الإدارية.</p>
-    </div>
-    <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
-      {bundledCollections.map(collection => <li key={collection.id} className="min-w-0">
-        <button type="button" aria-haspopup="dialog" onClick={() => setSelected(collection)}
-          className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white text-start hover:border-slate-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
-          <img src={collection.variants[0].imagePath ?? undefined} alt="" width={1024} height={1536}
-            loading="lazy" decoding="async" style={{ scale: '0.85 1.1' }} className="aspect-[3/4] w-full bg-[#f4f4f5] object-contain p-2 sm:p-4"/>
-          <span className="flex w-full flex-1 flex-col gap-2 px-3 py-3 sm:px-4">
-            <span dir="auto" className="break-words text-start text-sm font-bold text-slate-900 sm:text-base">{collection.name}</span>
-            <span className="mt-auto text-sm font-bold text-slate-900"><RewardAmount kind="coins" value={collection.price} /></span>
-          </span>
-        </button>
-      </li>)}
-    </ul>
-    {selected && <ShoeBundleDialog collection={selected} onClose={() => setSelected(null)}/>}
-  </section>;
-}
-
-function ShoeBundleDialog({ collection, onClose }: { collection: AvatarCollection; onClose: () => void }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
-  return <dialog ref={ref} aria-labelledby="shoe-bundle-title" onClose={onClose}
-    className="m-auto max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-5xl overflow-y-auto overscroll-contain rounded-2xl bg-white p-0 text-slate-900 backdrop:overflow-hidden backdrop:overscroll-contain backdrop:bg-slate-950/55">
-    <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-6">
-      <div>
-        <h3 id="shoe-bundle-title" dir="auto" className="text-start text-lg font-bold sm:text-xl">{collection.name}</h3>
-        <p className="mt-1 text-xs text-slate-600 sm:text-sm">{collection.variants.length} عبايات بنفس الحذاء، للمعاينة الإدارية.</p>
-      </div>
-      <form method="dialog">
-        <button autoFocus className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold focus-visible:ring-2 focus-visible:ring-teal-700">إغلاق</button>
-      </form>
-    </div>
-    <ul className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3 sm:gap-4 sm:p-6">
-      {collection.variants.map(variant => <li key={variant.id} className="min-w-0 overflow-hidden rounded-xl border border-slate-200">
-        <img src={variant.imagePath ?? undefined} alt={`${variant.name} مع حذاء ${collection.name}`} width={1024} height={1536}
-          decoding="async" style={{ scale: '0.85 1.1' }} className="aspect-[2/3] w-full bg-[#f4f4f5] object-contain p-1 sm:p-3"/>
-        <p className="p-2 text-center text-xs font-bold sm:text-sm">{variant.name} · <RewardAmount kind="coins" value={variant.price ?? collection.price} /></p>
-      </li>)}
-    </ul>
-  </dialog>;
 }
 
 export function AvatarStoreAdmin() {
@@ -196,7 +130,6 @@ export function AvatarStoreAdmin() {
         {avatarCatalog(features?.store?.collections ?? [])
           .filter(collection => !['الذوق السعودي الحديث', 'simple'].includes(collection.name.trim()))
           .map(collection => <CollectionPreview key={collection.id} collection={collection}/>)}
-        <ShoeBundleCatalog />
       </div>
     </div>
 

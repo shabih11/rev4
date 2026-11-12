@@ -1,3 +1,5 @@
+import { roundedQualifyingPoints, monthOf } from '../lib/avatarPrivileges';
+import { AvatarEffectBadge } from './AvatarEffectBadge';
 import { useData } from '../context/DataContext';
 import { TierBadge } from './EmployeeFeatures';
 import { useRecordScope } from '../hooks/useRecordScope';
@@ -6,7 +8,6 @@ import { employeeQualityPoints, qualityDeductions } from '../lib/employeeQuality
 import { employeeTier } from '../lib/employeeFeatures';
 import type { UserAccount } from '../lib/mockData';
 import { Award, ChevronDown } from 'lucide-react';
-import { ResultProblemReport } from './ResultProblemReport';
 
 interface EmployeeResultsProps {
   user: UserAccount;
@@ -15,13 +16,13 @@ interface EmployeeResultsProps {
 }
 
 export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
-  const { features, reviewSummaries, timeline, recordsReady, syncError, resultsMode, resultsDate } = useData();
+  const { avatarPrivileges, features, reviewSummaries, timeline, recordsReady, syncError, resultsMode, resultsDate } = useData();
   useRecordScope({ timeline: { employeeIds: [user.id] } });
   const quality = employeeQualityPoints(user.stats);
-  const deductions = qualityDeductions(user, reviewSummaries, timeline, resultsDate);
+  const deductions = qualityDeductions(user, reviewSummaries.filter(review => !avatarPrivileges?.uses.some(use => use.kind === 'erase' && use.period === monthOf(resultsDate) && use.reviewId === review.id && use.recipients.includes(user.id))), timeline, resultsDate);
   const periodLabel = resultsMode ? 'الشهر الماضي' : 'الشهر الحالي';
   const reasons = { review: 'رصيد تقييم سلبي', complaint: 'شكوى مؤكدة', safety: 'حادث سلامة', 'review-balance': 'رصيد جودة التقييمات المسجل', 'conduct-balance': 'رصيد الشكاوى المؤكدة وحوادث السلامة المسجل' };
-  const roundedPoints = resultsMode && features?.settings.rounding === true ? Math.ceil(user.points) : user.points;
+  const roundedPoints = user.frozenReward?.qualifyingPoints ?? roundedQualifyingPoints(user.points, resultsMode && features?.settings.rounding === true);
   const tier = features ? employeeTier(user.points, features.settings) : 'bronze';
   return <section aria-label="نتائجي" aria-busy={!ready && !error} className="px-6 mb-8">
     {!ready || error ? <div className="rounded-2xl border bg-white p-6">
@@ -31,6 +32,7 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
         <div>
           <h2 className="text-gray-500 font-bold mb-1">نقاط {periodLabel}</h2>
           <p className="text-5xl font-extrabold text-gray-800">{roundedPoints.toFixed(1)}</p>
+          <AvatarEffectBadge employeeId={user.id} />
           {roundedPoints !== user.points && <p className="mt-2 text-xs text-slate-500">{user.points.toFixed(2)} قبل نظام الجبر</p>}
         </div>
         <div className="flex items-center gap-3">
@@ -58,6 +60,5 @@ export function EmployeeResults({ user, ready, error }: EmployeeResultsProps) {
       </div>}
 
     </details>}
-    <div className="mt-4"><ResultProblemReport /></div>
   </section>;
 }

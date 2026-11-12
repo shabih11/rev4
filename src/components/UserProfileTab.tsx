@@ -1,36 +1,23 @@
+import { EmployeeDetails } from './EmployeeCard';
+import { useData } from '../context/DataContext';
 import { BranchMilestoneBadge } from './BranchMilestoneBadge';
 import { EmployeeIdentity } from './EmployeeIdentity';
-import { LeaderboardLink } from './LeaderboardLink';
 import React, { useState } from 'react';
-import { User, Lock, Mail, Shield, CheckCircle2, Eye, EyeOff, Save, LogOut } from 'lucide-react';
+import { User, Lock, Mail, Shield, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const UserProfileTab: React.FC = () => {
-  const { user, changePassword, logout, updateName } = useAuth();
+  const { user, changePassword } = useAuth();
 
-  const [name, setName] = useState(user?.name || '');
+  const { users } = useData();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
 
-  const [nameMsg, setNameMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [passMsg, setPassMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isUpdatingPass, setIsUpdatingPass] = useState(false);
 
   if (!user) return null;
-
-  const handleUpdateName = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setNameMsg(null);
-    if (user.role === 'manager') return;
-    if (!name.trim()) {
-      setNameMsg({ text: 'يرجى إدخال اسم صحيح', type: 'error' });
-      return;
-    }
-    const result = await updateName(name.trim());
-    setNameMsg({ text: result.success ? 'تم تحديث الاسم بنجاح' : result.error || 'تعذر حفظ الاسم', type: result.success ? 'success' : 'error' });
-    setTimeout(() => setNameMsg(null), 3000);
-  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +53,7 @@ export const UserProfileTab: React.FC = () => {
   return (
     <div className="profile-panel max-w-2xl mx-auto space-y-6 font-sans" dir="rtl">
       {/* Account Info Header Card */}
-      <div className="profile-summary text-white p-6 sm:p-8 rounded-3xl relative overflow-hidden">
+      {user.role === 'employee' ? <EmployeeDetails employee={users.find(employee => employee.id === user.id) ?? user} showCoverageBranch embedded /> : <div className="profile-summary text-white p-6 sm:p-8 rounded-3xl relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10 text-center sm:text-right">
           <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shrink-0 shadow-inner">
             <User size={40} />
@@ -76,7 +63,7 @@ export const UserProfileTab: React.FC = () => {
               <Shield size={13} />
               {roleTitle}
             </div>
-            <h2 className="flex flex-wrap items-center gap-2 text-2xl font-black">{user.role === 'manager' ? user.branch : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}{(user.role === 'manager' || (user.role === 'employee' && !user.isCoverage)) && <BranchMilestoneBadge branch={user.branch} />}</h2>
+            <h2 className="flex flex-wrap items-center gap-2 text-2xl font-black">{user.role === 'manager' ? user.branch : <EmployeeIdentity employee={user} className="employee-identity-on-dark" />}{user.role === 'manager' && <BranchMilestoneBadge branch={user.branch} />}</h2>
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-blue-100 pt-1">
               {user.username && <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">اسم المستخدم: <bdi className="select-text">{user.username}</bdi></span>}
               {user.email && (
@@ -87,42 +74,6 @@ export const UserProfileTab: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Edit Name Card */}
-      {user.role !== 'manager' && <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
-        <div className="flex items-center gap-2.5 border-b pb-3">
-          <User className="text-blue-600" size={20} />
-          <h3 className="font-bold text-gray-800 text-base">تعديل الاسم</h3>
-        </div>
-
-        {nameMsg && (
-          <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${nameMsg.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-            {nameMsg.type === 'success' && <CheckCircle2 size={16} />}
-            <span>{nameMsg.text}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleUpdateName} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">الاسم المعروض في النظام</label>
-            <input
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full p-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white transition"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl transition text-sm flex items-center gap-2 shadow-sm cursor-pointer"
-          >
-            <Save size={16} />
-            حفظ الاسم
-          </button>
-        </form>
       </div>}
 
       {/* Change Password Card */}
@@ -186,17 +137,7 @@ export const UserProfileTab: React.FC = () => {
         </form>
       </div>}
 
-      {/* Logout button */}
-      <div className="pt-2 flex items-center justify-center gap-2">
-        <LeaderboardLink />
-        <button
-          onClick={logout}
-          className="bg-red-50 hover:bg-red-100 text-red-600 font-bold px-6 py-3 rounded-2xl border border-red-200 transition text-sm flex items-center gap-2 cursor-pointer"
-        >
-          <LogOut size={18} />
-          تسجيل الخروج من الحساب
-        </button>
-      </div>
+
     </div>
   );
 };

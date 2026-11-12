@@ -1,8 +1,10 @@
+import { roundedQualifyingPoints, type FrozenReward } from './avatarPrivileges';
 import type { Tier } from './employeeFeatures';
 
 export interface RewardEmployee {
   id: string;
   points: number;
+  frozenReward?: FrozenReward;
   monthReviewsCount?: number;
   ordinaryReviewBalance?: number;
   goldPlusCents?: number;
@@ -22,7 +24,7 @@ export interface EmployeeReward {
 export function rewardTier(points: number, rounding: boolean): Tier {
   if (!Number.isFinite(points) || points < 8 || points > 11) return 'bronze';
   // The actual eight-point minimum takes precedence over rounding.
-  const qualifying = rounding ? Math.ceil(points) : points;
+  const qualifying = roundedQualifyingPoints(points, rounding);
   return qualifying >= 11 ? 'gold' : qualifying >= 8 ? 'silver' : 'bronze';
 }
 
@@ -30,7 +32,7 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
   const bases = employees.map(employee => {
     const tier = rewardTier(employee.points, rounding);
     const validPoints = Number.isFinite(employee.points) && employee.points >= 0 && employee.points <= 11;
-    const qualifyingPoints = validPoints ? (rounding ? Math.ceil(employee.points) : employee.points) : 0;
+    const qualifyingPoints = validPoints ? (roundedQualifyingPoints(employee.points, rounding)) : 0;
     const monetaryTier = rewardTier(qualifyingPoints, false);
     const balance = employee.monthReviewsCount;
     const rate = monetaryTier === 'gold' ? 14 : monetaryTier === 'silver' ? 10 : 0;
@@ -53,6 +55,10 @@ export function calculateEmployeeRewards(employees: RewardEmployee[], rounding =
     // The minimum is unconditional for recipients; it is the sole cap exception.
     if (cents > 0) total = Math.max(10000, total);
     const plus = employee.goldPlusCents ?? 0;
+    if (employee.frozenReward) {
+      rewards[employee.id] = { tier: employee.frozenReward.tier, qualifyingPoints: employee.frozenReward.qualifyingPoints, base: employee.frozenReward.base, total: employee.frozenReward.total, increase: employee.frozenReward.increase };
+      continue;
+    }
     rewards[employee.id] = {
       tier,
       qualifyingPoints,

@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from '@playwright/test';
 
-type Role = 'admin' | 'manager' | 'employee';
+type Role = 'admin' | 'manager' | 'employee' | 'viewer';
 type Row = { id: string; [key: string]: unknown };
 export const employee = { id: 'test-employee', name: 'موظفة اختبار', role: 'employee', branch: 'جاليري', email: '',
   points: 0, reviewsCount: 0, imageUrl: '', stats: { positive: 0, negative: 2, complaints: 0, safety: 0 } };
@@ -44,6 +44,8 @@ export async function mockService(page: Page, { role = 'admin', denied = false, 
     if (name === 'get_employee_features') return reply(null);
     if (name === 'get_accounts') return reply(directory);
     if (name === 'get_employee_last_presence') return reply({});
+    if (name === 'get_online_employees') return reply({});
+    if (name === 'get_owner_presence_settings') return reply({ enabled: false, available: true });
     if (name === 'record_usage_batch' || name === 'record_usage_login') return reply(null);
     if (name === 'record_employee_page_presence') return reply(null);
     if (name === 'read_rows') return reply(args.source === 'branches' ? branches : args.source === 'timeline' ? timeline : []);
@@ -65,11 +67,24 @@ export async function mockService(page: Page, { role = 'admin', denied = false, 
   return { account, timeline, writes, unexpected };
 }
 
-export async function login(page: Page) {
+export async function login(page: Page, { destination = 'dashboard' }: { destination?: 'dashboard' | 'leaderboard' } = {}) {
   await page.goto('./#/login');
   await page.getByLabel('اسم المستخدم أو البريد الإلكتروني', { exact: true }).fill('test@example.invalid');
   await page.getByLabel('كلمة المرور', { exact: true }).fill('test-only-password');
   await page.getByRole('button', { name: 'تسجيل الدخول', exact: true }).click();
+  // Account workflows continue through the account link; landing-page tests
+  // explicitly remain on the leaderboard to verify the actual login destination.
+  if (destination === 'dashboard') {
+    await Promise.race([
+      page.waitForURL(/#\/$/),
+      page.locator('#login-error').waitFor({ state: 'visible' }),
+    ]);
+    if (new URL(page.url()).hash !== '#/') return;
+    const navigation = page.getByRole('navigation', { name: 'التنقل', exact: true });
+    await navigation.waitFor();
+    const account = navigation.locator('a[href="#/dashboard"]');
+    if (await account.count()) await account.click();
+  }
 }
 
 export const test = base.extend({

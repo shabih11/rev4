@@ -13,6 +13,13 @@ export function seaViewDistance(now: number): 'distant' | 'near' {
   return now < approachStartsAt ? 'distant' : 'near';
 }
 
+// Phase two uses ten daily island views, starting at Riyadh midnight.
+export function seaIslandApproachDay(now: number): number | null {
+  const start = Date.UTC(SEA_MISSION.year, SEA_MISSION.month - 1, 16) - RIYADH;
+  const day = Math.floor((now - start) / DAY) + 1;
+  return day >= 1 && day <= 10 ? day : null;
+}
+
 export function seaSinkingAge(branch: SeaBranch, now: number) {
   return branch.failedDay ? Math.floor((now + RIYADH) / DAY) - Math.floor((branch.failedDay.end + RIYADH) / DAY) : 0;
 }

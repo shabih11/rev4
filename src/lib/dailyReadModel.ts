@@ -1,3 +1,4 @@
+import type { AvatarPrivilegeState } from './avatarPrivileges';
 import type { FeatureState } from './employeeFeatures';
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
@@ -6,6 +7,7 @@ import type { CloudSession } from './cloudSync';
 import type { UserAccount } from './mockData';
 import type { BranchBadgeReward, ReviewSummary, TimelineEvent } from '../context/DataContext';
 export interface DailyReadModel {
+  avatarPrivileges?: AvatarPrivilegeState;
   branchBadgeRewards?: BranchBadgeReward[];
   disabledEmployeeIds?: string[]; features: FeatureState | null; generatedAt: string; directory: UserAccount[]; reviews: ReviewSummary[]; notes: TimelineEvent[]; hours: Record<string, number>;
 }

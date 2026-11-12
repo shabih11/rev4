@@ -17,9 +17,9 @@ do $$ declare days integer; base jsonb; actual jsonb; again jsonb; begin
  base:=private.progression_before_sea_daily('sea-daily-a','2026-11-11');
  actual:=private.employee_progression('sea-daily-a','2026-11-11');
  again:=private.employee_progression('sea-daily-a','2026-11-11');
- if (actual->>'coins')::numeric-coalesce((base->>'coins')::numeric,0)<>days*10
- or (actual->>'stars')::numeric-coalesce((base->>'stars')::numeric,0)<>days*10
- then raise exception 'Daily amount differs from ten'; end if;
+ if (actual->>'coins')::numeric-coalesce((base->>'coins')::numeric,0)<>days*25
+ or (actual->>'stars')::numeric-coalesce((base->>'stars')::numeric,0)<>days*20
+ then raise exception 'Daily sea reward differs from 25 coins / 20 stars'; end if;
  if again<>actual then raise exception 'Repeated read changed reward'; end if;
 end $$;
 set local role authenticated;

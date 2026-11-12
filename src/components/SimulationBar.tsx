@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Eye, ChevronUp, X } from 'lucide-react';
+import { Eye, ChevronDown, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { simulationSnapshot, subscribeSimulation, setSimulation } from '../lib/simulationState';
@@ -66,15 +66,15 @@ export function SimulationBar() {
     } catch { setError('تعذر تسجيل نهاية المحاكاة. أعيدي المحاولة؛ لم تُنفّذ أي تعديلات.'); }
     finally { setBusy(false); }
   };
-  if (collapsed) return <aside dir="rtl" aria-label="محاكاة الحسابات" className="fixed top-4 start-4 z-[100]">
+  if (collapsed) return <aside dir="rtl" aria-label="محاكاة الحسابات" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-[100]">
     <button type="button" title="محاكاة الحسابات" aria-label="إظهار تفاصيل المحاكاة" aria-expanded={false} onClick={() => setCollapsed(false)} className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-slate-100 text-slate-700 shadow-lg focus-visible:ring-2 focus-visible:ring-slate-600"><Eye size={22} /><span className={`absolute bottom-0 end-0 h-3 w-3 rounded-full border-2 border-white ${simulation ? 'bg-teal-600' : 'bg-slate-400'}`} /></button>
   </aside>;
-  return <aside dir="rtl" aria-label="محاكاة الحسابات" className="fixed top-4 start-4 z-[100] w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-slate-300 bg-slate-100 p-4 text-sm text-slate-800 shadow-xl">
+  return <aside dir="rtl" aria-label="محاكاة الحسابات" className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-4 z-[100] w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-slate-300 bg-slate-100 p-4 text-sm text-slate-800 shadow-xl">
     <div className="mb-3 flex items-center justify-between gap-2">
       <p className="font-bold">محاكاة حساب{simulation ? ` (${simulation.target.name} - ${simulation.target.branch})` : ''}</p>
       <div className="flex shrink-0 gap-1">
-        <button type="button" aria-label="طي تفاصيل المحاكاة" aria-expanded={true} aria-controls="simulation-details" onClick={() => setCollapsed(true)} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-200"><ChevronUp size={20} /></button>
         <button type="button" aria-label="إغلاق وضع المحاكاة" disabled={busy} onClick={() => simulation ? void stop() : setCollapsed(true)} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-200 disabled:opacity-50"><X size={20} /></button>
+        <button type="button" aria-label="طي تفاصيل المحاكاة" aria-expanded={true} aria-controls="simulation-details" onClick={() => setCollapsed(true)} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-slate-200"><ChevronDown size={20} /></button>
       </div>
     </div>
     <div id="simulation-details" className="space-y-3">

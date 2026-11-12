@@ -294,7 +294,7 @@ do $$ declare result jsonb; begin
  if result->'verify-sign-in-unlinked' is distinct from 'null'::jsonb then raise exception 'Unseen employee invented presence'; end if;
  if result ? 'verify-admin' or result ? 'verify-manager' then raise exception 'Non-employee presence exposed'; end if;
  if public.get_read_model()::text like '%last_seen_at%' then raise exception 'Shared summary exposed presence'; end if;
- begin perform public.record_employee_page_presence(); raise exception 'Admin recorded employee presence'; exception when insufficient_privilege then null; end;
+ perform public.record_employee_page_presence();
 end $$;
 reset role;
 do $$ begin
@@ -330,7 +330,7 @@ do $$ declare suffix text; begin
   perform set_config('request.jwt.claims',jsonb_build_object('sub','00000000-0000-4000-8000-'||lpad(suffix,12,'0'),'role','authenticated')::text,true);
   begin perform public.get_employee_last_presence(); raise exception 'Non-admin read presence'; exception when insufficient_privilege then null; end;
   begin perform public.get_branch_last_presence(); raise exception 'Non-admin read branch presence'; exception when insufficient_privilege then null; end;
-  if suffix <> '2' then
+  if suffix = '99' then
    begin perform public.record_employee_page_presence(); raise exception 'Non-member recorded presence'; exception when insufficient_privilege then null; end;
   end if;
  end loop;

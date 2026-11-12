@@ -24,24 +24,26 @@ test('review missions display level, shared effort rewards and reset daily progr
   await expect(page.getByRole('img', { name: 'أي آم سبيشل', exact: true })).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('employee-header-mobile.png') });
   await expect(missions.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '30');
-  await expect(missions.getByRole('listitem').filter({ hasText: 'ثلاثة آثار في يوم واحد' }).locator('img')).toHaveAttribute('data-grade', '1');
+  await expect(missions.getByRole('listitem').filter({ hasText: '3 تقييمات في يوم' }).locator('img')).toHaveAttribute('data-grade', '1');
   const pair = missions.getByRole('listitem').filter({ hasText: 'ثنائي متألق' });
-  await expect(pair).toContainText('1/3 درجات مكتملة');
+  await expect(pair).not.toContainText('درجات مكتملة');
   await expect(missions.getByText('جاهزة للانطلاق')).toHaveCount(0);
   await expect(missions.getByText('امحي أثر تقييم سلبي', { exact: true })).toHaveCount(0);
   await expect(missions.getByText('كيف تُحسب المستويات والمكافآت؟', { exact: true })).toHaveCount(0);
-  await expect(pair).toContainText('+33.75 نجمة');
-  await expect(pair).toContainText('+22.5 عملة');
+  await expect(pair).toContainText('+34 نجمة');
+  await expect(pair).toContainText('+23 عملة');
   await page.screenshot({ path: test.info().outputPath('employee-missions-mobile.png'), fullPage: true });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.screenshot({ path: test.info().outputPath('employee-missions-desktop.png'), fullPage: true });
   await page.clock.setFixedTime(new Date('2026-11-05T00:01:00+03:00'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
-  await expect(missions.locator('header')).toContainText(/مجموعك\s*30\s*نجمة/);
-  const daily = missions.getByRole('listitem').filter({ hasText: 'أثران في يوم واحد' });
-  await expect(daily).toContainText('0/2');
-  await expect(pair).toContainText('1/3 درجات مكتملة');
+  await expect(missions.locator('header')).not.toContainText('مجموعك');
+  await expect(missions).not.toContainText('نجوم التقييمات');
+  await expect(missions).not.toContainText('مكافآت المهام');
+  const daily = missions.getByRole('listitem').filter({ hasText: 'تقييمين في يوم' });
+  await expect(daily).not.toContainText('0/2');
+  await expect(pair).not.toContainText('درجات مكتملة');
   expect(service.writes).toEqual([]);
   expect(service.unexpected).toEqual([]);
 });
@@ -54,9 +56,9 @@ test('an imported negative exposes recovery with actual surplus-share progress',
   } }));
   await login(page);
   const recovery = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: 'امحي أثر تقييم سلبي' });
-  await expect(recovery).toContainText('3/4');
+  await expect(recovery).not.toContainText('3/4');
   await expect(recovery).toContainText('+25 نجمة');
-  await expect(recovery).toContainText('0/3 درجات مكتملة');
+  await expect(recovery).not.toContainText('درجات مكتملة');
   expect(service.unexpected).toEqual([]);
 });
 
@@ -124,15 +126,33 @@ test('mission badges use green, blue and gold as daily targets advance', async (
     reviews: Array.from({ length: count }, (_, i) => imported(`grade-${i}`, '04-11-2026', [employee.id])),
   } }));
   await login(page);
-  for (const [value, band, title, target] of [[0,0,'أثران في يوم واحد',2], [2,1,'ثلاثة آثار في يوم واحد',3], [3,2,'خمسة آثار في يوم واحد',5], [5,2,'خمسة آثار في يوم واحد',5]] as const) {
+  for (const [value, band, title, target] of [[0,0,'تقييمين في يوم',2], [2,1,'3 تقييمات في يوم',3], [3,2,'5 تقييمات في يوم',5], [5,2,'5 تقييمات في يوم',5]] as const) {
     count = value;
     if (value) await page.reload();
     const mission = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: title });
     await expect(mission.locator('img')).toHaveAttribute('data-grade', String(band));
     await expect(mission.locator('img')).toHaveAttribute('src', new RegExp(`/grades/${['green','blue','gold'][band]}/`));
     await expect(mission.locator('img')).toHaveCSS('filter', 'none');
-    await expect(mission).toContainText(`${value}/${target}`);
+    await expect(mission).not.toContainText(`${value}/${target}`);
     await mission.screenshot({ path: test.info().outputPath(`grade-${value}.png`) });
   }
   expect(service.unexpected).toEqual([]);
+});
+
+test('daily task uses concise text and updated first grade rewards', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-12T12:00:00+03:00'));
+  await missionService(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await login(page);
+  const daily = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: 'تقييمين في يوم' });
+  await expect(daily).toContainText('+13 نجمة');
+  await expect(daily).toContainText('+15 عملة');
+  await expect(daily).not.toContainText('الدرجة');
+  await expect(daily).not.toContainText('0/2');
+  const partner = page.getByRole('region', { name: 'رحلة الإنجاز' }).getByRole('listitem').filter({ hasText: 'ثنائي متألق' });
+  await expect(partner).toContainText('اكتسبي 10 تقييمات إيجابية مع الشريكة نفسها');
+  await expect(partner).toContainText('+88 عملة');
+  await expect(partner).toContainText('+98 نجمة');
+  await daily.screenshot({ path: test.info().outputPath('daily-concise.png') });
+  await partner.screenshot({ path: test.info().outputPath('partner-concise.png') });
 });

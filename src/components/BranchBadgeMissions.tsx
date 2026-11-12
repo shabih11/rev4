@@ -15,7 +15,7 @@ const badges = {
 const badgeIds = Object.keys(badges) as BranchBadgeReward['badge'][];
 
 export function BranchBadgeMissions({ branch, employeeId }: { branch: string; employeeId: string }) {
-  const { reviewSummaries, branchBadgeRewards, coverageBranches } = useData();
+  const { reviewSummaries, branchBadgeRewards, coverageBranches, features, currentAccount } = useData();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const refresh = () => setNow(new Date());
@@ -35,13 +35,17 @@ export function BranchBadgeMissions({ branch, employeeId }: { branch: string; em
       const badge = badges[id];
       const approved = branchBadgeRewards.some(reward => reward.branch === missionBranch && reward.badge === id && ((id === 'milestone' || id === 'milestone500') || reward.period.startsWith(month)));
       const count = monthly;
+      const coffee = currentAccount?.id === employeeId ? features?.store?.wallet?.coffeeRewards?.find(reward => reward.branch === missionBranch && reward.period.startsWith(month)) : undefined;
+      const coffeeStatus = !approved || count < 5 || coffee?.eligible === false ? 'غير مكتملة' : !coffee ? 'جارٍ التحقق من المكافأة…' : coffee.collected ? 'تم الجمع' : 'جاهزة للجمع';
       if (id === 'coffee' && !approved && (weekday === 1 || weekday === 2)) return null;
       const startsTomorrow = id === 'coffee' && weekday === 3 && !approved;
-      return <li key={id} className={`flex items-center gap-3 rounded-xl border p-3 ${approved ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
+      const earned = id === 'coffee' ? approved && coffee?.eligible === true : approved;
+      return <li key={id} className={`flex items-center gap-3 rounded-xl border p-3 ${earned ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50'}`}>
         <img src={`${import.meta.env.BASE_URL}badges/${badge.image}`} alt="" className="h-12 w-12 object-contain" />
         <div>
           <h3 className="font-bold text-slate-900">{badge.name}</h3>
-          {approved && <p className="flex items-center gap-1 text-xs font-bold text-emerald-800"><CheckCircle2 size={16} aria-hidden="true" />تم اكتساب المكافأة</p>}
+          {id === 'coffee' && <p className={`text-xs font-bold ${coffeeStatus === 'جاهزة للجمع' || coffeeStatus === 'تم الجمع' ? 'text-emerald-800' : 'text-slate-600'}`}>{coffeeStatus}</p>}
+          {approved && id !== 'coffee' && <p className="flex items-center gap-1 text-xs font-bold text-emerald-800"><CheckCircle2 size={16} aria-hidden="true" />تم اكتساب المكافأة</p>}
           {startsTomorrow && <p className="text-sm font-bold text-slate-700">تبدأ غدًا</p>}
           {id === 'milestone' || id === 'milestone500' ? <p className="text-sm">عند الوصول إلى {id === 'milestone500' ? '٥٠٠' : '١٠٠٠'} تقييم في خرائط قوقل</p> : <>
             <p className="text-sm">{badge.target}</p>

@@ -125,7 +125,7 @@ test('monthly missions advance through all three independent targets', () => {
   const end = new Date('2026-11-30T12:00:00+03:00');
   for (const [id, thresholds, makeRows] of [
     ['ten', [10,20,35], count => positives(count)],
-    ['partner', [2,4,6], count => positives(count, '08-11-2026', ['a','b'])],
+    ['partner', [10,20,30], count => positives(count, '08-11-2026', ['a','b'])],
     ['days', [5,8,12], count => Array.from({length:count}, (_,i) => review(`day-${i}`, `${i+1}-11-2026`))],
     ['partners', [3,4,5], count => Array.from({length:count}, (_,i) => review(`partner-${i}`, '08-11-2026', ['a',`b${i}`]))],
   ]) {
@@ -137,5 +137,26 @@ test('monthly missions advance through all three independent targets', () => {
       assert.equal(after.completedBands, grade+1);
       assert.equal(after.band, Math.min(2,grade+1));
     }
+  }
+});
+
+test('daily first grade becomes 13 stars and 15 coins from November 12; other grades stay unchanged', () => {
+  const before = employeeMissions('a', positives(2, '11-11-2026'), new Date('2026-11-11T12:00:00+03:00'));
+  const after = employeeMissions('a', positives(2, '12-11-2026'), new Date('2026-11-12T12:00:00+03:00'));
+  assert.equal(after.bonusStars-before.bonusStars, 8);
+  assert.equal(after.bonusCoins-before.bonusCoins, 10);
+  const empty = employeeMissions('a', [], new Date('2026-11-12T12:00:00+03:00'));
+  assert.equal(task(empty, 'daily-two').stars, 13);
+  assert.equal(task(empty, 'daily-two').coins, 15);
+  assert.equal(task(after, 'daily-two').stars, gradeReward(5, 1));
+});
+
+test('partner mission begins at ten with 88 coins and 98 stars and keeps the 125 percent grade increase', () => {
+  const updated = new Date('2026-11-12T12:00:00+03:00');
+  for (const [count, target, band] of [[0,10,0],[9,10,0],[10,20,1],[20,30,2],[30,30,2]]) {
+    const mission = task(employeeMissions('a', positives(count, '12-11-2026', ['a','b']), updated), 'partner');
+    assert.equal(mission.target, target);
+    assert.equal(mission.coins, gradeReward(88, band));
+    assert.equal(mission.stars, gradeReward(98, band));
   }
 });

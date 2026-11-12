@@ -17,6 +17,7 @@ for (const count of [999, 1000]) {
     await page.getByLabel('اسم المستخدم أو البريد الإلكتروني', { exact: true }).fill('test@example.invalid');
     await page.getByLabel('كلمة المرور', { exact: true }).fill('test-only-password');
     await page.getByRole('button', { name: 'تسجيل الدخول', exact: true }).click();
+    await page.getByRole('link', { name: 'جاليري', exact: true }).click();
     const header = page.locator('header').first();
     await expect(header.getByRole('img', { name: 'قهوة الأحد، الفرع الفائز: جاليري', exact: true })).toBeVisible();
     await expect(header.getByRole('img', { name: 'الانطلاق الصاروخي، فرع جاليري: ١٠٠ تقييم خلال أسبوع', exact: true })).toBeVisible();

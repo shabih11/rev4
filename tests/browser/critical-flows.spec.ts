@@ -1,9 +1,11 @@
 import { test, expect, login, mockService, employee } from './fixtures.js';
 
 for (const role of ['admin', 'manager', 'employee'] as const) {
-  test(`verified ${role} login reaches its dashboard and logout clears access`, async ({ page }) => {
+  test(`verified ${role} login reaches the leaderboard and account logout clears access`, async ({ page }) => {
     const service = await mockService(page, { role });
-    await login(page);
+    await login(page, { destination: 'leaderboard' });
+    await expect(page).toHaveURL(/#\/$/);
+    await page.getByRole('navigation', { name: 'التنقل', exact: true }).locator('a[href="#/dashboard"]').click();
     await expect(page).toHaveURL(/#\/dashboard$/);
     await expect(page.getByRole('button', { name: /خروج/ }).first()).toBeVisible();
     await page.getByRole('button', { name: /خروج/ }).first().click();

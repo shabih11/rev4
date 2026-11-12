@@ -33,8 +33,8 @@ test('branch missions show confirmed rewards and Wednesday coffee teaser with co
   await expect(missions).not.toContainText('يُفعّل تلقائيًا');
   const sea = page.getByRole('region', { name: 'مهمة البحر اليوم' });
   await expect(sea).toContainText('مهمة البحر (يوميًا)');
-  await expect(sea).toContainText('+10 نجمة');
-  await expect(sea).toContainText('+10 عملة');
+  await expect(sea).toContainText('+20 نجمة');
+  await expect(sea).toContainText('+25 عملة');
   await missions.screenshot({ path: test.info().outputPath('branch-missions-mobile.png') });
   await page.clock.setFixedTime(new Date('2026-11-12T09:00:00+03:00'));
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
@@ -54,8 +54,8 @@ for (const completed of [false, true]) test(`sea daily card is ${completed ? 'gr
   await login(page);
   const sea = page.getByRole('region', { name: 'مهمة البحر اليوم' });
   await expect(sea).toContainText('مهمة البحر (يوميًا)');
-  await expect(sea).toContainText('+10 نجمة');
-  await expect(sea).toContainText('+10 عملة');
+  await expect(sea).toContainText('+20 نجمة');
+  await expect(sea).toContainText('+25 عملة');
   if (completed) {
     await expect(sea).toHaveClass(/border-emerald-500/);
     await expect(sea).toContainText('تم اكتساب المكافأة لجميع موظفات الفرع');

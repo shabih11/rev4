@@ -74,13 +74,19 @@ function periodMissions(employeeId: string, rows: ImportedRating[], today: strin
 
 export const missionGrades = ['الخضراء', 'الزرقاء', 'الذهبية'] as const;
 export const gradeReward = (base: number, band: number) => Math.round(base * 2.25 ** band * 100) / 100;
+// New daily first-grade reward applies from this update; prior earnings stay intact.
+export const dailyRewardStart = '2026-11-12';
+const missionReward = (base: number, band: number, id: string, day: string, kind: 'stars' | 'coins') =>
+  id === 'daily-two' && band === 0 && day >= dailyRewardStart ? (kind === 'stars' ? 13 : 15)
+    : gradeReward(id === 'partner' && day >= dailyRewardStart ? (kind === 'stars' ? 98 : 88) : base, band);
+
 const gradeTargets: Record<string, number[]> = {
   'daily-two': [2, 3, 5], partner: [2, 4, 6], ten: [10, 20, 35],
   days: [5, 8, 12], partners: [3, 4, 5],
 };
 const dailyTitles = ['أثران في يوم واحد', 'ثلاثة آثار في يوم واحد', 'خمسة آثار في يوم واحد'];
 
-function gradedMissions(employeeId: string, rows: ImportedRating[], today: string): EmployeeMission[] {
+function gradedMissions(employeeId: string, rows: ImportedRating[], today: string, asOf = today): EmployeeMission[] {
   // Recompute uncapped counts before choosing the next unfinished grade.
   const positive = rows.filter(row => row.rating >= 4);
   const partners = new Map<string, number>();
@@ -94,7 +100,7 @@ function gradedMissions(employeeId: string, rows: ImportedRating[], today: strin
     recovery: Math.max(0, sum(positive.map(row => 1 / row.members.length)) - 20),
   };
   return periodMissions(employeeId, rows, today).map(base => {
-    const thresholds = gradeTargets[base.id] ?? [base.target, base.target * 1.5, base.target * 2.5];
+    const thresholds = base.id === 'partner' && asOf >= dailyRewardStart ? [10, 20, 30] : gradeTargets[base.id] ?? [base.target, base.target * 1.5, base.target * 2.5];
     const current = counts[base.id];
     const completedBands = thresholds.filter(target => current + 1e-9 >= target).length;
     const band = Math.min(2, completedBands);
@@ -110,7 +116,7 @@ function gradedMissions(employeeId: string, rows: ImportedRating[], today: strin
     return { ...base, title: base.id === 'daily-two' ? dailyTitles[band] : base.title,
       description: descriptions[base.id], hint: 'ثلاث درجات تتجدد مع بداية الشهر، والتحدي اليومي يتجدد يوميًا. مكافأة مستقلة لكل درجة بزيادة 125٪ عن السابقة.',
       band, completedBands, target, current: Math.min(current, target),
-      stars: gradeReward(base.stars, band), coins: gradeReward(base.coins, band) };
+      stars: missionReward(base.stars, band, base.id, base.id === 'partner' ? asOf : today, 'stars'), coins: missionReward(base.coins, band, base.id, base.id === 'partner' ? asOf : today, 'coins') };
   });
 }
 
@@ -148,7 +154,7 @@ export function employeeAchievementEvidence(employeeId: string, reviews: ReviewS
   while (low < high) {
     const middle = Math.floor((low + high) / 2);
     const throughReview = rows.slice(0, middle + 1);
-    const missions = gradedMissions(employeeId, throughReview, '');
+    const missions = gradedMissions(employeeId, throughReview, '', calendarDay(today));
     const mission = missions.find(item => item.id === achievement.id);
     if (mission && (mission.completedBands ?? 0) > achievement.band) high = middle;
     else low = middle + 1;
@@ -181,11 +187,11 @@ export function employeeMissions(employeeId: string, reviews: ReviewSummary[], n
     }
     const periods = ['', ...new Set(rows.map(row => row.day))];
     for (const date of periods) {
-      for (const mission of gradedMissions(employeeId, rows, date).filter(m => date ? m.period === 'daily' : m.period === 'monthly')) {
+      for (const mission of gradedMissions(employeeId, rows, date, day).filter(m => date ? m.period === 'daily' : m.period === 'monthly')) {
         const base = periodMissions(employeeId, rows, date).find(m => m.id === mission.id)!;
         for (let band = 0; band < (mission.completedBands ?? 0); band++) {
-          bonusStars += gradeReward(base.stars, band);
-          bonusCoins += gradeReward(base.coins, band);
+          bonusStars += missionReward(base.stars, band, base.id, base.id === 'partner' ? day : date, 'stars');
+          bonusCoins += missionReward(base.coins, band, base.id, base.id === 'partner' ? day : date, 'coins');
           achievements.push({ id: mission.id, title: mission.id === 'daily-two' ? dailyTitles[band] : mission.title, month: key, band });
         }
       }

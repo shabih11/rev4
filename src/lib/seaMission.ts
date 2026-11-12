@@ -1,3 +1,4 @@
+import type { AvatarSeaReturn } from './avatarPrivileges';
 import { BRANCH_HOURS } from './branchHours';
 import { timeMinutes, toEnglishNumerals } from './formatDate';
 
@@ -15,7 +16,7 @@ export const seaBranchName = (branch: string) => aliases[branch.trim()] || branc
 
 type Review = { id: string; branch: string; rating: string; date: string; time: string };
 export type SeaCompletion = { branch: string; day: number; approved_at: string };
-export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; completedAt?: number; uncertain: boolean; graceUsed: boolean; manuallyCompleted?: boolean };
+export type SeaDay = { day: number; phase: number; target: number; minimum: number; start: number; end: number; count: number; completedAt?: number; uncertain: boolean; graceUsed: boolean; avatarRescued?: boolean; manuallyCompleted?: boolean };
 export type SeaBranch = {
   name: string; status: 'waiting' | 'sailing' | 'sunk' | 'arrived' | 'unverified';
   days: SeaDay[]; current: SeaDay | undefined; failedDay: SeaDay | undefined; progress: number;
@@ -137,7 +138,7 @@ function reviewInstant(review: Review) {
   return calendar + minutes * 60000 + seconds * 1000 - RIYADH_OFFSET;
 }
 
-export function seaMission(reviews: readonly Review[], now = Date.now(), completions: readonly SeaCompletion[] = []) {
+export function seaMission(reviews: readonly Review[], now = Date.now(), completions: readonly SeaCompletion[] = [], returns: readonly AvatarSeaReturn[] = []) {
   const seen = new Set<string>();
   const dated: { branch: string; timestamp: number }[] = [];
   const undated: { branch: string; calendar: number }[] = [];
@@ -163,6 +164,7 @@ export function seaMission(reviews: readonly Review[], now = Date.now(), complet
         && Number.isFinite(Date.parse(item.approved_at)) && Date.parse(item.approved_at) <= now);
       const manuallyCompleted = Boolean(approval && now >= start);
       return { day, ...rule, start, end, graceUsed: false, count: manuallyCompleted ? Math.max(rule.target, timestamps.length) : timestamps.length, manuallyCompleted,
+        avatarRescued: returns.some(item => item.branch === name && item.day === day && Date.parse(item.usedAt) <= now),
         completedAt: timestamps[rule.target - 1] ?? (manuallyCompleted ? Math.max(start, Math.min(Date.parse(approval!.approved_at), end - 1)) : undefined),
         uncertain: undated.some(review => review.branch === name && review.calendar < end + RIYADH_OFFSET && review.calendar + DAY > start + RIYADH_OFFSET) };
     });
@@ -173,6 +175,7 @@ export function seaMission(reviews: readonly Review[], now = Date.now(), complet
     for (const day of days) {
       if (now < day.end) break;
       if (day.count >= day.target) continue;
+      if (day.avatarRescued) continue;
       // An unknown timestamp can change whether this day needs a grace at all.
       if (day.uncertain) { blockedDay = day; break; }
       if (day.count >= day.minimum && !usedGraces.has(day.phase)) {

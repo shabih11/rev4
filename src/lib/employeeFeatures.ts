@@ -37,10 +37,47 @@ export interface AvatarVariant {
 export interface AvatarCollection {
   id: string; name: string; price: number; enabled: boolean; variants: AvatarVariant[];
 }
+export interface CoinAchievement {
+  id: string;
+  title: string;
+  period: string;
+  coins: number;
+}
+export interface RankChallenge {
+  active: boolean;
+  leading?: boolean;
+  rank?: number;
+  targetId?: string;
+  targetName?: string;
+  targetBranch?: string;
+  targetRank?: number;
+  coins?: number;
+  stars?: number;
+  alreadyEarned?: boolean;
+}
+export interface EmployeeWallet {
+  earned: number; stars?: number; highestTier?: Tier; spent: number; available: number;
+  coffeeRewards?: { branch: string; period: string; eligible: boolean; collected: boolean }[];
+  pendingCoins?: number;
+  pendingAchievements?: CoinAchievement[];
+  rankChallenge?: RankChallenge | null;
+  tierMissions?: TierMission[];
+}
+export interface TierMission {
+  id: string;
+  tier: 'silver' | 'gold';
+  target: number;
+  current: number;
+  coins: number;
+  stars: number;
+  completed: boolean;
+  collected: boolean;
+}
 export interface AvatarStoreState {
+  monthActive?: boolean;
   goldEntitled?: boolean;
   collections: AvatarCollection[];
-  wallet: { earned: number; stars?: number; highestTier?: Tier; spent: number; available: number } | null;
+  wallet: EmployeeWallet | null;
   equipped: Record<string, string>;
   goldRequests?: { id: string; name: string; imagePath: string }[];
   selectedVariant: string | null;

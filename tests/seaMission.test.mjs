@@ -347,3 +347,15 @@ test('foreground boats scatter near the viewer with stable daily positions and n
   assert.notDeepEqual(seaForegroundBerths(branches, now + 86400000), positions);
   assert.deepEqual(seaForegroundBerths([], now), []);
 });
+
+test('one gold avatar return rescues a failed day without consuming a phase grace', () => {
+  const now = instant('2026-11-08T12:00:00');
+  const rows = [...completedDays('شرق', 5, 5), ...completedDays('شرق', 7, 7)];
+  assert.equal(branch(rows, now).status, 'sunk');
+  const returns = [{ branch: 'شرق', day: 6, actor: 'gold', usedAt: '2026-11-07T09:00:00+03:00' }];
+  const rescued = seaMission(rows, now, [], returns).branches.find(item => item.name === 'شرق');
+  assert.equal(rescued.status, 'sailing');
+  assert.equal(rescued.days.find(day => day.day === 6).avatarRescued, true);
+  assert.equal(rescued.days.filter(day => day.graceUsed).length, 0);
+  assert.equal(seaMission(rows, instant('2026-11-07T08:00:00'), [], returns).branches.find(item => item.name === 'شرق').status, 'sunk');
+});

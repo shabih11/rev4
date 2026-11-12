@@ -36,7 +36,7 @@ test('LV is first, catalogue stays gold, and unavailable models keep their price
  await page.getByRole('button',{name:/LV Olympia/}).click();
  for(const name of ['مملوك','متاح','ملكي']) await expect(page.getByRole('button',{name:`عرض ${name} مكبرًا`}).locator('img')).toHaveAttribute('src',/lv-olympia-gold-v1/);
  const panel=page.locator('#avatar-group-lv');
- for(const amount of ['12,499','12,999','13,499']) await expect(panel).toContainText(amount);
+ for(const amount of ['12,500','13,000','13,500']) await expect(panel).toContainText(amount);
  await expect(panel.getByRole('button',{name:'مالكة',exact:true})).toBeDisabled();
  await expect(panel.getByRole('button',{name:'الرصيد غير كافٍ',exact:true})).toBeDisabled();
 });

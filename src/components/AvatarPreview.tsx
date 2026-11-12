@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Minus, Plus, RotateCcw, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { RewardAmount } from './RewardAmount';
 import { AvatarImage } from './AvatarImage';
 
 type View = { zoom: number; x: number; y: number };
-export function AvatarPreview({ path, name, onClose }: { path: string | null; name: string; onClose: () => void }) {
+export function AvatarPreview({ path, name, collectionName, price, canNavigate, onPrevious, onNext, onGoTo, onClose }: { path: string | null; name: string; collectionName: string; price: number; canNavigate: boolean; onPrevious: () => void; onNext: () => void; onGoTo: () => void; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
@@ -51,7 +52,7 @@ export function AvatarPreview({ path, name, onClose }: { path: string | null; na
   function removePointer(id: number) { pointers.current.delete(id); if (!pointers.current.size) swipe.current = null; }
   return <dialog ref={dialog} onCancel={event => { event.preventDefault(); onClose(); }} aria-labelledby="avatar-preview-title" className="avatar-preview" dir="rtl">
     <header className="flex shrink-0 items-center justify-between gap-3 bg-white px-4 py-3">
-      <h3 id="avatar-preview-title" className="min-w-0 truncate text-base font-bold text-slate-900">{name}</h3>
+      <div className="min-w-0 flex flex-wrap items-baseline gap-x-3 gap-y-1"><h3 id="avatar-preview-title" className="text-base font-bold text-slate-900">{name}</h3><span className="font-bold text-teal-900" aria-label="سعر النموذج"><RewardAmount kind="coins" value={price} /></span><p className="w-full text-xs text-slate-500">{collectionName}</p></div>
       <button type="button" aria-label="إغلاق الصورة" onClick={onClose} className={control}><X size={22} /></button>
     </header>
     <div ref={viewport} className="avatar-preview-viewport relative min-h-0 flex-1 overflow-hidden bg-white" dir="ltr" style={{ touchAction: 'none', cursor: view.zoom > 1 ? 'grab' : 'zoom-in' }}
@@ -90,10 +91,9 @@ export function AvatarPreview({ path, name, onClose }: { path: string | null; na
       </div>
     </div>
     <footer className="flex shrink-0 items-center justify-center gap-3 bg-white px-4 pt-3 pb-[max(12px,env(safe-area-inset-bottom))]" dir="ltr">
-      <button type="button" aria-label="تصغير الصورة" disabled={view.zoom <= 1} onClick={() => zoomAt(current.current.zoom - 0.5)} className={control}><Minus size={20}/></button>
-      <output className="w-14 text-center text-sm tabular-nums text-slate-600" aria-live="polite">{Math.round(view.zoom * 100)}%</output>
-      <button type="button" aria-label="تكبير الصورة" disabled={view.zoom >= 4} onClick={() => zoomAt(current.current.zoom + 0.5)} className={control}><Plus size={20}/></button>
-      <button type="button" aria-label="إظهار الأفتار كاملًا" onClick={() => update({ zoom: 1, x: 0, y: 0 })} className={control}><RotateCcw size={19}/></button>
+      <button type="button" aria-label="الأفتار السابق" disabled={!canNavigate} onClick={onPrevious} className={control}><ChevronLeft size={22}/></button>
+      <button type="button" onClick={onGoTo} className="min-h-11 rounded-full bg-slate-100 px-6 text-sm font-bold text-slate-900 hover:bg-slate-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700">الانتقال</button>
+      <button type="button" aria-label="الأفتار التالي" disabled={!canNavigate} onClick={onNext} className={control}><ChevronRight size={22}/></button>
     </footer>
   </dialog>;
 }

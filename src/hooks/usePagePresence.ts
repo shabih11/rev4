@@ -5,7 +5,7 @@ import { startPagePresence } from '../lib/pagePresence';
 import type { UserAccount } from '../lib/mockData';
 
 export function usePagePresence(account: UserAccount | null) {
-  const employeeId = account?.role === 'employee' || account?.role === 'manager' ? account.id : null;
+  const employeeId = account && ['employee', 'manager', 'viewer', 'admin'].includes(account.role) ? account.id : null;
   useEffect(() => {
     if (!employeeId || simulationSnapshot()) return;
     return startPagePresence(async signal => {

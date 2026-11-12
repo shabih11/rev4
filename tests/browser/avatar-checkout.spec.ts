@@ -26,7 +26,7 @@ test('exclusive models show buyers and checkout requires invoice confirmation', 
   await page.getByRole('button', { name: 'افتار', exact: true }).click();
   const group = page.getByRole('button', { name: /LV Olympia/ });
   await expect(group).toContainText('فاطمة');
-  await expect(group).toContainText('10,049');
+  await expect(group).toContainText('10,050');
   await expect(group).toContainText('يبدأ من');
   await expect(group).not.toContainText('9,500');
   await group.click();
@@ -50,10 +50,10 @@ test('exclusive models show buyers and checkout requires invoice confirmation', 
   await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect(preview).toBeVisible();
   expect(await preview.locator('.avatar-preview-image').evaluate(el => new DOMMatrix(getComputedStyle(el).transform).a)).toBeGreaterThan(1);
-  await preview.getByRole('button', { name: 'إظهار الأفتار كاملًا' }).click();
+  await preview.locator('.avatar-preview-viewport').dblclick();
   await expect(preview.locator('.avatar-preview-image')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 0)');
-  await preview.getByRole('button', { name: 'تكبير الصورة', exact: true }).click();
-  await expect(preview.locator('output')).toHaveText('150%');
+  await preview.locator('.avatar-preview-viewport').dblclick();
+  await expect(preview.getByLabel('سعر النموذج')).toContainText('10,200');
   const viewport = preview.locator('.avatar-preview-viewport');
   await viewport.hover();
   await page.mouse.wheel(0, -300);
@@ -69,8 +69,8 @@ test('exclusive models show buyers and checkout requires invoice confirmation', 
   });
   expect(Math.abs(position.x)).toBeLessThanOrEqual(position.width * (position.zoom - 1) / 2 + 1);
   expect(Math.abs(position.y)).toBeLessThanOrEqual(position.height * (position.zoom - 1) / 2 + 1);
-  await preview.getByRole('button', { name: 'إظهار الأفتار كاملًا' }).click();
-  const resetBounds = (await preview.getByRole('button', { name: 'إظهار الأفتار كاملًا' }).boundingBox())!;
+  await preview.locator('.avatar-preview-viewport').dblclick();
+  const resetBounds = (await preview.getByRole('button', { name: 'الانتقال', exact: true }).boundingBox())!;
   expect(resetBounds.y + resetBounds.height).toBeLessThanOrEqual(844);
   await preview.screenshot({ path: '/tmp/rev4-avatar-preview-fit.png' });
   await preview.getByRole('button', { name: 'إغلاق الصورة' }).click();
@@ -89,8 +89,8 @@ test('exclusive models show buyers and checkout requires invoice confirmation', 
   await page.getByRole('button', { name: /اقتناء بـ/ }).click();
   const invoice = page.getByRole('dialog', { name: 'فاتورة الطلب' });
   await expect(invoice).toContainText('حساب اختبار');
-  await expect(invoice).toContainText('10,199');
-  await expect(invoice).toContainText('9,801');
+  await expect(invoice).toContainText('10,200');
+  await expect(invoice).toContainText('9,800');
   expect(purchases).toBe(0);
   await invoice.getByRole('button', { name: 'إلغاء', exact: true }).click();
   expect(purchases).toBe(0);
@@ -129,8 +129,8 @@ for (const goldEntitled of [false, true]) test(`ordinary invoice has no paid gol
   await page.getByRole('button', { name: /اقتناء بـ/ }).click();
   const invoice = page.getByRole('dialog', { name: 'فاتورة الطلب' });
   await expect(invoice.getByRole('button', { name: /أم خماس/ })).toHaveCount(0);
-  await expect(invoice).toContainText('2,049');
-  await expect(invoice).toContainText('17,951');
+  await expect(invoice).toContainText('2,050');
+  await expect(invoice).toContainText('17,950');
   expect(await invoice.locator('img').evaluate(el => getComputedStyle(el).scale)).toBe('0.85 1');
   await invoice.screenshot({ path: test.info().outputPath('ordinary-invoice.png') });
   await invoice.getByRole('button', { name: 'تأكيد الاقتناء' }).click();

@@ -13,7 +13,11 @@ for (const width of [390,1280]) test(`usage dashboard is readable at ${width}px 
  await login(page);
  await page.getByRole('button',{name:'تحليلات الاستخدام',exact:true}).filter({visible:true}).click();
  await expect(page.getByRole('heading',{name:'تحليلات استخدام الموظفات'})).toBeVisible();
- await expect(page.getByText('50٪',{exact:true})).toHaveCount(2);
+ await expect(page.getByText('50٪',{exact:true})).toHaveCount(3);
+ await page.getByLabel('مقياس النشاط').selectOption('clicks');
+ await page.getByRole('button', {name:'الرئيسية، النقرات: 1',exact:true}).click();
+ await expect(page.getByRole('button', {name:'إغلاق التفاصيل'})).toBeVisible();
+ await page.getByRole('button', {name:'إغلاق التفاصيل'}).click();
  await page.getByLabel('غير النشطات في الفترة فقط').check();
  await expect(page.getByRole('button').filter({hasText:'موظفة غير نشطة'})).toBeVisible();
  await expect(page.getByRole('button').filter({hasText:'موظفة اختبار'})).toHaveCount(0);

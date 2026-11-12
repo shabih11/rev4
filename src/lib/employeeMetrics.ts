@@ -1,10 +1,11 @@
+import { applyAvatarCompletion, monthOf, type AvatarPrivilegeState } from './avatarPrivileges';
 import type { UserAccount } from './mockData';
 import type { ReviewSummary, TimelineEvent } from '../context/DataContext';
 import { isCoverageEmployee } from './employeeBranches';
 import { previousMonthEnd, recordsThroughDate, isInCurrentMonth, isPositiveReview } from './reviewPeriod';
 import { toEnglishNumerals } from './formatDate';
 
-export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], notes: TimelineEvent[], resultsDate: Date, ready: boolean, imageUrl: string): UserAccount[] {
+export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], notes: TimelineEvent[], resultsDate: Date, ready: boolean, imageUrl: string, privileges?: AvatarPrivilegeState): UserAccount[] {
     if (!ready) return users.map(user => ({ ...user, imageUrl: imageUrl }));
     return users.map(user => {
       // Force all users to use the unified employee image
@@ -39,7 +40,7 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
             goldPlusCents += Math.floor(1600 / members.length) + Number(members.indexOf(unifiedUser.id) < 1600 % members.length);
           }
         } else if (rating <= 2 && rating >= 1) {
-          negativeScore -= (0.5 / shareCount);
+          if (!privileges?.uses.some(use => use.period === monthOf(resultsDate) && use.kind === 'erase' && use.reviewId === r.id && use.recipients.includes(unifiedUser.id))) negativeScore -= (0.5 / shareCount);
         }
       });
 
@@ -71,7 +72,7 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
       const monthReviewsCount = Math.round(monthReviewsBalance * 10) / 10;
 
       // Return updated user
-      return {
+      return applyAvatarCompletion({
         ...unifiedUser,
         points: calculatedPoints,
         reviewsCount: totalReviewsCount,
@@ -84,7 +85,7 @@ export function enrichEmployees(users: UserAccount[], reviews: ReviewSummary[], 
           complaints: complaintsScore,
           safety: safetyScore
         }
-      };
+      }, privileges, monthOf(resultsDate));
     });
 }
 

@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import ts from 'typescript';
-const code = ts.transpileModule(readFileSync(new URL('../src/lib/employeeRewards.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { calculateEmployeeRewards, rewardTier } = await import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'));
+import { moduleUrl } from './helpers/typescript.mjs';
+const { calculateEmployeeRewards, rewardTier } = await import(moduleUrl('employeeRewards'));
 const employee = (id, points, balance) => ({ id, points, monthReviewsCount: balance });
 
 test('disabled rounding uses actual balances and rates while preserving the 100-riyal minimum', () => {
@@ -15,7 +13,7 @@ test('disabled rounding uses actual balances and rates while preserving the 100-
   assert.equal(rewards.s.increase, 15);
 });
 test('rounding changes category points only, preserving the actual review balance', () => {
-  const { rewards } = calculateEmployeeRewards([employee('s', 8, 15.4), employee('g', 10.1, 11)], true);
+  const { rewards } = calculateEmployeeRewards([employee('s', 8, 15.4), employee('g', 10.8, 11)], true);
   assert.equal(rewards.s.tier, 'silver');
   assert.equal(rewards.s.qualifyingPoints, 8);
   assert.equal(rewards.s.base, 154);
@@ -27,7 +25,7 @@ test('rounding changes category points only, preserving the actual review balanc
   assert.equal(rewardTier(8, false), 'silver');
 });
 test('rounding can grant the minimum reward below eight actual points without a silver badge', () => {
-  for (const points of [7.1, 7.5, 7.9, 7.99, 7.999999]) {
+  for (const points of [7.8, 7.9, 7.99, 7.999999]) {
     for (const rounding of [false, true]) {
       assert.equal(rewardTier(points, rounding), 'bronze');
       const { rewards } = calculateEmployeeRewards([employee('below', points, 7.5)], rounding);
@@ -37,14 +35,14 @@ test('rounding can grant the minimum reward below eight actual points without a 
       assert.equal(rewards.below.total, rounding ? 100 : 0);
     }
   }
-  for (const points of [0, 7]) {
+  for (const points of [0, 7, 7.1, 7.5, 7.79]) {
     assert.equal(calculateEmployeeRewards([employee('below', points, 7.5)], true).rewards.below.total, 0);
   }
   assert.equal(rewardTier(8, true), 'silver');
 });
 test('rounded recipients below eight retain the review-balance minimum and shared uplift rules', () => {
   const { rewards, commonIncrease } = calculateEmployeeRewards([
-    employee('below-balance', 7.5, 7), employee('minimum', 7.5, 7.5), employee('gold', 11, 11),
+    employee('below-balance', 7.5, 7), employee('minimum', 7.8, 7.5), employee('gold', 11, 11),
   ], true);
   assert.equal(rewards['below-balance'].total, 0);
   assert.equal(rewards.minimum.tier, 'bronze');

@@ -62,9 +62,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { completions, ready: seaApprovalsReady } = useSeaCompletions(seaFinished ? session.account?.id : undefined);
   const seaWinningBranches = React.useMemo(() => {
     if (!seaApprovalsReady) return new Set<string>();
-    const mission = seaMission(allReviewSignals, Date.now(), completions);
+    const mission = seaMission(allReviewSignals, Date.now(), completions, daily.data?.avatarPrivileges?.seaReturns);
     return new Set(mission.finished ? mission.branches.filter(branch => branch.status === 'arrived').map(branch => branch.name) : []);
-  }, [allReviewSignals, completions, seaApprovalsReady]);
+  }, [allReviewSignals, completions, seaApprovalsReady, daily.data?.avatarPrivileges?.seaReturns]);
   const rocketLaunchWinningBranches = React.useMemo(() => rocketLaunchBranches(allReviewSignals, today), [allReviewSignals, today]);
   const sundayCoffeeWinningBranch = React.useMemo(() => sundayCoffeeWinner(allReviewSignals), [allReviewSignals]);
   const allNoteSignals = daily.data?.notes || emptyTimeline;
@@ -108,7 +108,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const enrichedUsers = React.useMemo(() => {
     const winners = previousMonthWinnerIds(users, allReviewSignals, allNoteSignals, new Date(`${today}T12:00:00+03:00`));
-    return enrichEmployees(users, reviewSignals.rows, noteSignals.rows, resultsDate, Boolean(daily.data), employeeImg)
+    return enrichEmployees(users, reviewSignals.rows, noteSignals.rows, resultsDate, Boolean(daily.data), employeeImg, daily.data?.avatarPrivileges)
       .map(user => ({ ...user, name: user.name.replace(/👑/gu, '').trim(), previousMonthWinner: Boolean(daily.data) && winners.has(user.id) }));
   }, [users, allReviewSignals, allNoteSignals, today, reviewSignals.rows, noteSignals.rows, resultsDate, daily.data]);
 
@@ -140,6 +140,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
+      avatarPrivileges: daily.data?.avatarPrivileges,
       resultsMode, resultsDate, setResultsMode,
       coverageBranchError: coverageBranches.error, coverageBranches: coverageBranches.branches,
       features: featureState,
