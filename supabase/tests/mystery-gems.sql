@@ -26,14 +26,24 @@ do $$ declare item jsonb; begin
   perform public.collect_coin_achievement(item->>'id');
  end loop;
 end $$;
-do $$ declare first_gem text; begin
+do $$ declare first_gem text; balance_before numeric; begin
  begin perform public.save_magic_settings('{"boxes":true,"themes":true,"price":0}',public.get_avatar_store()#>'{magic,settings}'); raise exception 'Employee configured boxes'; exception when insufficient_privilege then null; end;
  begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',0); raise exception 'Client price accepted'; exception when sqlstate 'PT409' then null; end;
+ balance_before:=(public.get_avatar_store()#>>'{wallet,available}')::numeric;
+ if balance_before<75 then raise exception 'Insufficient synthetic funding'; end if;
  first_gem:=public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',75);
  if first_gem is null or first_gem<>all(array['amber','pearl','emerald','sapphire','rose','amethyst']) then raise exception 'Unknown jewel'; end if;
  if public.purchase_mystery_box('20000000-0000-4000-8000-000000000010',75)<>first_gem then raise exception 'Retry changed jewel'; end if;
- if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>147.81 then raise exception 'Retry or balance incorrect'; end if;
- begin perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000011',75); perform public.purchase_mystery_box('20000000-0000-4000-8000-000000000012',75); raise exception 'Overspend accepted'; exception when invalid_parameter_value then null; end;
+ if (public.get_avatar_store()#>>'{wallet,available}')::numeric<>balance_before-75 then raise exception 'Retry or balance incorrect'; end if;
+ -- Exhaust the remaining funding regardless of calendar-dependent achievements.
+ -- The exception rolls all purchases in this subtransaction back.
+ begin
+  for n in 1..floor((balance_before-75)/75)::int loop
+   perform public.purchase_mystery_box(gen_random_uuid(),75);
+  end loop;
+  perform public.purchase_mystery_box(gen_random_uuid(),75);
+  raise exception 'Overspend accepted';
+ exception when invalid_parameter_value then null; end;
  begin perform public.equip_gem(first_gem); raise exception 'Disabled themes accepted'; exception when insufficient_privilege then null; end;
  begin insert into public.gem_purchases values('20000000-0000-4000-8000-000000000012','magic-test-a','amber',0,now()); raise exception 'Direct purchase accepted'; exception when insufficient_privilege then null; end;
  begin perform private.avatar_wallet('magic-test-b'); raise exception 'Private wallet callable'; exception when insufficient_privilege then null; end;
