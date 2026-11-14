@@ -74,6 +74,8 @@ jobs:
           package-manager-cache: false
       - name: Start isolated Supabase and apply repository migrations
         run: npx --yes supabase@3.0.0 start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit
+      - name: Verify Windsor destination ingestion and restricted access
+        run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/windsor-destination.sql
       - name: Verify coin collection authorization and idempotency
         run: docker exec -i supabase_db_rev4-tests psql -X -U postgres -d postgres --set ON_ERROR_STOP=on --quiet --file /dev/stdin < supabase/tests/coin-collection.sql
       - name: Verify monthly rank challenge rewards
