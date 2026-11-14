@@ -72,7 +72,14 @@ begin
   unchanged_reviews=windsor_destination_receipts.unchanged_reviews+excluded.unchanged_reviews;
  return new;
 end $$;
-alter function private.ingest_windsor_destination() owner to service_role;
+-- PostgreSQL requires schema CREATE when transferring ownership. Grant it only
+-- inside this transaction, preserving any pre-existing privilege.
+do $$ declare had_create boolean:=has_schema_privilege('service_role','private','CREATE');
+begin
+ if not had_create then grant create on schema private to service_role; end if;
+ alter function private.ingest_windsor_destination() owner to service_role;
+ if not had_create then revoke create on schema private from service_role; end if;
+end $$;
 revoke all on function private.ingest_windsor_destination() from public,anon,authenticated;
 create trigger ingest_windsor_destination after insert or update on public.windsor_reviews_inbox
  for each row execute function private.ingest_windsor_destination();
