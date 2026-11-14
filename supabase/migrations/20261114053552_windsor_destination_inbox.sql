@@ -12,6 +12,15 @@ create table public.windsor_reviews_inbox (
 alter table public.windsor_reviews_inbox enable row level security;
 revoke all on public.windsor_reviews_inbox from public, anon, authenticated;
 grant select,insert,update on public.windsor_reviews_inbox to service_role;
+-- No password or LOGIN is provisioned by a repository migration. The owner
+-- enables this dedicated credential separately in the Supabase dashboard.
+create role windsor_ingest nologin noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+grant usage on schema public to windsor_ingest;
+grant select,insert,update,delete on public.windsor_reviews_inbox to windsor_ingest;
+create policy windsor_destination_read on public.windsor_reviews_inbox for select to windsor_ingest using(true);
+create policy windsor_destination_insert on public.windsor_reviews_inbox for insert to windsor_ingest with check(true);
+create policy windsor_destination_update on public.windsor_reviews_inbox for update to windsor_ingest using(true) with check(true);
+create policy windsor_destination_delete on public.windsor_reviews_inbox for delete to windsor_ingest using(true);
 
 create table private.windsor_destination_receipts (
  transaction_id bigint primary key,
